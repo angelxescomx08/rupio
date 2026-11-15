@@ -65,7 +65,19 @@ class AppContainer(val app: Application) {
 
     suspend fun wipeLocalData() {
         db.admin().clearWorkouts(); db.admin().clearRoutines(); db.admin().clearRecords(); db.admin().clearCustomExercises()
+        db.admin().clearBodyWeights()
         sync.resetCursors()
+    }
+
+    /**
+     * Los datos del teléfono pertenecen a UNA cuenta. Si entra otra (p. ej. la app se cerró a medio "Cerrar sesión"),
+     * se borran antes de sincronizar, para no mostrar ni subir datos ajenos a la cuenta nueva.
+     */
+    suspend fun claimLocalData(uid: String) {
+        val prefs = app.getSharedPreferences("rupio_owner", Context.MODE_PRIVATE)
+        val owner = prefs.getString("uid", null)
+        if (owner != null && owner != uid) wipeLocalData()
+        prefs.edit().putString("uid", uid).commit()
     }
 }
 
@@ -93,6 +105,7 @@ class RupioApp : Application() {
             container.auth.state.distinctUntilChanged { a, b -> (a as? AuthState.SignedIn)?.userId == (b as? AuthState.SignedIn)?.userId }
                 .collect { s ->
                     if (s is AuthState.SignedIn) {
+                        container.claimLocalData(s.userId)
                         // Una vez por versión: récords consistentes con el historial (p. ej. si borraste entrenos).
                         val prefs = getSharedPreferences("rupio_app", MODE_PRIVATE)
                         // Una vez: re-descarga todo para traer columnas nuevas (planes por serie) y el peso corporal.

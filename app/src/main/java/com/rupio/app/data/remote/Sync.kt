@@ -186,7 +186,8 @@ class SyncEngine(
     private val prefs = context.getSharedPreferences("rupio_sync", Context.MODE_PRIVATE)
     private val _status = MutableStateFlow(SyncStatus(lastSuccess = prefs.getLong("last_ok", 0).takeIf { it > 0 }))
     val status: StateFlow<SyncStatus> = _status
-    private val batch = 400
+    private val batch = 400          // subida: lotes chicos (si el servidor rechaza uno, se reintenta fila por fila)
+    private val pullBatch = 2_000    // bajada: páginas grandes = 4× menos viajes (8 años de datos: ~40 s → ~10 s de red)
 
     suspend fun sync(): Boolean = mutex.withLock {
         if (localOnly()) return true
@@ -280,7 +281,7 @@ class SyncEngine(
                 RecordDto(uid, it.exerciseId, it.kind, it.value, it.setId, it.achievedAt.iso())
             }, RecordDto.serializer())
         }, { rec.clean(it.exerciseId, it.kind, it.updatedAt) })
-        pushTable("body_weights", "user_id,measured_on", { bw.dirty(it) }, { rows ->
+        pushTable("body_weights", "user_id,measured_on", { bw.dirty(uid, it) }, { rows ->
             api.upsert(base, jwt, "body_weights", "user_id,measured_on", rows.map {
                 BodyWeightDto(uid, it.measuredOn.day(), it.weightKg.takeIf { w -> w.isFinite() }?.coerceIn(20.0, 400.0) ?: 20.0, it.deleted)
             }, BodyWeightDto.serializer())
@@ -313,15 +314,26 @@ class SyncEngine(
         var newest: String? = cursor
         while (true) {
             val page = last?.let { listOf("or" to keysetAfter(it, tie)) } ?: listOf("updated_at" to "gt.$since")
-            val rows = api.select(base, jwt, table, filters + page + listOf("select" to "*", "order" to order, "limit" to "$batch")).map { it.jsonObject }
+            val rows = api.select(base, jwt, table, filters + page + listOf("select" to "*", "order" to order, "limit" to "$pullBatch")).map { it.jsonObject }
             if (rows.isEmpty()) break
             apply(rows)
             last = rows.last()
             val ts = last["updated_at"]!!.jsonPrimitive.content
             if (newest == null || OffsetDateTime.parse(ts).isAfter(OffsetDateTime.parse(newest))) newest = ts
-            if (rows.size < batch) break
+            if (rows.size < pullBatch) break
         }
         if (newest != null && newest != cursor) prefs.edit().putString(key, newest).apply()
+    }
+
+    /**
+     * Consultas "IN (…)" en trozos de 500: Android 8–10 trae SQLite con un máximo de 999 parámetros por consulta,
+     * y una página de 2 000 filas lo rebasaría.
+     */
+    private suspend fun <K, T> inChunks(keys: List<K>, query: suspend (List<K>) -> List<T>): Set<T> {
+        if (keys.isEmpty()) return emptySet()
+        val out = HashSet<T>()
+        for (part in keys.chunked(500)) out += query(part)
+        return out
     }
 
     /** Filtro PostgREST "después de esta fila" en orden (updated_at, tie1, tie2…). */
@@ -342,7 +354,7 @@ class SyncEngine(
         val mine = listOf("user_id" to "eq.$uid") // filtro explícito además de RLS: usa el índice (user_id, updated_at)
         pullTable(base, jwt, "exercises", listOf("owner_id" to "eq.$uid")) { rows ->
             val dtos = rows.map { j.decodeFromJsonElement(ExerciseDto.serializer(), it) to it["updated_at"]!!.jsonPrimitive.content.ms() }
-            val dirty = db.exercises().dirtyIds(dtos.map { it.first.id }).toSet()
+            val dirty = inChunks(dtos.map { it.first.id }) { db.exercises().dirtyIds(it) }
             db.exercises().upsert(dtos.filter { it.first.id !in dirty }.map { (d, u) ->
                 ExerciseEntity(d.id, d.name, d.name.searchKey(), d.primaryMuscle, d.secondaryMuscles.joinToString(","), d.equipment, d.tracking,
                     d.isLowerBody, isCustom = true, ownerId = d.ownerId, deleted = d.deleted, updatedAt = u, dirty = false)
@@ -350,22 +362,23 @@ class SyncEngine(
         }
         pullTable(base, jwt, "routines", mine) { rows ->
             val dtos = rows.map { j.decodeFromJsonElement(RoutineDto.serializer(), it) to it["updated_at"]!!.jsonPrimitive.content.ms() }
-            val dirty = db.routines().dirtyRoutineIds(dtos.map { it.first.id }).toSet()
+            val dirty = inChunks(dtos.map { it.first.id }) { db.routines().dirtyRoutineIds(it) }
             db.routines().upsertRoutines(dtos.filter { it.first.id !in dirty }.map { (d, u) ->
                 RoutineEntity(d.id, d.userId, d.name, d.notes, d.position, d.createdAt.ms(), u, d.deleted, dirty = false)
             })
         }
         pullTable(base, jwt, "routine_exercises", mine) { rows ->
             val dtos = rows.map { j.decodeFromJsonElement(RoutineExerciseDto.serializer(), it) to it["updated_at"]!!.jsonPrimitive.content.ms() }
-            val dirty = db.routines().dirtyExerciseIds(dtos.map { it.first.id }).toSet()
-            db.routines().upsertExercises(dtos.filter { it.first.id !in dirty && db.routines().get(it.first.routineId) != null }.map { (d, u) ->
+            val dirty = inChunks(dtos.map { it.first.id }) { db.routines().dirtyExerciseIds(it) }
+            val parents = inChunks(dtos.map { it.first.routineId }.distinct()) { db.routines().existingIds(it) }
+            db.routines().upsertExercises(dtos.filter { it.first.id !in dirty && it.first.routineId in parents }.map { (d, u) ->
                 RoutineExerciseEntity(d.id, d.routineId, d.userId, d.exerciseId, d.position, d.supersetId, d.supersetRestMode, d.supersetRestSec,
                     d.restSec, d.targetSets, d.repMin, d.repMax, d.notes, u, d.deleted, dirty = false, setPlan = d.setPlan.planText())
             })
         }
         pullTable(base, jwt, "workouts", mine) { rows ->
             val dtos = rows.map { j.decodeFromJsonElement(WorkoutDto.serializer(), it) to it["updated_at"]!!.jsonPrimitive.content.ms() }
-            val dirty = db.workouts().dirtyWorkoutIds(dtos.map { it.first.id }).toSet()
+            val dirty = inChunks(dtos.map { it.first.id }) { db.workouts().dirtyWorkoutIds(it) }
             db.workouts().upsertWorkouts(dtos.filter { it.first.id !in dirty }.map { (d, u) ->
                 WorkoutEntity(d.id, d.userId, d.routineId, d.name, d.startedAt.ms(), d.endedAt?.ms(), d.timeZone, d.localDate.epochDay(),
                     d.durationSec, d.totalVolumeKg, d.totalSets, d.totalReps, 0, d.notes, u, d.deleted, dirty = false)
@@ -373,18 +386,19 @@ class SyncEngine(
         }
         pullTable(base, jwt, "workout_exercises", mine) { rows ->
             val dtos = rows.map { j.decodeFromJsonElement(WorkoutExerciseDto.serializer(), it) to it["updated_at"]!!.jsonPrimitive.content.ms() }
-            val dirty = db.workouts().dirtyExerciseIds(dtos.map { it.first.id }).toSet()
-            db.workouts().upsertExercises(dtos.filter { it.first.id !in dirty && db.workouts().get(it.first.workoutId) != null }.map { (d, u) ->
+            val dirty = inChunks(dtos.map { it.first.id }) { db.workouts().dirtyExerciseIds(it) }
+            val parents = inChunks(dtos.map { it.first.workoutId }.distinct()) { db.workouts().existingWorkoutIds(it) }
+            db.workouts().upsertExercises(dtos.filter { it.first.id !in dirty && it.first.workoutId in parents }.map { (d, u) ->
                 WorkoutExerciseEntity(d.id, d.workoutId, d.userId, d.exerciseId, d.position, d.supersetId, d.supersetRestMode, d.supersetRestSec,
                     d.restSec, d.repMin, d.repMax, d.notes, u, d.deleted, dirty = false, setPlan = d.setPlan.planText())
             })
         }
         pullTable(base, jwt, "workout_sets", mine) { rows ->
             val dtos = rows.map { j.decodeFromJsonElement(WorkoutSetDto.serializer(), it) to it["updated_at"]!!.jsonPrimitive.content.ms() }
-            val dirty = db.workouts().dirtySetIds(dtos.map { it.first.id }).toSet()
-            val parents = db.workouts()
+            val dirty = inChunks(dtos.map { it.first.id }) { db.workouts().dirtySetIds(it) }
+            val parents = inChunks(dtos.map { it.first.workoutId }.distinct()) { db.workouts().existingWorkoutIds(it) }
             remoteDeleted += dtos.filter { it.first.deleted && it.first.id !in dirty }.map { it.first.exerciseId }
-            db.workouts().upsertSets(dtos.filter { it.first.id !in dirty }.filter { parents.get(it.first.workoutId) != null }.map { (d, u) ->
+            db.workouts().upsertSets(dtos.filter { it.first.id !in dirty }.filter { it.first.workoutId in parents }.map { (d, u) ->
                 WorkoutSetEntity(d.id, d.workoutExerciseId, d.workoutId, d.userId, d.exerciseId, d.position, d.setType, d.weightKg, d.reps,
                     d.durationSec, d.rpe, d.completed, d.completedAt?.ms(), d.performedOn.epochDay(), false, u, d.deleted, dirty = false)
             })
@@ -395,7 +409,7 @@ class SyncEngine(
         }
         pullTable(base, jwt, "body_weights", mine, tie = listOf("measured_on")) { rows ->
             val dtos = rows.map { j.decodeFromJsonElement(BodyWeightDto.serializer(), it) to it["updated_at"]!!.jsonPrimitive.content.ms() }
-            val dirty = db.bodyWeights().dirtyDays(uid, dtos.map { it.first.measuredOn.epochDay() }).toSet()
+            val dirty = inChunks(dtos.map { it.first.measuredOn.epochDay() }) { db.bodyWeights().dirtyDays(uid, it) }
             db.bodyWeights().upsertAll(dtos.filter { it.first.measuredOn.epochDay() !in dirty }.map { (d, u) ->
                 BodyWeightEntity(d.userId, d.measuredOn.epochDay(), d.weightKg, u, d.deleted, dirty = false)
             })
@@ -403,7 +417,7 @@ class SyncEngine(
         if (remoteDeleted.isNotEmpty()) onRemoteSetDeletes(remoteDeleted)
     }
 
-    fun resetCursors() { prefs.edit().clear().apply(); pendingDeletes.clear() }
+    fun resetCursors() { prefs.edit().clear().apply(); pendingDeletes.clear(); _status.value = SyncStatus() }
 
     /** Vuelve a bajar todo una vez (p. ej. tras agregar columnas nuevas como set_plan). No toca lo pendiente de subir. */
     fun resetPullCursors() { val last = prefs.getLong("last_ok", 0); prefs.edit().clear().putLong("last_ok", last).apply() }

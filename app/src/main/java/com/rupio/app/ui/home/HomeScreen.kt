@@ -14,6 +14,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -64,6 +67,9 @@ fun HomeScreen(nav: NavHostController) {
     val active by c.workouts.active.collectAsStateWithLifecycle(initialValue = null)
     val recent by c.workouts.observeRecent(40).collectAsStateWithLifecycle(initialValue = emptyList())
     val zone by c.zone.collectAsStateWithLifecycle()
+    val syncSt by c.sync.status.collectAsStateWithLifecycle()
+    // Recién entraste con tu cuenta y aún no termina la primera descarga: no decir "aún no tienes rutinas".
+    val firstDownload = (auth as? AuthState.SignedIn)?.localOnly == false && syncSt.lastSuccess == null
     val names = remember(catalog) { catalog.associate { it.id to it.name } }
     val byRoutine = remember(items) { items.groupBy { it.routineId } }
     val coach = LocalCoach.current
@@ -120,6 +126,20 @@ fun HomeScreen(nav: NavHostController) {
                     Text(name.substringBefore(' ').ifBlank { "Atleta" }, style = MaterialTheme.typography.headlineMedium)
                 }
                 Box(Modifier.clip(CircleShape).clickable { nav.goToTab(Routes.PROFILE) }) { InitialsAvatar(name, 44.dp) }
+            }
+        }
+        if (firstDownload) item {
+            SectionCard(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (syncSt.lastError == null) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.5.dp, color = RupioColors.Primary)
+                    else Icon(Icons.Rounded.CloudOff, null, tint = RupioColors.Warning)
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(if (syncSt.lastError == null) "Bajando tus datos de la nube…" else "Aún no pudimos bajar tus datos", style = MaterialTheme.typography.titleSmall)
+                        Text(if (syncSt.lastError == null) "La primera vez tarda unos segundos si tienes mucho historial. Puedes seguir usando la app."
+                             else "Revisa tu conexión; lo reintentamos solos.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                    }
+                }
             }
         }
         item {
@@ -200,7 +220,7 @@ fun HomeScreen(nav: NavHostController) {
             }
         }
         val list = routines
-        if (list != null && list.isEmpty()) item {
+        if (list != null && list.isEmpty() && !firstDownload) item {
             EmptyState(Icons.Rounded.ListAlt, "Aún no tienes rutinas",
                 "Te ayudamos a armar una según tus días, tu tiempo y tu equipo. O créala tú desde cero.") {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

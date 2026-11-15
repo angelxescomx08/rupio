@@ -62,6 +62,7 @@ class QaDataSyncTest {
         var ioFailNext = 0                  // próximas N → sin red
         var garbageGet = false              // GET responde JSON roto
         var requests = 0
+        var serverNanos = 0L                // tiempo gastado DENTRO del servidor falso (no cuenta como tiempo de la app)
         private val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx").withZone(ZoneOffset.UTC)
         private val rejectExercise = "rechazado_por_servidor"
 
@@ -94,7 +95,8 @@ class QaDataSyncTest {
             if (ioFailNext > 0) { ioFailNext--; throw IOException("sin red") }
             if (failNext > 0) { failNext--; return@Interceptor resp(req, 500, "{\"message\":\"caído\"}") }
             val table = req.url.pathSegments.last()
-            synchronized(this) {
+            val t0 = System.nanoTime()
+            try { synchronized(this) {
                 when (req.method) {
                     "POST" -> {
                         val keys = req.url.queryParameter("on_conflict")!!.split(",")
@@ -131,7 +133,7 @@ class QaDataSyncTest {
                         resp(req, 200, JsonArray(list.take(limit)).toString())
                     }
                 }
-            }
+            } } finally { serverNanos += System.nanoTime() - t0 }
         }
 
         private fun cmp(a: String, b: String, col: String): Int = when (col) {
@@ -264,6 +266,45 @@ class QaDataSyncTest {
         assertEquals(20 * 6 * 4, server.rows("workout_sets").size)
         assertEquals("solo la fila mala queda pendiente", listOf(bad.id), c.db.workouts().dirtyExercises(100).map { it.id })
         assertTrue(e.status.value.lastError!!.contains("no se pudieron subir"))
+    }
+
+    /** Tamaño de la cuenta demo (8 años): primera sincronización en un teléfono vacío. */
+    @Test fun primeraSincronizacionDeUnaCuentaDe8Anios() = runBlocking {
+        val sets = seed(1_700)                                 // 40 800 series, 10 200 ejercicios, 1 700 entrenos
+        val server = FakeServer()
+        assertTrue(engine(server).sync())
+        wipeLocal()
+        val e2 = engine(server)
+        val before = server.requests; server.serverNanos = 0
+        val ms = measureTimeMillis { assertTrue(e2.sync()) }
+        val appMs = ms - server.serverNanos / 1_000_000
+        val tot = c.db.stats().workoutTotals(0, Int.MAX_VALUE)
+        assertEquals(1_700, tot.n); assertEquals("series efectivas", 1_700 * 6 * 3, tot.sets)
+        assertEquals("todas las series", sets, c.db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM workout_sets WHERE deleted = 0").use { it.moveToFirst(); it.getInt(0) })
+        println("Primera bajada de ${sets + 10_200 + 1_700} filas: app $appMs ms (+ servidor falso ${server.serverNanos / 1_000_000} ms), ${server.requests - before} peticiones")
+    }
+
+    /** Cambiar de cuenta en el mismo teléfono: nada de la cuenta anterior se ve ni se sube a la nueva. */
+    @Test fun cambiarDeCuentaNoMezclaDatos() = runBlocking {
+        seed(3)
+        c.bodyWeight.log(java.time.LocalDate.now(zone), 80.0)
+        c.claimLocalData(uid)                                          // mismo dueño: no se borra nada
+        assertEquals(3, c.db.stats().workoutTotals(0, Int.MAX_VALUE).n)
+        assertEquals(1, c.db.bodyWeights().dirty(uid, 10).size)
+
+        // Defensa en la subida: aunque quedaran pesos de A en el teléfono, la cuenta B no los sube.
+        val server = FakeServer()
+        val otra = "0193f0aa-0000-7000-8000-000000000b0b"
+        c.db.admin().clearWorkouts()
+        assertTrue(engine(server, prefsUser = otra).sync())
+        assertTrue("no se sube el peso de otra cuenta", server.rows("body_weights").isEmpty())
+
+        // Entra otra cuenta sin haber limpiado (la app se cerró a medio "Cerrar sesión") → se borra todo lo local.
+        seed(2)
+        c.claimLocalData(otra)
+        assertEquals("entrenos de la cuenta anterior", 0, c.db.stats().workoutTotals(0, Int.MAX_VALUE).n)
+        assertEquals("pesos de la cuenta anterior", null, c.db.bodyWeights().firstDay(uid))
+        c.claimLocalData(uid)                                          // deja el dueño como estaba para las demás pruebas
     }
 
     @Test fun caidasDeRedYServidorNoPierdenNada() = runBlocking {

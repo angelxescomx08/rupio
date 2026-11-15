@@ -81,6 +81,7 @@ interface RoutineDao {
     @Query("UPDATE routines SET dirty = 0 WHERE id = :id AND updated_at = :u") suspend fun cleanRoutine(id: String, u: Long)
     @Query("UPDATE routine_exercises SET dirty = 0 WHERE id = :id AND updated_at = :u") suspend fun cleanExercise(id: String, u: Long)
     @Query("SELECT id FROM routines WHERE dirty = 1 AND id IN (:ids)") suspend fun dirtyRoutineIds(ids: List<String>): List<String>
+    @Query("SELECT id FROM routines WHERE id IN (:ids)") suspend fun existingIds(ids: List<String>): List<String>
     @Query("SELECT id FROM routine_exercises WHERE dirty = 1 AND id IN (:ids)") suspend fun dirtyExerciseIds(ids: List<String>): List<String>
 }
 
@@ -198,6 +199,7 @@ interface WorkoutDao {
     @Query("UPDATE workout_exercises SET dirty = 0 WHERE id = :id AND updated_at = :u") suspend fun cleanExercise(id: String, u: Long)
     @Query("UPDATE workout_sets SET dirty = 0 WHERE id = :id AND updated_at = :u") suspend fun cleanSet(id: String, u: Long)
     @Query("SELECT id FROM workouts WHERE dirty = 1 AND id IN (:ids)") suspend fun dirtyWorkoutIds(ids: List<String>): List<String>
+    @Query("SELECT id FROM workouts WHERE id IN (:ids)") suspend fun existingWorkoutIds(ids: List<String>): List<String>
     @Query("SELECT id FROM workout_exercises WHERE dirty = 1 AND id IN (:ids)") suspend fun dirtyExerciseIds(ids: List<String>): List<String>
     @Query("SELECT id FROM workout_sets WHERE dirty = 1 AND id IN (:ids)") suspend fun dirtySetIds(ids: List<String>): List<String>
     @Query("""SELECT (SELECT COUNT(*) FROM workouts WHERE dirty = 1 AND ended_at IS NOT NULL)
@@ -262,8 +264,9 @@ interface BodyWeightDao {
     @Query("SELECT MIN(measured_on) FROM body_weights WHERE user_id = :uid AND deleted = 0")
     suspend fun firstDay(uid: String): Int?
 
-    @Query("SELECT * FROM body_weights WHERE dirty = 1 LIMIT :limit")
-    suspend fun dirty(limit: Int): List<BodyWeightEntity>
+    /** Solo los del usuario actual: nunca se sube el peso de otra cuenta que haya usado este teléfono. */
+    @Query("SELECT * FROM body_weights WHERE user_id = :uid AND dirty = 1 LIMIT :limit")
+    suspend fun dirty(uid: String, limit: Int): List<BodyWeightEntity>
 
     @Query("UPDATE body_weights SET dirty = 0 WHERE user_id = :uid AND measured_on = :day AND updated_at = :updatedAt")
     suspend fun clean(uid: String, day: Int, updatedAt: Long)
@@ -431,5 +434,6 @@ interface AdminDao {
     @Query("DELETE FROM routines") suspend fun clearRoutines()
     @Query("DELETE FROM personal_records") suspend fun clearRecords()
     @Query("DELETE FROM exercises WHERE is_custom = 1") suspend fun clearCustomExercises()
+    @Query("DELETE FROM body_weights") suspend fun clearBodyWeights()
 
 }

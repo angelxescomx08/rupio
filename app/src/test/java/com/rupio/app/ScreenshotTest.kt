@@ -97,7 +97,8 @@ class ScreenshotTest {
         // Progreso
         compose.onNodeWithText("Progreso").performClick()
         waitText("Tu progreso")
-        scrollTo("Volumen por")
+        // Las gráficas cargan en segundo plano: se espera a que aparezcan en vez de suponer que ya están.
+        for (k in 0 until 20) { if (runCatching { scrollTo("Volumen por") }.isSuccess) break; settle(500) }
         shot("08_progreso")
         scrollTo("Constancia")
         shot("09_progreso_musculos")

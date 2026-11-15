@@ -24,8 +24,8 @@ android {
         applicationId = "com.rupio.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 13
+        versionName = "1.3"
         // URLs públicas del proyecto Neon "Rupio" (no son secretos). Se pueden sobreescribir en local.properties.
         val authUrl = cfg("NEON_AUTH_URL").ifBlank { "https://ep-wild-art-bdlip6s4.neonauth.c-8.us-east-2.aws.neon.tech/neondb/auth" }
         val dataUrl = cfg("NEON_DATA_API_URL").ifBlank { "https://ep-wild-art-bdlip6s4.apirest.c-8.us-east-2.aws.neon.tech/neondb/rest/v1" }

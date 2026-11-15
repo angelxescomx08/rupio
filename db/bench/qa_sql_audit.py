@@ -156,7 +156,7 @@ def params(ctx):
         "RoutineDao.softDeleteOthers": {"routineId": ctx["rid"], "keep": ctx["re_ids"][:5], "now": n},
         "RoutineDao.softDelete": {"id": ctx["rid"], "now": n}, "RoutineDao.dirtyRoutines": {"limit": 400}, "RoutineDao.dirtyExercises": {"limit": 400},
         "RoutineDao.cleanRoutine": {"id": ctx["rid"], "u": n}, "RoutineDao.cleanExercise": {"id": ctx["re_ids"][0], "u": n},
-        "RoutineDao.dirtyRoutineIds": {"ids": ctx["rids"]}, "RoutineDao.dirtyExerciseIds": {"ids": ctx["re_ids"]},
+        "RoutineDao.dirtyRoutineIds": {"ids": ctx["rids"]}, "RoutineDao.existingIds": {"ids": ctx["rids"]}, "RoutineDao.dirtyExerciseIds": {"ids": ctx["re_ids"]},
         "WorkoutDao.observeActive": {}, "WorkoutDao.active": {}, "WorkoutDao.get": {"id": ctx["last_wid"]}, "WorkoutDao.observe": {"id": ctx["last_wid"]},
         "WorkoutDao.observeExercises": {"workoutId": ctx["last_wid"]}, "WorkoutDao.exercises": {"workoutId": ctx["last_wid"]},
         "WorkoutDao.observeSets": {"workoutId": ctx["last_wid"]}, "WorkoutDao.sets": {"workoutId": ctx["last_wid"]},
@@ -172,7 +172,7 @@ def params(ctx):
         "WorkoutDao.dirtyWorkouts": {"limit": 400}, "WorkoutDao.dirtyExercises": {"limit": 400}, "WorkoutDao.dirtySets": {"limit": 400},
         "WorkoutDao.cleanWorkout": {"id": ctx["last_wid"], "u": n}, "WorkoutDao.cleanExercise": {"id": ctx["weids"][0], "u": n},
         "WorkoutDao.cleanSet": {"id": ctx["set_id"], "u": n},
-        "WorkoutDao.dirtyWorkoutIds": {"ids": ctx["wids"]}, "WorkoutDao.dirtyExerciseIds": {"ids": ctx["weids"]}, "WorkoutDao.dirtySetIds": {"ids": ctx["set_ids"]},
+        "WorkoutDao.dirtyWorkoutIds": {"ids": ctx["wids"]}, "WorkoutDao.existingWorkoutIds": {"ids": ctx["wids"]}, "WorkoutDao.dirtyExerciseIds": {"ids": ctx["weids"]}, "WorkoutDao.dirtySetIds": {"ids": ctx["set_ids"]},
         "WorkoutDao.observePending": {},
         "RecordDao.forExercise": {"exerciseId": ctx["hot"]}, "RecordDao.observeForExercise": {"exerciseId": ctx["hot"]},
         "RecordDao.observeRecent": {"limit": 10}, "RecordDao.delete": {"ex": ctx["hot"], "kind": 1}, "RecordDao.allExerciseIds": {},
@@ -181,7 +181,7 @@ def params(ctx):
         "BodyWeightDao.observeSeries@20años": {"uid": u, "from": t - 7299, "to": t, "bucket": 48},
         "BodyWeightDao.seriesOnce": {"uid": u, "from": t - 7299, "to": t, "bucket": 48},
         "BodyWeightDao.page": {"uid": u, "before": 2**31 - 1, "limit": 60}, "BodyWeightDao.observeRecent": {"uid": u, "limit": 1},
-        "BodyWeightDao.get": {"uid": u, "day": t}, "BodyWeightDao.firstDay": {"uid": u}, "BodyWeightDao.dirty": {"limit": 400},
+        "BodyWeightDao.get": {"uid": u, "day": t}, "BodyWeightDao.firstDay": {"uid": u}, "BodyWeightDao.dirty": {"uid": u, "limit": 400},
         "BodyWeightDao.clean": {"uid": u, "day": t, "updatedAt": 0}, "BodyWeightDao.dirtyDays": {"uid": u, "days": ctx["bw_days"]},
         "StatsDao.volumeByWeek": {"from": t - 91, "to": t, "shift": 3}, "StatsDao.volumeByDay": {"from": t - 6, "to": t},
         "StatsDao.volumeByMonth": {"from": t - 365, "to": t}, "StatsDao.volumeByYear": {"from": 0, "to": t},
@@ -195,7 +195,7 @@ def params(ctx):
         "StatsDao.weightedBestsOn": {"ex": ctx["hot"], "days": ctx["hot_days"]}, "StatsDao.repsBestsOn": {"ex": ctx["reps_ex"], "days": ctx["reps_days"]},
         "StatsDao.trainingWeeks": {"shift": 3}, "StatsDao.workoutTotals": {"from": 0, "to": t},
         "StatsDao.recordsSince": {"sinceMs": n - 30 * 86400000}, "StatsDao.firstDay": {}, "StatsDao.lastDay": {},
-        "AdminDao.clearWorkouts": {}, "AdminDao.clearRoutines": {}, "AdminDao.clearRecords": {}, "AdminDao.clearCustomExercises": {},
+        "AdminDao.clearWorkouts": {}, "AdminDao.clearRoutines": {}, "AdminDao.clearRecords": {}, "AdminDao.clearCustomExercises": {}, "AdminDao.clearBodyWeights": {},
     }
 
 

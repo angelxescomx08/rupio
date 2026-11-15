@@ -26,7 +26,7 @@ App tipo Hevy, 100 % en español y con tema negro, que **te dice cuándo subir e
 - **Fin de descanso con sonido**: notificación con sonido propio aunque la pantalla esté apagada (pide permiso de notificaciones y avisa si están desactivadas).
 - **Offline-first**: todo funciona sin internet y se sincroniza con Neon después.
 - **Rendimiento medido** con datos dummy en SQLite y en tu base Neon: [docs/RENDIMIENTO_SQL.md](docs/RENDIMIENTO_SQL.md).
-- **QA en casos extremos** (71 pruebas, auditoría de 92 consultas, carga y seguridad en el servidor real): [docs/QA_RENDIMIENTO.md](docs/QA_RENDIMIENTO.md).
+- **QA en casos extremos** (73 pruebas, auditoría de 95 consultas, carga y seguridad en el servidor real, cuenta demo de 8 años): [docs/QA_RENDIMIENTO.md](docs/QA_RENDIMIENTO.md).
 
 ## Backend: Neon (equivalente a Supabase)
 
@@ -54,6 +54,7 @@ Requisitos: JDK 17+ y Android SDK 35.
 ./gradlew testDebugUnitTest      # 71 pruebas: progresión, sincronización, UI con letra al 200 %, migraciones…
 python3 db/bench/qa_sql_audit.py # auditoría SQL con un usuario extremo
 python3 db/bench/qa_server.py    # carga y seguridad contra Neon (usuario temporal)
+DEMO_EMAIL=… DEMO_PASSWORD=… python3 db/demo/demo_extremo.py  # cuenta demo con 8 años de datos
 ```
 
 O abre la carpeta en Android Studio.
