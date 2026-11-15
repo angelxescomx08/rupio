@@ -1,0 +1,432 @@
+{
+ "t\u00edpico": {
+  "n_workouts": 300,
+  "n_sets": 7200,
+  "results": {
+   "observeActive": {
+    "median": 0.003909500037480029,
+    "p95": 0.004408999757288257,
+    "rows": 1,
+    "plan": "SEARCH workouts USING INDEX index_workouts_ended_at (ended_at=?) | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "observeRecent": {
+    "median": 0.05696700009139022,
+    "p95": 0.0626610003564565,
+    "rows": 40,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=?)"
+   },
+   "historyPage": {
+    "median": 0.04952399990543199,
+    "p95": 0.05754899984822259,
+    "rows": 30,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date<?)"
+   },
+   "historyPage_deep": {
+    "median": 0.01362499983770249,
+    "p95": 0.013996999769005924,
+    "rows": 0,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date<?)"
+   },
+   "exerciseSummaries": {
+    "median": 0.3547449998677621,
+    "p95": 0.39498399974036147,
+    "rows": 180,
+    "plan": "SEARCH we USING INDEX index_workout_exercises_workout_id_position (workout_id=?) | SEARCH e USING INDEX sqlite_autoindex_exercises_1 (id=?) | SEARCH s USING INDEX index_workout_sets_workout_exercise_id_position (workout_exercise_id=?) LEFT-JOIN | USE TEMP B-TREE FOR GROUP BY | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "observeSets": {
+    "median": 0.037731500015070196,
+    "p95": 0.05325599977368256,
+    "rows": 24,
+    "plan": "SEARCH we USING INDEX index_workout_exercises_workout_id_position (workout_id=?) | SEARCH s USING INDEX index_workout_sets_workout_exercise_id_position (workout_exercise_id=?) | USE TEMP B-TREE FOR LAST TERM OF ORDER BY"
+   },
+   "previousSets": {
+    "median": 0.14529100008076057,
+    "p95": 0.16809099997772137,
+    "rows": 150,
+    "plan": "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=?) | USE TEMP B-TREE FOR LAST TERM OF ORDER BY"
+   },
+   "forExercise": {
+    "median": 0.0025054998786799842,
+    "p95": 0.0030500000320898835,
+    "rows": 2,
+    "plan": "SEARCH personal_records USING INDEX sqlite_autoindex_personal_records_1 (exercise_id=?)"
+   },
+   "volumeByDay": {
+    "median": 0.006222499905561563,
+    "p95": 0.006567000127688516,
+    "rows": 5,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?) | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "volumeByWeek": {
+    "median": 0.036065500125914696,
+    "p95": 0.04173499974058359,
+    "rows": 14,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?) | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "volumeByMonth": {
+    "median": 0.11341149979671172,
+    "p95": 0.13916299985794467,
+    "rows": 12,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?) | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "volumeByYear": {
+    "median": 0.09673399972598418,
+    "p95": 0.12061200004609418,
+    "rows": 2,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?) | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "totals": {
+    "median": 0.010454499943080009,
+    "p95": 0.01302700002270285,
+    "rows": 1,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?)"
+   },
+   "exerciseSetCounts": {
+    "median": 0.11249199997109827,
+    "p95": 0.1378639999529696,
+    "rows": 18,
+    "plan": "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (ANY(exercise_id) AND completed=? AND performed_on>? AND performed_on<?)"
+   },
+   "exerciseSetCounts_year": {
+    "median": 1.310971499833613,
+    "p95": 1.511315000243485,
+    "rows": 18,
+    "plan": "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (ANY(exercise_id) AND completed=? AND performed_on>? AND performed_on<?)"
+   },
+   "e1rmCurve": {
+    "median": 0.13397600014286581,
+    "p95": 0.15931699999782722,
+    "rows": 100,
+    "plan": "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=? AND performed_on>?)"
+   },
+   "topExercises": {
+    "median": 0.6957359998978063,
+    "p95": 0.7342160001826414,
+    "rows": 12,
+    "plan": "SEARCH w USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>?) | SEARCH we USING INDEX index_workout_exercises_workout_id_position (workout_id=?) | BLOOM FILTER ON e (id=?) | SEARCH e USING INDEX sqlite_autoindex_exercises_1 (id=?) | USE TEMP B-TREE FOR GROUP BY | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "topExercises_year": {
+    "median": 0.7025070001418499,
+    "p95": 0.7522959999732848,
+    "rows": 12,
+    "plan": "SEARCH w USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>?) | SEARCH we USING INDEX index_workout_exercises_workout_id_position (workout_id=?) | BLOOM FILTER ON e (id=?) | SEARCH e USING INDEX sqlite_autoindex_exercises_1 (id=?) | USE TEMP B-TREE FOR GROUP BY | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "previousSets_history": {
+    "median": 0.2783400000225811,
+    "p95": 0.3275570002188033,
+    "rows": 300,
+    "plan": "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=?) | USE TEMP B-TREE FOR LAST TERM OF ORDER BY"
+   },
+   "trainingDays": {
+    "median": 0.038397499793063616,
+    "p95": 0.05544800023926655,
+    "rows": 116,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?)"
+   },
+   "firstDay": {
+    "median": 0.0010549999842623947,
+    "p95": 0.00125599990496994,
+    "rows": 1,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=?)"
+   },
+   "observePending": {
+    "median": 0.0015765001535328338,
+    "p95": 0.0017630000002100132,
+    "rows": 1,
+    "plan": "SCAN CONSTANT ROW | SCALAR SUBQUERY 1 | SEARCH workouts USING INDEX index_workouts_dirty (dirty=?) | SCALAR SUBQUERY 2 | SEARCH routines USING COVERING INDEX index_routines_dirty (dirty=?) | SCALAR SUBQUERY 3 | SEARCH personal_records USING COVERING INDEX index_personal_records_dirty (dirty=?)"
+   },
+   "dirtySets": {
+    "median": 0.18501900012779515,
+    "p95": 0.2096779999192222,
+    "rows": 120,
+    "plan": "SEARCH s USING INDEX index_workout_sets_dirty (dirty=?) | BLOOM FILTER ON w (id=?) | SEARCH w USING INDEX sqlite_autoindex_workouts_1 (id=?)"
+   }
+  }
+ },
+ "extremo": {
+  "n_workouts": 5000,
+  "n_sets": 120000,
+  "results": {
+   "observeActive": {
+    "median": 0.004263499931767001,
+    "p95": 0.009192000106850173,
+    "rows": 1,
+    "plan": "SEARCH workouts USING INDEX index_workouts_ended_at (ended_at=?) | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "observeRecent": {
+    "median": 0.05730999987463292,
+    "p95": 0.07250699991345755,
+    "rows": 40,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=?)"
+   },
+   "historyPage": {
+    "median": 0.05050150002716691,
+    "p95": 0.07036099987089983,
+    "rows": 30,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date<?)"
+   },
+   "historyPage_deep": {
+    "median": 0.05050699974162853,
+    "p95": 0.06877200030430686,
+    "rows": 30,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date<?)"
+   },
+   "exerciseSummaries": {
+    "median": 0.3870044997711375,
+    "p95": 0.4178659996796341,
+    "rows": 180,
+    "plan": "SEARCH we USING INDEX index_workout_exercises_workout_id_position (workout_id=?) | SEARCH e USING INDEX sqlite_autoindex_exercises_1 (id=?) | SEARCH s USING INDEX index_workout_sets_workout_exercise_id_position (workout_exercise_id=?) LEFT-JOIN | USE TEMP B-TREE FOR GROUP BY | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "observeSets": {
+    "median": 0.03859050002574804,
+    "p95": 0.04703499962488422,
+    "rows": 24,
+    "plan": "SEARCH we USING INDEX index_workout_exercises_workout_id_position (workout_id=?) | SEARCH s USING INDEX index_workout_sets_workout_exercise_id_position (workout_exercise_id=?) | USE TEMP B-TREE FOR LAST TERM OF ORDER BY"
+   },
+   "previousSets": {
+    "median": 0.1632519999930082,
+    "p95": 0.1936969997586857,
+    "rows": 150,
+    "plan": "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=?) | USE TEMP B-TREE FOR LAST TERM OF ORDER BY"
+   },
+   "forExercise": {
+    "median": 0.0024709997887839563,
+    "p95": 0.00279200003205915,
+    "rows": 2,
+    "plan": "SEARCH personal_records USING INDEX sqlite_autoindex_personal_records_1 (exercise_id=?)"
+   },
+   "volumeByDay": {
+    "median": 0.00738099970476469,
+    "p95": 0.010212000233877916,
+    "rows": 6,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?) | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "volumeByWeek": {
+    "median": 0.03860749984596623,
+    "p95": 0.058397999964654446,
+    "rows": 14,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?) | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "volumeByMonth": {
+    "median": 0.136328999815305,
+    "p95": 0.16363299982913304,
+    "rows": 13,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?) | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "volumeByYear": {
+    "median": 1.7026145001182158,
+    "p95": 1.794432000224333,
+    "rows": 15,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?) | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "totals": {
+    "median": 0.010691000170481857,
+    "p95": 0.019506000171531923,
+    "rows": 1,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?)"
+   },
+   "exerciseSetCounts": {
+    "median": 0.1273649997983739,
+    "p95": 0.1544819997434388,
+    "rows": 18,
+    "plan": "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (ANY(exercise_id) AND completed=? AND performed_on>? AND performed_on<?)"
+   },
+   "exerciseSetCounts_year": {
+    "median": 1.615770500166036,
+    "p95": 1.8344380000598903,
+    "rows": 18,
+    "plan": "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (ANY(exercise_id) AND completed=? AND performed_on>? AND performed_on<?)"
+   },
+   "e1rmCurve": {
+    "median": 2.872785000135991,
+    "p95": 3.093464000357926,
+    "rows": 1667,
+    "plan": "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=? AND performed_on>?)"
+   },
+   "topExercises": {
+    "median": 15.678077500069776,
+    "p95": 16.689676999703806,
+    "rows": 12,
+    "plan": "SEARCH w USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>?) | SEARCH we USING INDEX index_workout_exercises_workout_id_position (workout_id=?) | BLOOM FILTER ON e (id=?) | SEARCH e USING INDEX sqlite_autoindex_exercises_1 (id=?) | USE TEMP B-TREE FOR GROUP BY | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "topExercises_year": {
+    "median": 0.7847430001675093,
+    "p95": 0.8322119997501431,
+    "rows": 12,
+    "plan": "SEARCH w USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>?) | SEARCH we USING INDEX index_workout_exercises_workout_id_position (workout_id=?) | BLOOM FILTER ON e (id=?) | SEARCH e USING INDEX sqlite_autoindex_exercises_1 (id=?) | USE TEMP B-TREE FOR GROUP BY | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "previousSets_history": {
+    "median": 0.29086000017741753,
+    "p95": 0.3370720000930305,
+    "rows": 300,
+    "plan": "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=?) | USE TEMP B-TREE FOR LAST TERM OF ORDER BY"
+   },
+   "trainingDays": {
+    "median": 0.03809200006799074,
+    "p95": 0.045882999984314665,
+    "rows": 116,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?)"
+   },
+   "firstDay": {
+    "median": 0.0010320000001229346,
+    "p95": 0.0012909999895782676,
+    "rows": 1,
+    "plan": "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=?)"
+   },
+   "observePending": {
+    "median": 0.0015744997199362842,
+    "p95": 0.001779999820428202,
+    "rows": 1,
+    "plan": "SCAN CONSTANT ROW | SCALAR SUBQUERY 1 | SEARCH workouts USING INDEX index_workouts_dirty (dirty=?) | SCALAR SUBQUERY 2 | SEARCH routines USING COVERING INDEX index_routines_dirty (dirty=?) | SCALAR SUBQUERY 3 | SEARCH personal_records USING COVERING INDEX index_personal_records_dirty (dirty=?)"
+   },
+   "dirtySets": {
+    "median": 0.1718840001103672,
+    "p95": 0.2013260000239825,
+    "rows": 120,
+    "plan": "SEARCH s USING INDEX index_workout_sets_dirty (dirty=?) | SEARCH w USING INDEX sqlite_autoindex_workouts_1 (id=?)"
+   }
+  }
+ },
+ "extremo_sin_indices": {
+  "results": {
+   "observeActive": {
+    "median": 0.11011999981747067,
+    "p95": 0.13481500036505167,
+    "rows": 1,
+    "plan": "SCAN workouts | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "observeRecent": {
+    "median": 1.983807499982504,
+    "p95": 2.0181580002827104,
+    "rows": 40,
+    "plan": "SCAN workouts | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "historyPage": {
+    "median": 2.0945375001701905,
+    "p95": 4.441509000116639,
+    "rows": 30,
+    "plan": "SCAN workouts | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "historyPage_deep": {
+    "median": 2.749429000004966,
+    "p95": 3.7463599996954144,
+    "rows": 30,
+    "plan": "SCAN workouts | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "exerciseSummaries": {
+    "median": 66.50043000013284,
+    "p95": 67.06172699978197,
+    "rows": 180,
+    "plan": "SCAN we USING INDEX sqlite_autoindex_workout_exercises_1 | SEARCH e USING INDEX sqlite_autoindex_exercises_1 (id=?) | BLOOM FILTER ON s (workout_exercise_id=? AND deleted=? AND completed=?) | SEARCH s USING AUTOMATIC PARTIAL COVERING INDEX (workout_exercise_id=? AND deleted=? AND completed=?) LEFT-JOIN | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "observeSets": {
+    "median": 29.8030415001449,
+    "p95": 31.859106999945652,
+    "rows": 24,
+    "plan": "SCAN s | BLOOM FILTER ON we (id=?) | SEARCH we USING INDEX sqlite_autoindex_workout_exercises_1 (id=?) | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "previousSets": {
+    "median": 14.995001499983118,
+    "p95": 22.063825999794062,
+    "rows": 150,
+    "plan": "SCAN workout_sets | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "forExercise": {
+    "median": 0.0024879998363758205,
+    "p95": 0.00280699987342814,
+    "rows": 2,
+    "plan": "SEARCH personal_records USING INDEX sqlite_autoindex_personal_records_1 (exercise_id=?)"
+   },
+   "volumeByDay": {
+    "median": 0.21685799993065302,
+    "p95": 0.2410920001238992,
+    "rows": 6,
+    "plan": "SCAN workouts | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "volumeByWeek": {
+    "median": 0.24252050002360193,
+    "p95": 0.2738059997682285,
+    "rows": 14,
+    "plan": "SCAN workouts | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "volumeByMonth": {
+    "median": 0.32842649989106576,
+    "p95": 0.3600009999900067,
+    "rows": 13,
+    "plan": "SCAN workouts | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "volumeByYear": {
+    "median": 1.5143339999212913,
+    "p95": 1.5519680000579683,
+    "rows": 15,
+    "plan": "SCAN workouts | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "totals": {
+    "median": 0.22384949966181011,
+    "p95": 0.2546970004004834,
+    "rows": 1,
+    "plan": "SCAN workouts"
+   },
+   "exerciseSetCounts": {
+    "median": 8.998152499998469,
+    "p95": 9.605613000076119,
+    "rows": 18,
+    "plan": "SCAN workout_sets | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "exerciseSetCounts_year": {
+    "median": 10.413677499855112,
+    "p95": 11.075393999817607,
+    "rows": 18,
+    "plan": "SCAN workout_sets | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "e1rmCurve": {
+    "median": 11.359733999825039,
+    "p95": 17.151551000097243,
+    "rows": 1667,
+    "plan": "SCAN workout_sets | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "topExercises": {
+    "median": 17.791817499983154,
+    "p95": 18.647692000286042,
+    "rows": 12,
+    "plan": "SCAN we | BLOOM FILTER ON w (id=?) | BLOOM FILTER ON e (id=?) | SEARCH w USING INDEX sqlite_autoindex_workouts_1 (id=?) | SEARCH e USING INDEX sqlite_autoindex_exercises_1 (id=?) | USE TEMP B-TREE FOR GROUP BY | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "topExercises_year": {
+    "median": 7.057327500206156,
+    "p95": 7.141743999909522,
+    "rows": 12,
+    "plan": "SCAN we | BLOOM FILTER ON w (id=?) | BLOOM FILTER ON e (id=?) | SEARCH w USING INDEX sqlite_autoindex_workouts_1 (id=?) | SEARCH e USING INDEX sqlite_autoindex_exercises_1 (id=?) | USE TEMP B-TREE FOR GROUP BY | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "previousSets_history": {
+    "median": 15.303485999766053,
+    "p95": 15.752236000025732,
+    "rows": 300,
+    "plan": "SCAN workout_sets | USE TEMP B-TREE FOR ORDER BY"
+   },
+   "trainingDays": {
+    "median": 0.2562654997291247,
+    "p95": 0.28427400002328795,
+    "rows": 116,
+    "plan": "SCAN workouts | USE TEMP B-TREE FOR GROUP BY"
+   },
+   "firstDay": {
+    "median": 0.2784289999908651,
+    "p95": 0.3020870003638265,
+    "rows": 1,
+    "plan": "SEARCH workouts"
+   },
+   "observePending": {
+    "median": 0.16687500010448275,
+    "p95": 0.2051940000455943,
+    "rows": 1,
+    "plan": "SCAN CONSTANT ROW | SCALAR SUBQUERY 1 | SCAN workouts | SCALAR SUBQUERY 2 | SCAN routines | SCALAR SUBQUERY 3 | SCAN personal_records"
+   },
+   "dirtySets": {
+    "median": 10.948562000066886,
+    "p95": 16.226426000230276,
+    "rows": 120,
+    "plan": "SCAN s | BLOOM FILTER ON w (id=?) | SEARCH w USING INDEX sqlite_autoindex_workouts_1 (id=?)"
+   }
+  }
+ }
+}

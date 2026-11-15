@@ -1,0 +1,1068 @@
+{
+ "ctx": {
+  "uid": "35bb6987-76b1-4c26-80b3-3ab2a083324c",
+  "today": 20771,
+  "hot": "curl_inverso_con_barra",
+  "rid": "01a1dd80-9a42-7e3b-bb97-0313c198b4cb",
+  "last_wid": "01a1d8a7-0054-7e87-857c-ccc3dd5c18d0",
+  "awid": "01a1dd80-9a42-75e5-ada6-441c8f909cf6",
+  "deep": [
+   "0145a526-761d-75a0-9428-c3188982d4f6",
+   16187,
+   1398635132445
+  ],
+  "set_id": "00e97675-22d6-705b-b767-0afa4bbebcfb",
+  "custom": "01a1dd80-9a42-78f7-9da1-494c73cf256d",
+  "n_sets": 240000,
+  "n_workouts": 10000,
+  "n_bw": 6153,
+  "now": 1794717555266,
+  "reps_ex": "lagartijas_inclinadas"
+ },
+ "results": {
+  "AdminDao.clearCustomExercises": {
+   "median": 0.16830400022627146,
+   "p95": 0.22754799965696293,
+   "rows": 0,
+   "plan": [
+    "SEARCH exercises USING INDEX index_exercises_is_custom_dirty (is_custom=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "AdminDao.clearRecords": {
+   "median": 0.0026095001430803677,
+   "p95": 0.003065999862883473,
+   "rows": 0,
+   "plan": [],
+   "full_scans": [],
+   "write": true
+  },
+  "AdminDao.clearRoutines": {
+   "median": 0.003583000079743215,
+   "p95": 0.0038359999052772764,
+   "rows": 0,
+   "plan": [],
+   "full_scans": [],
+   "write": true
+  },
+  "AdminDao.clearWorkouts": {
+   "median": 0.21692700011044508,
+   "p95": 0.2710899998419336,
+   "rows": 0,
+   "plan": [],
+   "full_scans": [],
+   "write": true
+  },
+  "BodyWeightDao.clean": {
+   "median": 0.001540999846838531,
+   "p95": 0.002587999915704131,
+   "rows": 0,
+   "plan": [
+    "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=? AND measured_on=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "BodyWeightDao.dirty": {
+   "median": 0.006419500095944386,
+   "p95": 0.008735999927012017,
+   "rows": 3,
+   "plan": [
+    "SEARCH body_weights USING INDEX index_body_weights_dirty (dirty=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "BodyWeightDao.dirtyDays": {
+   "median": 0.23578249988531752,
+   "p95": 0.26774899970405386,
+   "rows": 3,
+   "plan": [
+    "SEARCH body_weights USING INDEX index_body_weights_dirty (dirty=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "BodyWeightDao.firstDay": {
+   "median": 0.001210999926115619,
+   "p95": 0.0013730000318901148,
+   "rows": 1,
+   "plan": [
+    "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "BodyWeightDao.get": {
+   "median": 0.0017454999579058494,
+   "p95": 0.002054000105999876,
+   "rows": 1,
+   "plan": [
+    "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=? AND measured_on=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "BodyWeightDao.observeRecent": {
+   "median": 0.006393499916157452,
+   "p95": 0.008668000191391911,
+   "rows": 1,
+   "plan": [
+    "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "BodyWeightDao.observeSeries": {
+   "median": 0.04939299992656743,
+   "p95": 0.05475799980558804,
+   "rows": 84,
+   "plan": [
+    "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=? AND measured_on>? AND measured_on<?)",
+    "USE TEMP B-TREE FOR GROUP BY",
+    "USE TEMP B-TREE FOR ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "BodyWeightDao.observeSeries@20a\u00f1os": {
+   "median": 1.139076500066949,
+   "p95": 1.1867520001942466,
+   "rows": 153,
+   "plan": [
+    "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=? AND measured_on>? AND measured_on<?)",
+    "USE TEMP B-TREE FOR GROUP BY",
+    "USE TEMP B-TREE FOR ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "BodyWeightDao.page": {
+   "median": 0.037368499988588155,
+   "p95": 0.043027999709011056,
+   "rows": 60,
+   "plan": [
+    "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=? AND measured_on<?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "BodyWeightDao.seriesOnce": {
+   "median": 1.1407360000248445,
+   "p95": 1.2208580001242808,
+   "rows": 153,
+   "plan": [
+    "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=? AND measured_on>? AND measured_on<?)",
+    "USE TEMP B-TREE FOR GROUP BY",
+    "USE TEMP B-TREE FOR ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "ExerciseDao.catalogCount": {
+   "median": 0.005500500037669553,
+   "p95": 0.005680999947799137,
+   "rows": 1,
+   "plan": [
+    "SEARCH exercises USING COVERING INDEX index_exercises_is_custom_dirty (is_custom=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "ExerciseDao.dirty": {
+   "median": 0.04697250005847309,
+   "p95": 0.05446800014397013,
+   "rows": 30,
+   "plan": [
+    "SEARCH exercises USING INDEX index_exercises_is_custom_dirty (is_custom=? AND dirty=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "ExerciseDao.dirtyIds": {
+   "median": 0.013891999969928293,
+   "p95": 0.014879999980621506,
+   "rows": 0,
+   "plan": [
+    "SEARCH exercises USING INDEX sqlite_autoindex_exercises_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "ExerciseDao.get": {
+   "median": 0.0029979998998896917,
+   "p95": 0.0031829999898036476,
+   "rows": 1,
+   "plan": [
+    "SEARCH exercises USING INDEX sqlite_autoindex_exercises_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "ExerciseDao.getMany": {
+   "median": 0.050444499947843724,
+   "p95": 0.06787399979657494,
+   "rows": 30,
+   "plan": [
+    "SEARCH exercises USING INDEX sqlite_autoindex_exercises_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "ExerciseDao.markClean": {
+   "median": 0.002432499741189531,
+   "p95": 0.002677999873412773,
+   "rows": 0,
+   "plan": [
+    "SEARCH exercises USING INDEX sqlite_autoindex_exercises_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "ExerciseDao.observe": {
+   "median": 0.0029679999897780363,
+   "p95": 0.0031370000215247273,
+   "rows": 1,
+   "plan": [
+    "SEARCH exercises USING INDEX sqlite_autoindex_exercises_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "ExerciseDao.observeAll": {
+   "median": 0.8465319999686471,
+   "p95": 0.9399959999427665,
+   "rows": 556,
+   "plan": [
+    "SCAN exercises",
+    "USE TEMP B-TREE FOR ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RecordDao.allExerciseIds": {
+   "median": 0.025856000092971954,
+   "p95": 0.029938999887235695,
+   "rows": 44,
+   "plan": [
+    "MERGE (UNION)",
+    "LEFT",
+    "SCAN personal_records USING COVERING INDEX sqlite_autoindex_personal_records_1",
+    "RIGHT",
+    "SCAN workout_sets USING COVERING INDEX index_workout_sets_exercise_id_completed_performed_on"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RecordDao.clean": {
+   "median": 0.0018584998997539515,
+   "p95": 0.002168999799323501,
+   "rows": 0,
+   "plan": [
+    "SEARCH personal_records USING INDEX sqlite_autoindex_personal_records_1 (exercise_id=? AND kind=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "RecordDao.delete": {
+   "median": 0.003365500106156105,
+   "p95": 0.005067000074632233,
+   "rows": 0,
+   "plan": [
+    "SEARCH personal_records USING INDEX sqlite_autoindex_personal_records_1 (exercise_id=? AND kind=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "RecordDao.dirty": {
+   "median": 0.006889500127726933,
+   "p95": 0.00716399972588988,
+   "rows": 0,
+   "plan": [
+    "SCAN personal_records"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RecordDao.forExercise": {
+   "median": 0.0023669997517572483,
+   "p95": 0.002491000032023294,
+   "rows": 2,
+   "plan": [
+    "SEARCH personal_records USING INDEX sqlite_autoindex_personal_records_1 (exercise_id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RecordDao.observeForExercise": {
+   "median": 0.002385000016147387,
+   "p95": 0.002539999968576012,
+   "rows": 2,
+   "plan": [
+    "SEARCH personal_records USING INDEX sqlite_autoindex_personal_records_1 (exercise_id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RecordDao.observeRecent": {
+   "median": 0.03098449974459072,
+   "p95": 0.03859100024783402,
+   "rows": 10,
+   "plan": [
+    "SCAN r",
+    "SEARCH e USING INDEX sqlite_autoindex_exercises_1 (id=?)",
+    "USE TEMP B-TREE FOR ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RoutineDao.cleanExercise": {
+   "median": 0.003161499762427411,
+   "p95": 0.005667999630531995,
+   "rows": 0,
+   "plan": [
+    "SEARCH routine_exercises USING INDEX sqlite_autoindex_routine_exercises_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "RoutineDao.cleanRoutine": {
+   "median": 0.0020494999262155034,
+   "p95": 0.0022360000002663583,
+   "rows": 0,
+   "plan": [
+    "SEARCH routines USING INDEX sqlite_autoindex_routines_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "RoutineDao.count": {
+   "median": 0.0029005002488702303,
+   "p95": 0.0029929997253930196,
+   "rows": 1,
+   "plan": [
+    "SEARCH routines USING COVERING INDEX index_routines_deleted_position (deleted=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RoutineDao.dirtyExerciseIds": {
+   "median": 0.3237554999486747,
+   "p95": 0.3635839998423762,
+   "rows": 30,
+   "plan": [
+    "SEARCH routine_exercises USING INDEX index_routine_exercises_dirty (dirty=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RoutineDao.dirtyExercises": {
+   "median": 0.04103950027456449,
+   "p95": 0.04734399999506422,
+   "rows": 30,
+   "plan": [
+    "SEARCH routine_exercises USING INDEX index_routine_exercises_dirty (dirty=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RoutineDao.dirtyRoutineIds": {
+   "median": 0.00912650011741789,
+   "p95": 0.009376999969390454,
+   "rows": 3,
+   "plan": [
+    "SEARCH routines USING INDEX index_routines_dirty (dirty=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RoutineDao.dirtyRoutines": {
+   "median": 0.007467000159522286,
+   "p95": 0.009535000117466552,
+   "rows": 3,
+   "plan": [
+    "SEARCH routines USING INDEX index_routines_dirty (dirty=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RoutineDao.exercises": {
+   "median": 0.012425500017343438,
+   "p95": 0.012849999620812014,
+   "rows": 10,
+   "plan": [
+    "SEARCH routine_exercises USING INDEX index_routine_exercises_routine_id_position (routine_id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RoutineDao.get": {
+   "median": 0.001956000005520764,
+   "p95": 0.0021610003386740573,
+   "rows": 1,
+   "plan": [
+    "SEARCH routines USING INDEX sqlite_autoindex_routines_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RoutineDao.observeAllExercises": {
+   "median": 1.287984499867889,
+   "p95": 1.3455359999170469,
+   "rows": 1200,
+   "plan": [
+    "SCAN routine_exercises USING INDEX index_routine_exercises_routine_id_position"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RoutineDao.observeRoutines": {
+   "median": 0.0987569999324478,
+   "p95": 0.1160130000243953,
+   "rows": 120,
+   "plan": [
+    "SEARCH routines USING INDEX index_routines_deleted_position (deleted=?)",
+    "USE TEMP B-TREE FOR LAST TERM OF ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "RoutineDao.softDelete": {
+   "median": 0.0030559999686374795,
+   "p95": 0.0036950000321667176,
+   "rows": 0,
+   "plan": [
+    "SEARCH routines USING INDEX sqlite_autoindex_routines_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "RoutineDao.softDeleteOthers": {
+   "median": 0.007666000101380632,
+   "p95": 0.01409900005455711,
+   "rows": 0,
+   "plan": [
+    "SEARCH routine_exercises USING INDEX index_routine_exercises_routine_id_position (routine_id=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "StatsDao.avgDuration": {
+   "median": 0.007451999863405945,
+   "p95": 0.007635999736521626,
+   "rows": 1,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.bestDurationPerDay": {
+   "median": 0.9529864998967241,
+   "p95": 1.0128819999408734,
+   "rows": 0,
+   "plan": [
+    "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.bestRepsPerDay": {
+   "median": 1.7010379997373093,
+   "p95": 1.8400019998807693,
+   "rows": 1419,
+   "plan": [
+    "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.e1rmCurve": {
+   "median": 2.2932164999929228,
+   "p95": 2.407501000107004,
+   "rows": 1412,
+   "plan": [
+    "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=? AND performed_on>?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.exerciseSetCounts": {
+   "median": 0.17331149979327165,
+   "p95": 0.20632699988709646,
+   "rows": 41,
+   "plan": [
+    "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (ANY(exercise_id) AND completed=? AND performed_on>? AND performed_on<?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.exerciseSetCounts@1a\u00f1o": {
+   "median": 1.9483304999994289,
+   "p95": 2.0288339997023286,
+   "rows": 44,
+   "plan": [
+    "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (ANY(exercise_id) AND completed=? AND performed_on>? AND performed_on<?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.firstDay": {
+   "median": 0.0010200001270277426,
+   "p95": 0.001232000158779556,
+   "rows": 1,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.firstDays": {
+   "median": 0.0017674999526207102,
+   "p95": 0.002266000137751689,
+   "rows": 0,
+   "plan": [
+    "CO-ROUTINE d",
+    "SETUP",
+    "SEARCH workout_sets USING COVERING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=?)",
+    "RECURSIVE STEP",
+    "SCAN d",
+    "CORRELATED SCALAR SUBQUERY 2",
+    "SEARCH workout_sets USING COVERING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=? AND performed_on>?)",
+    "SCAN d"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "StatsDao.lastDay": {
+   "median": 0.0011125000582978828,
+   "p95": 0.0012519999472715426,
+   "rows": 1,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.lastDays": {
+   "median": 0.0017069996829377487,
+   "p95": 0.0019139997675665654,
+   "rows": 0,
+   "plan": [
+    "CO-ROUTINE d",
+    "SETUP",
+    "SEARCH workout_sets USING COVERING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=?)",
+    "RECURSIVE STEP",
+    "SCAN d",
+    "CORRELATED SCALAR SUBQUERY 2",
+    "SEARCH workout_sets USING COVERING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=? AND performed_on<?)",
+    "SCAN d"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "StatsDao.recordsSince": {
+   "median": 0.003021500106115127,
+   "p95": 0.0031099998523131944,
+   "rows": 1,
+   "plan": [
+    "SCAN personal_records"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.repsBestsOn": {
+   "median": 0.024850000045262277,
+   "p95": 0.027911999950447353,
+   "rows": 11,
+   "plan": [
+    "SEARCH s USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=? AND performed_on=?)",
+    "SEARCH w EXISTS USING INDEX sqlite_autoindex_workouts_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.topExercises": {
+   "median": 1.1983169999894017,
+   "p95": 1.2876109999524488,
+   "rows": 12,
+   "plan": [
+    "SEARCH w USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>?)",
+    "SEARCH we USING INDEX index_workout_exercises_workout_id_position (workout_id=?)",
+    "BLOOM FILTER ON e (id=?)",
+    "SEARCH e USING INDEX sqlite_autoindex_exercises_1 (id=?)",
+    "USE TEMP B-TREE FOR GROUP BY",
+    "USE TEMP B-TREE FOR ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.totals": {
+   "median": 0.011982499927398749,
+   "p95": 0.015208000149868894,
+   "rows": 1,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.trainedExerciseIds": {
+   "median": 0.0016905000848055352,
+   "p95": 0.002639000285853399,
+   "rows": 0,
+   "plan": [
+    "CO-ROUTINE ex",
+    "SETUP",
+    "SEARCH workout_sets USING COVERING INDEX index_workout_sets_exercise_id_completed_performed_on",
+    "RECURSIVE STEP",
+    "SCAN ex",
+    "CORRELATED SCALAR SUBQUERY 2",
+    "SEARCH workout_sets USING COVERING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id>?)",
+    "SCAN ex"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "StatsDao.trainingDays": {
+   "median": 0.04186849992038333,
+   "p95": 0.050366999857942574,
+   "rows": 127,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.trainingWeeks": {
+   "median": 0.9915455000282236,
+   "p95": 1.1234260000492213,
+   "rows": 1310,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=?)",
+    "USE TEMP B-TREE FOR DISTINCT"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.volumeByDay": {
+   "median": 0.008006499911061837,
+   "p95": 0.008272000286524417,
+   "rows": 7,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?)",
+    "USE TEMP B-TREE FOR GROUP BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.volumeByMonth": {
+   "median": 0.14746199985893327,
+   "p95": 0.1671889999670384,
+   "rows": 13,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?)",
+    "USE TEMP B-TREE FOR GROUP BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.volumeByWeek": {
+   "median": 0.035104999824397964,
+   "p95": 0.03702200001498568,
+   "rows": 14,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?)",
+    "USE TEMP B-TREE FOR GROUP BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.volumeByYear": {
+   "median": 3.3497404997433478,
+   "p95": 3.4667159998207353,
+   "rows": 26,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?)",
+    "USE TEMP B-TREE FOR GROUP BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.weightedBestsOn": {
+   "median": 0.02855200000340119,
+   "p95": 0.03098500019405037,
+   "rows": 11,
+   "plan": [
+    "SEARCH s USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=? AND performed_on=?)",
+    "SEARCH w EXISTS USING INDEX sqlite_autoindex_workouts_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "StatsDao.workoutTotals": {
+   "median": 1.0913634998814814,
+   "p95": 1.1573900001167203,
+   "rows": 1,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date>? AND local_date<?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.active": {
+   "median": 0.0037724998946941923,
+   "p95": 0.004295000053389231,
+   "rows": 1,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_ended_at (ended_at=?)",
+    "USE TEMP B-TREE FOR ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.cleanExercise": {
+   "median": 0.0011444997198850615,
+   "p95": 0.0015880000319157261,
+   "rows": 0,
+   "plan": [
+    "SEARCH workout_exercises USING INDEX sqlite_autoindex_workout_exercises_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "WorkoutDao.cleanSet": {
+   "median": 0.0012429998150764732,
+   "p95": 0.0015300001905416138,
+   "rows": 0,
+   "plan": [
+    "SEARCH workout_sets USING INDEX sqlite_autoindex_workout_sets_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "WorkoutDao.cleanWorkout": {
+   "median": 0.0010719998044805834,
+   "p95": 0.0011950000953220297,
+   "rows": 0,
+   "plan": [
+    "SEARCH workouts USING INDEX sqlite_autoindex_workouts_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "WorkoutDao.dirtyExerciseIds": {
+   "median": 0.3023104998192139,
+   "p95": 0.37462899990714504,
+   "rows": 0,
+   "plan": [
+    "SEARCH workout_exercises USING INDEX index_workout_exercises_dirty (dirty=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.dirtyExercises": {
+   "median": 0.05057449993728369,
+   "p95": 0.07084800017764792,
+   "rows": 18,
+   "plan": [
+    "SEARCH we USING INDEX index_workout_exercises_dirty (dirty=?)",
+    "SEARCH w USING INDEX sqlite_autoindex_workouts_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.dirtySetIds": {
+   "median": 0.2755184998477489,
+   "p95": 0.3147940001326788,
+   "rows": 0,
+   "plan": [
+    "SEARCH workout_sets USING INDEX index_workout_sets_dirty (dirty=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.dirtySets": {
+   "median": 0.1052379998327524,
+   "p95": 0.11538099988683825,
+   "rows": 72,
+   "plan": [
+    "SEARCH s USING INDEX index_workout_sets_dirty (dirty=?)",
+    "SEARCH w USING INDEX sqlite_autoindex_workouts_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.dirtyWorkoutIds": {
+   "median": 0.3117910000582924,
+   "p95": 0.34773900006257463,
+   "rows": 3,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_dirty (dirty=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.dirtyWorkouts": {
+   "median": 0.012865499911640654,
+   "p95": 0.017604999811737798,
+   "rows": 3,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_dirty (dirty=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.exerciseSummaries": {
+   "median": 0.4246360001616267,
+   "p95": 0.5829589999848395,
+   "rows": 180,
+   "plan": [
+    "SEARCH we USING INDEX index_workout_exercises_workout_id_position (workout_id=?)",
+    "SEARCH e USING INDEX sqlite_autoindex_exercises_1 (id=?)",
+    "SEARCH s USING INDEX index_workout_sets_workout_exercise_id_position (workout_exercise_id=?) LEFT-JOIN",
+    "USE TEMP B-TREE FOR GROUP BY",
+    "USE TEMP B-TREE FOR ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.exercises": {
+   "median": 0.007809999942764989,
+   "p95": 0.007999999979801942,
+   "rows": 6,
+   "plan": [
+    "SEARCH workout_exercises USING INDEX index_workout_exercises_workout_id_position (workout_id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.get": {
+   "median": 0.0027684998258337146,
+   "p95": 0.0028909998945891857,
+   "rows": 1,
+   "plan": [
+    "SEARCH workouts USING INDEX sqlite_autoindex_workouts_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.getSet": {
+   "median": 0.0030150001748552313,
+   "p95": 0.00392500032830867,
+   "rows": 1,
+   "plan": [
+    "SEARCH workout_sets USING INDEX sqlite_autoindex_workout_sets_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.hardDelete": {
+   "median": 0.0046225000005506445,
+   "p95": 0.005026000053476309,
+   "rows": 0,
+   "plan": [
+    "SEARCH workouts USING INDEX sqlite_autoindex_workouts_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "WorkoutDao.historyPage": {
+   "median": 0.048519999836571515,
+   "p95": 0.06136999991213088,
+   "rows": 30,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date<?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.historyPage@5000": {
+   "median": 0.04712800000561401,
+   "p95": 0.04950599986841553,
+   "rows": 30,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=? AND local_date<?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.observe": {
+   "median": 0.002725999820540892,
+   "p95": 0.0028340000426396728,
+   "rows": 1,
+   "plan": [
+    "SEARCH workouts USING INDEX sqlite_autoindex_workouts_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.observeActive": {
+   "median": 0.004008999894722365,
+   "p95": 0.00441899965153425,
+   "rows": 1,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_ended_at (ended_at=?)",
+    "USE TEMP B-TREE FOR ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.observeCount": {
+   "median": 0.4913850000320963,
+   "p95": 0.5220939997343521,
+   "rows": 1,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.observeExercises": {
+   "median": 0.007783000000927132,
+   "p95": 0.00828200018077041,
+   "rows": 6,
+   "plan": [
+    "SEARCH workout_exercises USING INDEX index_workout_exercises_workout_id_position (workout_id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.observePending": {
+   "median": 0.0016015001165214926,
+   "p95": 0.002539999968576012,
+   "rows": 1,
+   "plan": [
+    "SCAN CONSTANT ROW",
+    "SCALAR SUBQUERY 1",
+    "SEARCH workouts USING INDEX index_workouts_dirty (dirty=?)",
+    "SCALAR SUBQUERY 2",
+    "SEARCH routines USING COVERING INDEX index_routines_dirty (dirty=?)",
+    "SCALAR SUBQUERY 3",
+    "SEARCH personal_records USING COVERING INDEX index_personal_records_dirty (dirty=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.observeRecent": {
+   "median": 0.05283850009618618,
+   "p95": 0.07053699982861872,
+   "rows": 40,
+   "plan": [
+    "SEARCH workouts USING INDEX index_workouts_deleted_local_date_started_at (deleted=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.observeSets": {
+   "median": 0.03579649978746602,
+   "p95": 0.0371379996977339,
+   "rows": 24,
+   "plan": [
+    "SEARCH we USING INDEX index_workout_exercises_workout_id_position (workout_id=?)",
+    "SEARCH s USING INDEX index_workout_sets_workout_exercise_id_position (workout_exercise_id=?)",
+    "USE TEMP B-TREE FOR LAST TERM OF ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.previousSets": {
+   "median": 0.14406550008061458,
+   "p95": 0.16909900023165392,
+   "rows": 150,
+   "plan": [
+    "SEARCH workout_sets USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=?)",
+    "USE TEMP B-TREE FOR LAST TERM OF ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.recordHolder": {
+   "median": 1.51499599996896,
+   "p95": 1.5813369996067195,
+   "rows": 0,
+   "plan": [
+    "SEARCH s USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=?)",
+    "SEARCH w EXISTS USING INDEX sqlite_autoindex_workouts_1 (id=?)",
+    "USE TEMP B-TREE FOR ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.recordMaxes": {
+   "median": 3.1847894999827986,
+   "p95": 3.2720809999773337,
+   "rows": 1,
+   "plan": [
+    "SEARCH s USING INDEX index_workout_sets_exercise_id_completed_performed_on (exercise_id=? AND completed=?)",
+    "SEARCH w EXISTS USING INDEX sqlite_autoindex_workouts_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.sets": {
+   "median": 0.03634849986156041,
+   "p95": 0.04044899969812832,
+   "rows": 24,
+   "plan": [
+    "SEARCH we USING INDEX index_workout_exercises_workout_id_position (workout_id=?)",
+    "SEARCH s USING INDEX index_workout_sets_workout_exercise_id_position (workout_exercise_id=?)",
+    "USE TEMP B-TREE FOR LAST TERM OF ORDER BY"
+   ],
+   "full_scans": [],
+   "write": false
+  },
+  "WorkoutDao.softDelete": {
+   "median": 0.0030414998946071137,
+   "p95": 0.003451999873504974,
+   "rows": 0,
+   "plan": [
+    "SEARCH workouts USING INDEX sqlite_autoindex_workouts_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": true
+  },
+  "WorkoutDao.workoutIdOf": {
+   "median": 0.0012405000688886503,
+   "p95": 0.0013580001905211248,
+   "rows": 1,
+   "plan": [
+    "SEARCH workout_exercises USING INDEX sqlite_autoindex_workout_exercises_1 (id=?)"
+   ],
+   "full_scans": [],
+   "write": false
+  }
+ },
+ "checks": [
+  [
+   "Totales = suma directa",
+   true
+  ],
+  [
+   "Volumen por semana suma el total",
+   true
+  ],
+  [
+   "Tu progreso r\u00e1pido = c\u00e1lculo completo (40 ejercicios: primera vez, ahora y estancado)",
+   true
+  ],
+  [
+   "Lista de ejercicios por \u00edndice = DISTINCT completo",
+   true
+  ],
+  [
+   "Semanas con entreno = c\u00e1lculo directo",
+   true
+  ],
+  [
+   "R\u00e9cords en una pasada = reglas de Records.candidates (15 ejercicios)",
+   true
+  ],
+  [
+   "Peso 20 a\u00f1os: \u2264 160 puntos y no se pierde ning\u00fan registro",
+   true
+  ]
+ ],
+ "missing": []
+}

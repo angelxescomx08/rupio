@@ -1,0 +1,29 @@
+# Compilación (Gradle / Android Studio)
+.gradle/
+build/
+app/build/
+.kotlin/
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Configuración local y secretos: nunca se suben
+local.properties
+.env
+.env.*
+.neon_env
+*.jks
+*.keystore
+google-services.json
+
+# Archivos generados
+*.apk
+*.aab
+__pycache__/
+*.pyc
+
+# Sistema
+.DS_Store
+Thumbs.db

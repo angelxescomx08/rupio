@@ -1,0 +1,602 @@
+{
+ "params": {
+  "intensivo": {
+   "uid": "8fd2a40a-41a3-47db-ac61-8e2ccb6ad521",
+   "ex": "curl_inclinado_con_mancuernas",
+   "wid": "01a1daa7-56d8-780e-b5c0-03b9a7447f9b",
+   "deep": 1000,
+   "kd": "2022-07-16",
+   "ks": "2022-07-16 17:11:28.931318-05",
+   "n_workouts": "1200",
+   "n_sets": "28800"
+  },
+  "normal": {
+   "uid": "9c8704dc-7144-40de-b37c-87591dddafc0",
+   "ex": "press_sentado_con_pesa_rusa",
+   "wid": "01a1db6e-4a36-75be-9073-cc8cf9cb345e",
+   "deep": 80,
+   "kd": "2026-07-12",
+   "ks": "2026-07-12 10:59:49.550006-06",
+   "n_workouts": "105",
+   "n_sets": "2520"
+  }
+ },
+ "totals": {
+  "workouts": "339224",
+  "workout_exercises": "2035344",
+  "workout_sets": "8141376",
+  "users": "3020"
+ },
+ "sizes": "workout_sets\t1309 MB\t1373085696\nworkout_sets_user_exercise_idx\t694 MB\t727515136\nworkout_sets_user_date_idx\t611 MB\t640303104\nworkout_sets_exercise_pos_idx\t315 MB\t330555392\nworkout_sets_pkey\t314 MB\t329646080\nworkout_exercises\t267 MB\t279904256\nworkouts\t100 MB\t105160704\nworkout_exercises_pkey\t79 MB\t83337216\nworkout_exercises_workout_idx\t79 MB\t82665472\nworkout_sets_user_sync_idx\t65 MB\t68231168\nworkout_exercises_user_sync_idx\t28 MB\t29155328\nworkouts_user_date_idx\t25 MB\t26157056\nworkouts_pkey\t21 MB\t21569536\nworkouts_user_sync_idx\t13 MB\t13803520",
+ "results": [
+  {
+   "id": "Q01",
+   "label": "Historial: primera p\u00e1gina (20 entrenamientos)",
+   "user": "intensivo",
+   "ms": 0.529,
+   "best": 0.481,
+   "rows": 20,
+   "nodes": [
+    "Index Scan",
+    "Limit"
+   ],
+   "indexes": [
+    "workouts_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q01",
+   "label": "Historial: primera p\u00e1gina (20 entrenamientos)",
+   "user": "normal",
+   "ms": 0.529,
+   "best": 0.506,
+   "rows": 20,
+   "nodes": [
+    "Index Scan",
+    "Limit"
+   ],
+   "indexes": [
+    "workouts_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q02",
+   "label": "Historial: p\u00e1gina profunda con OFFSET 1000 (anti-patr\u00f3n)",
+   "user": "intensivo",
+   "ms": 4.371,
+   "best": 3.899,
+   "rows": 20,
+   "nodes": [
+    "Index Scan",
+    "Limit"
+   ],
+   "indexes": [
+    "workouts_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q02",
+   "label": "Historial: p\u00e1gina profunda con OFFSET 1000 (anti-patr\u00f3n)",
+   "user": "normal",
+   "ms": 1.197,
+   "best": 1.062,
+   "rows": 20,
+   "nodes": [
+    "Index Scan",
+    "Limit"
+   ],
+   "indexes": [
+    "workouts_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q03",
+   "label": "Historial: misma p\u00e1gina con keyset (recomendado)",
+   "user": "intensivo",
+   "ms": 0.518,
+   "best": 0.469,
+   "rows": 20,
+   "nodes": [
+    "Index Scan",
+    "Limit"
+   ],
+   "indexes": [
+    "workouts_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q03",
+   "label": "Historial: misma p\u00e1gina con keyset (recomendado)",
+   "user": "normal",
+   "ms": 0.493,
+   "best": 0.47,
+   "rows": 20,
+   "nodes": [
+    "Index Scan",
+    "Limit"
+   ],
+   "indexes": [
+    "workouts_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q04",
+   "label": "Detalle de un entrenamiento (ejercicios + series)",
+   "user": "intensivo",
+   "ms": 0.748,
+   "best": 0.726,
+   "rows": 24,
+   "nodes": [
+    "Incremental Sort",
+    "Index Scan",
+    "Nested Loop"
+   ],
+   "indexes": [
+    "workout_exercises_workout_idx",
+    "workout_sets_exercise_pos_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q04",
+   "label": "Detalle de un entrenamiento (ejercicios + series)",
+   "user": "normal",
+   "ms": 0.78,
+   "best": 0.703,
+   "rows": 24,
+   "nodes": [
+    "Incremental Sort",
+    "Index Scan",
+    "Nested Loop"
+   ],
+   "indexes": [
+    "workout_exercises_workout_idx",
+    "workout_sets_exercise_pos_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q05",
+   "label": "\u00daltimas series de un ejercicio (motor de progresi\u00f3n)",
+   "user": "intensivo",
+   "ms": 0.502,
+   "best": 0.453,
+   "rows": 40,
+   "nodes": [
+    "Index Only Scan",
+    "Limit"
+   ],
+   "indexes": [
+    "workout_sets_user_exercise_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q05",
+   "label": "\u00daltimas series de un ejercicio (motor de progresi\u00f3n)",
+   "user": "normal",
+   "ms": 0.498,
+   "best": 0.46,
+   "rows": 40,
+   "nodes": [
+    "Index Only Scan",
+    "Limit"
+   ],
+   "indexes": [
+    "workout_sets_user_exercise_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q06",
+   "label": "R\u00e9cords del ejercicio: peso m\u00e1x y 1RM estimado",
+   "user": "intensivo",
+   "ms": 1.241,
+   "best": 1.2,
+   "rows": 1,
+   "nodes": [
+    "Aggregate",
+    "Index Only Scan"
+   ],
+   "indexes": [
+    "workout_sets_user_exercise_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q06",
+   "label": "R\u00e9cords del ejercicio: peso m\u00e1x y 1RM estimado",
+   "user": "normal",
+   "ms": 0.671,
+   "best": 0.649,
+   "rows": 1,
+   "nodes": [
+    "Aggregate",
+    "Index Only Scan"
+   ],
+   "indexes": [
+    "workout_sets_user_exercise_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q07",
+   "label": "Curva de 1RM estimado por sesi\u00f3n (\u00faltimo a\u00f1o)",
+   "user": "intensivo",
+   "ms": 0.681,
+   "best": 0.634,
+   "rows": 77,
+   "nodes": [
+    "Aggregate",
+    "Index Only Scan"
+   ],
+   "indexes": [
+    "workout_sets_user_exercise_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q07",
+   "label": "Curva de 1RM estimado por sesi\u00f3n (\u00faltimo a\u00f1o)",
+   "user": "normal",
+   "ms": 0.6,
+   "best": 0.549,
+   "rows": 35,
+   "nodes": [
+    "Aggregate",
+    "Index Only Scan"
+   ],
+   "indexes": [
+    "workout_sets_user_exercise_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q08",
+   "label": "Volumen semanal \u00b7 \u00faltimos 3 meses",
+   "user": "intensivo",
+   "ms": 0.507,
+   "best": 0.473,
+   "rows": 14,
+   "nodes": [
+    "Aggregate",
+    "Index Only Scan",
+    "Sort"
+   ],
+   "indexes": [
+    "workouts_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q08",
+   "label": "Volumen semanal \u00b7 \u00faltimos 3 meses",
+   "user": "normal",
+   "ms": 0.513,
+   "best": 0.465,
+   "rows": 14,
+   "nodes": [
+    "Aggregate",
+    "Index Only Scan",
+    "Sort"
+   ],
+   "indexes": [
+    "workouts_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q09",
+   "label": "Volumen mensual \u00b7 \u00faltimo a\u00f1o",
+   "user": "intensivo",
+   "ms": 0.585,
+   "best": 0.545,
+   "rows": 13,
+   "nodes": [
+    "Aggregate",
+    "Index Only Scan",
+    "Sort"
+   ],
+   "indexes": [
+    "workouts_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q09",
+   "label": "Volumen mensual \u00b7 \u00faltimo a\u00f1o",
+   "user": "normal",
+   "ms": 0.58,
+   "best": 0.484,
+   "rows": 6,
+   "nodes": [
+    "Aggregate",
+    "Index Only Scan",
+    "Sort"
+   ],
+   "indexes": [
+    "workouts_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q10",
+   "label": "Volumen anual \u00b7 hist\u00f3rico completo",
+   "user": "intensivo",
+   "ms": 0.886,
+   "best": 0.848,
+   "rows": 6,
+   "nodes": [
+    "Aggregate",
+    "Index Only Scan",
+    "Sort"
+   ],
+   "indexes": [
+    "workouts_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q10",
+   "label": "Volumen anual \u00b7 hist\u00f3rico completo",
+   "user": "normal",
+   "ms": 0.523,
+   "best": 0.489,
+   "rows": 1,
+   "nodes": [
+    "Aggregate",
+    "Index Only Scan",
+    "Sort"
+   ],
+   "indexes": [
+    "workouts_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q11",
+   "label": "Volumen hist\u00f3rico calculado desde series (sin desnormalizar)",
+   "user": "intensivo",
+   "ms": 9.768,
+   "best": 9.636,
+   "rows": 6,
+   "nodes": [
+    "Aggregate",
+    "Index Only Scan",
+    "Sort"
+   ],
+   "indexes": [
+    "workout_sets_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q11",
+   "label": "Volumen hist\u00f3rico calculado desde series (sin desnormalizar)",
+   "user": "normal",
+   "ms": 1.392,
+   "best": 1.354,
+   "rows": 1,
+   "nodes": [
+    "Aggregate",
+    "Index Only Scan",
+    "Sort"
+   ],
+   "indexes": [
+    "workout_sets_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q12",
+   "label": "Series por grupo muscular \u00b7 \u00faltimas 4 semanas",
+   "user": "intensivo",
+   "ms": 1.015,
+   "best": 0.901,
+   "rows": 3,
+   "nodes": [
+    "Aggregate",
+    "Hash",
+    "Hash Join",
+    "Index Only Scan",
+    "Seq Scan",
+    "Sort"
+   ],
+   "indexes": [
+    "workout_sets_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q12",
+   "label": "Series por grupo muscular \u00b7 \u00faltimas 4 semanas",
+   "user": "normal",
+   "ms": 0.913,
+   "best": 0.89,
+   "rows": 4,
+   "nodes": [
+    "Aggregate",
+    "Hash",
+    "Hash Join",
+    "Index Only Scan",
+    "Seq Scan",
+    "Sort"
+   ],
+   "indexes": [
+    "workout_sets_user_date_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q13",
+   "label": "Sync incremental (series cambiadas en 7 d\u00edas)",
+   "user": "intensivo",
+   "ms": 0.483,
+   "best": 0.461,
+   "rows": 120,
+   "nodes": [
+    "Index Scan",
+    "Limit"
+   ],
+   "indexes": [
+    "workout_sets_user_sync_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q13",
+   "label": "Sync incremental (series cambiadas en 7 d\u00edas)",
+   "user": "normal",
+   "ms": 0.469,
+   "best": 0.462,
+   "rows": 120,
+   "nodes": [
+    "Index Scan",
+    "Limit"
+   ],
+   "indexes": [
+    "workout_sets_user_sync_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q14",
+   "label": "Q05 sin \u00edndices (seq scan forzado, anti-patr\u00f3n)",
+   "user": "intensivo",
+   "ms": 378.211,
+   "best": 370.963,
+   "rows": 40,
+   "nodes": [
+    "Gather Merge",
+    "Limit",
+    "Seq Scan",
+    "Sort"
+   ],
+   "indexes": [],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q14",
+   "label": "Q05 sin \u00edndices (seq scan forzado, anti-patr\u00f3n)",
+   "user": "normal",
+   "ms": 390.096,
+   "best": 373.938,
+   "rows": 40,
+   "nodes": [
+    "Gather Merge",
+    "Limit",
+    "Seq Scan",
+    "Sort"
+   ],
+   "indexes": [],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q15",
+   "label": "Q05 con RLS \u00b7 auth.uid() sin envolver, sin filtro",
+   "user": "intensivo",
+   "ms": 1.238,
+   "best": 1.179,
+   "rows": 40,
+   "nodes": [
+    "Index Only Scan",
+    "Limit"
+   ],
+   "indexes": [
+    "workout_sets_user_exercise_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q15",
+   "label": "Q05 con RLS \u00b7 auth.uid() sin envolver, sin filtro",
+   "user": "normal",
+   "ms": 2.082,
+   "best": 1.413,
+   "rows": 40,
+   "nodes": [
+    "Index Only Scan",
+    "Limit"
+   ],
+   "indexes": [
+    "workout_sets_user_exercise_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q16",
+   "label": "Q05 con RLS \u00b7 (select auth.uid()), sin filtro",
+   "user": "intensivo",
+   "ms": 1.285,
+   "best": 1.207,
+   "rows": 40,
+   "nodes": [
+    "Index Only Scan",
+    "Limit",
+    "Result"
+   ],
+   "indexes": [
+    "workout_sets_user_exercise_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q16",
+   "label": "Q05 con RLS \u00b7 (select auth.uid()), sin filtro",
+   "user": "normal",
+   "ms": 1.252,
+   "best": 1.134,
+   "rows": 40,
+   "nodes": [
+    "Index Only Scan",
+    "Limit",
+    "Result"
+   ],
+   "indexes": [
+    "workout_sets_user_exercise_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q17",
+   "label": "Q05 con RLS \u00b7 (select auth.uid()) + filtro user_id",
+   "user": "intensivo",
+   "ms": 1.143,
+   "best": 1.092,
+   "rows": 40,
+   "nodes": [
+    "Index Only Scan",
+    "Limit",
+    "Result"
+   ],
+   "indexes": [
+    "workout_sets_user_exercise_idx"
+   ],
+   "heap_fetches": 0
+  },
+  {
+   "id": "Q17",
+   "label": "Q05 con RLS \u00b7 (select auth.uid()) + filtro user_id",
+   "user": "normal",
+   "ms": 1.643,
+   "best": 1.137,
+   "rows": 40,
+   "nodes": [
+    "Index Only Scan",
+    "Limit",
+    "Result"
+   ],
+   "indexes": [
+    "workout_sets_user_exercise_idx"
+   ],
+   "heap_fetches": 0
+  }
+ ],
+ "runs": 7
+}

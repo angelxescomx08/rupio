@@ -1,0 +1,4955 @@
+[
+{
+"id": "press_de_banca_con_barra",
+"src": "Barbell_Bench_Press_-_Medium_Grip",
+"name": "Press de banca con barra",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Escápulas juntas y pies firmes; baja la barra al pecho medio y empuja sin rebotar.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bench_Press_-_Medium_Grip/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bench_Press_-_Medium_Grip/1.jpg"
+]
+},
+{
+"id": "press_inclinado_con_barra",
+"src": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+"name": "Press inclinado con barra",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Banco a 30–45°; baja a la parte alta del pecho con codos a 45°.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Incline_Bench_Press_-_Medium_Grip/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Incline_Bench_Press_-_Medium_Grip/1.jpg"
+]
+},
+{
+"id": "press_declinado_con_barra",
+"src": "Decline_Barbell_Bench_Press",
+"name": "Press declinado con barra",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Asegura los pies; baja controlado hacia la parte baja del pecho.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Decline_Barbell_Bench_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Decline_Barbell_Bench_Press/1.jpg"
+]
+},
+{
+"id": "press_de_banca_agarre_ancho",
+"src": "Wide-Grip_Barbell_Bench_Press",
+"name": "Press de banca agarre ancho",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Agarre más ancho que hombros; recorrido corto y controlado.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Wide-Grip_Barbell_Bench_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Wide-Grip_Barbell_Bench_Press/1.jpg"
+]
+},
+{
+"id": "press_de_banca_con_mancuernas",
+"src": "Dumbbell_Bench_Press",
+"name": "Press de banca con mancuernas",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Baja las mancuernas a los lados del pecho y júntalas arriba sin chocarlas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Bench_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Bench_Press/1.jpg"
+]
+},
+{
+"id": "press_inclinado_con_mancuernas",
+"src": "Incline_Dumbbell_Press",
+"name": "Press inclinado con mancuernas",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Banco a 30–45°; empuja hacia arriba y ligeramente adentro.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Dumbbell_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Dumbbell_Press/1.jpg"
+]
+},
+{
+"id": "press_declinado_con_mancuernas",
+"src": "Decline_Dumbbell_Bench_Press",
+"name": "Press declinado con mancuernas",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Controla la bajada; mantén muñecas alineadas con los codos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Decline_Dumbbell_Bench_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Decline_Dumbbell_Bench_Press/1.jpg"
+]
+},
+{
+"id": "press_con_mancuernas_agarre_neutro",
+"src": "Dumbbell_Bench_Press_with_Neutral_Grip",
+"name": "Press con mancuernas agarre neutro",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Palmas enfrentadas; codos pegados cerca del torso.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Bench_Press_with_Neutral_Grip/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Bench_Press_with_Neutral_Grip/1.jpg"
+]
+},
+{
+"id": "press_inclinado_agarre_martillo",
+"src": "Hammer_Grip_Incline_DB_Bench_Press",
+"name": "Press inclinado agarre martillo",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Palmas enfrentadas, banco inclinado; recorrido completo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hammer_Grip_Incline_DB_Bench_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hammer_Grip_Incline_DB_Bench_Press/1.jpg"
+]
+},
+{
+"id": "press_de_pecho_en_maquina",
+"src": "Machine_Bench_Press",
+"name": "Press de pecho en máquina",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Ajusta el asiento para que las manijas queden a la altura del pecho medio.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Bench_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Bench_Press/1.jpg"
+]
+},
+{
+"id": "press_de_pecho_en_maquina_de_palanca",
+"src": "Leverage_Chest_Press",
+"name": "Press de pecho en máquina de palanca",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Espalda pegada al respaldo; empuja sin bloquear los codos de golpe.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Chest_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Chest_Press/1.jpg"
+]
+},
+{
+"id": "press_inclinado_en_maquina",
+"src": "Leverage_Incline_Chest_Press",
+"name": "Press inclinado en máquina",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Asiento a la altura que lleve las manijas a la parte alta del pecho.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Incline_Chest_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Incline_Chest_Press/1.jpg"
+]
+},
+{
+"id": "press_declinado_en_maquina",
+"src": "Leverage_Decline_Chest_Press",
+"name": "Press declinado en máquina",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Empuja en línea con la parte baja del pecho.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Decline_Chest_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Decline_Chest_Press/1.jpg"
+]
+},
+{
+"id": "press_de_banca_en_smith",
+"src": "Smith_Machine_Bench_Press",
+"name": "Press de banca en Smith",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "smith",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Coloca el banco para que la barra baje al pecho medio.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Bench_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Bench_Press/1.jpg"
+]
+},
+{
+"id": "press_inclinado_en_smith",
+"src": "Smith_Machine_Incline_Bench_Press",
+"name": "Press inclinado en Smith",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "smith",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Banco inclinado; baja a la clavícula de forma controlada.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Incline_Bench_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Incline_Bench_Press/1.jpg"
+]
+},
+{
+"id": "press_declinado_en_smith",
+"src": "Smith_Machine_Decline_Press",
+"name": "Press declinado en Smith",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "smith",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Baja hacia la parte inferior del pecho sin rebotar.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Decline_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Decline_Press/1.jpg"
+]
+},
+{
+"id": "aperturas_con_mancuernas",
+"src": "Dumbbell_Flyes",
+"name": "Aperturas con mancuernas",
+"primary": "pecho",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Codos ligeramente flexionados; abre hasta sentir estiramiento y cierra en arco.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Flyes/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Flyes/1.jpg"
+]
+},
+{
+"id": "aperturas_inclinadas_con_mancuernas",
+"src": "Incline_Dumbbell_Flyes",
+"name": "Aperturas inclinadas con mancuernas",
+"primary": "pecho",
+"secondary": [
+"hombros"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Banco a 30°; movimiento de abrazo, sin bajar de más.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Dumbbell_Flyes/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Dumbbell_Flyes/1.jpg"
+]
+},
+{
+"id": "aperturas_declinadas_con_mancuernas",
+"src": "Decline_Dumbbell_Flyes",
+"name": "Aperturas declinadas con mancuernas",
+"primary": "pecho",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Arco amplio y controlado; no bloquees codos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Decline_Dumbbell_Flyes/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Decline_Dumbbell_Flyes/1.jpg"
+]
+},
+{
+"id": "peck_deck_aperturas_en_maquina",
+"src": "Butterfly",
+"name": "Peck deck (aperturas en máquina)",
+"primary": "pecho",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Pecho arriba; junta las manijas apretando el pecho 1 segundo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Butterfly/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Butterfly/1.jpg"
+]
+},
+{
+"id": "cruce_de_poleas",
+"src": "Cable_Crossover",
+"name": "Cruce de poleas",
+"primary": "pecho",
+"secondary": [
+"hombros"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Da un paso al frente; junta las manos abajo y al frente del cuerpo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crossover/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crossover/1.jpg"
+]
+},
+{
+"id": "cruce_de_poleas_desde_abajo",
+"src": "Low_Cable_Crossover",
+"name": "Cruce de poleas desde abajo",
+"primary": "pecho",
+"secondary": [
+"hombros"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Poleas abajo; sube las manos en arco hasta la altura del pecho.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Low_Cable_Crossover/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Low_Cable_Crossover/1.jpg"
+]
+},
+{
+"id": "aperturas_con_polea_en_banco_plano",
+"src": "Flat_Bench_Cable_Flyes",
+"name": "Aperturas con polea en banco plano",
+"primary": "pecho",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Tensión constante; abre hasta la línea del pecho.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Flat_Bench_Cable_Flyes/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Flat_Bench_Cable_Flyes/1.jpg"
+]
+},
+{
+"id": "aperturas_inclinadas_con_polea",
+"src": "Incline_Cable_Flye",
+"name": "Aperturas inclinadas con polea",
+"primary": "pecho",
+"secondary": [
+"hombros"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Banco inclinado entre poleas; arco amplio y lento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Cable_Flye/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Cable_Flye/1.jpg"
+]
+},
+{
+"id": "cruce_de_polea_a_una_mano",
+"src": "Single-Arm_Cable_Crossover",
+"name": "Cruce de polea a una mano",
+"primary": "pecho",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Cruza la mano frente al cuerpo apretando el pecho.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Single-Arm_Cable_Crossover/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Single-Arm_Cable_Crossover/1.jpg"
+]
+},
+{
+"id": "press_de_pecho_en_polea",
+"src": "Cable_Chest_Press",
+"name": "Press de pecho en polea",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "De pie con un pie adelante; empuja al frente sin arquear la espalda.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Chest_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Chest_Press/1.jpg"
+]
+},
+{
+"id": "press_inclinado_en_polea",
+"src": "Incline_Cable_Chest_Press",
+"name": "Press inclinado en polea",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Empuja hacia arriba y al frente en diagonal.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Cable_Chest_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Cable_Chest_Press/1.jpg"
+]
+},
+{
+"id": "lagartijas",
+"src": "Pushups",
+"name": "Lagartijas",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "peso_corporal",
+"tracking": "weighted_bodyweight",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Cuerpo recto como tabla; baja el pecho casi al suelo y empuja.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pushups/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pushups/1.jpg"
+]
+},
+{
+"id": "lagartijas_abiertas",
+"src": "Push-Up_Wide",
+"name": "Lagartijas abiertas",
+"primary": "pecho",
+"secondary": [
+"abdomen",
+"hombros",
+"triceps"
+],
+"equipment": "peso_corporal",
+"tracking": "weighted_bodyweight",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Manos más anchas que hombros; cuerpo alineado.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Push-Up_Wide/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Push-Up_Wide/1.jpg"
+]
+},
+{
+"id": "lagartijas_inclinadas",
+"src": "Incline_Push-Up",
+"name": "Lagartijas inclinadas",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Manos en banco o pared; versión más fácil para empezar.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Push-Up/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Push-Up/1.jpg"
+]
+},
+{
+"id": "lagartijas_declinadas",
+"src": "Decline_Push-Up",
+"name": "Lagartijas declinadas",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "otro",
+"tracking": "weighted_bodyweight",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Pies elevados; enfoca la parte alta del pecho.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Decline_Push-Up/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Decline_Push-Up/1.jpg"
+]
+},
+{
+"id": "lagartijas_con_pies_elevados",
+"src": "Push-Ups_With_Feet_Elevated",
+"name": "Lagartijas con pies elevados",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "peso_corporal",
+"tracking": "weighted_bodyweight",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Pies en banco; core firme y bajada controlada.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Push-Ups_With_Feet_Elevated/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Push-Ups_With_Feet_Elevated/1.jpg"
+]
+},
+{
+"id": "fondos_para_pecho",
+"src": "Dips_-_Chest_Version",
+"name": "Fondos para pecho",
+"primary": "pecho",
+"secondary": [
+"hombros",
+"triceps"
+],
+"equipment": "otro",
+"tracking": "weighted_bodyweight",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Inclina el torso adelante y baja hasta sentir estiramiento en el pecho.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dips_-_Chest_Version/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dips_-_Chest_Version/1.jpg"
+]
+},
+{
+"id": "pullover_con_mancuerna",
+"src": "Straight-Arm_Dumbbell_Pullover",
+"name": "Pullover con mancuerna",
+"primary": "pecho",
+"secondary": [
+"dorsales",
+"hombros",
+"triceps"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Brazos casi rectos; baja detrás de la cabeza con control.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Straight-Arm_Dumbbell_Pullover/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Straight-Arm_Dumbbell_Pullover/1.jpg"
+]
+},
+{
+"id": "svend_press_con_disco",
+"src": "Svend_Press",
+"name": "Svend press con disco",
+"primary": "pecho",
+"secondary": [
+"antebrazos",
+"hombros",
+"triceps"
+],
+"equipment": "otro",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Aprieta el disco entre las palmas y extiende los brazos al frente.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Svend_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Svend_Press/1.jpg"
+]
+},
+{
+"id": "press_de_piso_con_barra",
+"src": "Floor_Press",
+"name": "Press de piso con barra",
+"primary": "triceps",
+"secondary": [
+"pecho",
+"hombros"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Acostado en el suelo; los codos tocan el piso suavemente en cada rep.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Floor_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Floor_Press/1.jpg"
+]
+},
+{
+"id": "dominadas",
+"src": "Pullups",
+"name": "Dominadas",
+"primary": "dorsales",
+"secondary": [
+"biceps",
+"espalda_media"
+],
+"equipment": "peso_corporal",
+"tracking": "weighted_bodyweight",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Agarre prono; sube hasta pasar la barbilla y baja completo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pullups/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pullups/1.jpg"
+]
+},
+{
+"id": "dominadas_supinas_chin_up",
+"src": "Chin-Up",
+"name": "Dominadas supinas (chin-up)",
+"primary": "dorsales",
+"secondary": [
+"biceps",
+"antebrazos",
+"espalda_media"
+],
+"equipment": "peso_corporal",
+"tracking": "weighted_bodyweight",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Palmas hacia ti; pecho a la barra y bajada controlada.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Chin-Up/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Chin-Up/1.jpg"
+]
+},
+{
+"id": "dominadas_asistidas_con_banda",
+"src": "Band_Assisted_Pull-Up",
+"name": "Dominadas asistidas con banda",
+"primary": "dorsales",
+"secondary": [
+"abdomen",
+"antebrazos",
+"espalda_media"
+],
+"equipment": "otro",
+"tracking": "assisted_bodyweight",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "La banda ayuda en la parte baja; mismo recorrido que la dominada.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Band_Assisted_Pull-Up/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Band_Assisted_Pull-Up/1.jpg"
+]
+},
+{
+"id": "dominadas_con_lastre",
+"src": "Weighted_Pull_Ups",
+"name": "Dominadas con lastre",
+"primary": "dorsales",
+"secondary": [
+"biceps",
+"espalda_media"
+],
+"equipment": "otro",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Usa cinturón con disco; técnica igual a la dominada normal.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Weighted_Pull_Ups/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Weighted_Pull_Ups/1.jpg"
+]
+},
+{
+"id": "dominadas_con_agarre_en_v",
+"src": "V-Bar_Pullup",
+"name": "Dominadas con agarre en V",
+"primary": "dorsales",
+"secondary": [
+"biceps",
+"espalda_media",
+"hombros"
+],
+"equipment": "peso_corporal",
+"tracking": "weighted_bodyweight",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Agarre neutro cerrado; lleva el pecho hacia el maneral.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/V-Bar_Pullup/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/V-Bar_Pullup/1.jpg"
+]
+},
+{
+"id": "jalon_al_pecho_agarre_ancho",
+"src": "Wide-Grip_Lat_Pulldown",
+"name": "Jalón al pecho agarre ancho",
+"primary": "dorsales",
+"secondary": [
+"biceps",
+"espalda_media",
+"hombros"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Pecho arriba; lleva la barra a la parte alta del pecho con los codos hacia abajo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Wide-Grip_Lat_Pulldown/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Wide-Grip_Lat_Pulldown/1.jpg"
+]
+},
+{
+"id": "jalon_al_pecho_agarre_cerrado",
+"src": "Close-Grip_Front_Lat_Pulldown",
+"name": "Jalón al pecho agarre cerrado",
+"primary": "dorsales",
+"secondary": [
+"biceps",
+"espalda_media",
+"hombros"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Agarre estrecho; codos pegados y hacia abajo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Close-Grip_Front_Lat_Pulldown/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Close-Grip_Front_Lat_Pulldown/1.jpg"
+]
+},
+{
+"id": "jalon_con_maneral_en_v",
+"src": "V-Bar_Pulldown",
+"name": "Jalón con maneral en V",
+"primary": "dorsales",
+"secondary": [
+"biceps",
+"espalda_media",
+"hombros"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Lleva el maneral al esternón apretando la espalda.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/V-Bar_Pulldown/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/V-Bar_Pulldown/1.jpg"
+]
+},
+{
+"id": "jalon_agarre_supino",
+"src": "Underhand_Cable_Pulldowns",
+"name": "Jalón agarre supino",
+"primary": "dorsales",
+"secondary": [
+"biceps",
+"espalda_media",
+"hombros"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Palmas hacia ti; tira con los codos, no con las manos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Underhand_Cable_Pulldowns/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Underhand_Cable_Pulldowns/1.jpg"
+]
+},
+{
+"id": "jalon_a_una_mano",
+"src": "One_Arm_Lat_Pulldown",
+"name": "Jalón a una mano",
+"primary": "dorsales",
+"secondary": [
+"biceps",
+"espalda_media"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Tira el codo hacia la cadera del mismo lado.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One_Arm_Lat_Pulldown/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One_Arm_Lat_Pulldown/1.jpg"
+]
+},
+{
+"id": "jalon_con_recorrido_completo",
+"src": "Full_Range-Of-Motion_Lat_Pulldown",
+"name": "Jalón con recorrido completo",
+"primary": "dorsales",
+"secondary": [
+"biceps",
+"espalda_media",
+"hombros"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Estira arriba por completo y aprieta abajo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Full_Range-Of-Motion_Lat_Pulldown/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Full_Range-Of-Motion_Lat_Pulldown/1.jpg"
+]
+},
+{
+"id": "pullover_en_polea_brazos_rectos",
+"src": "Straight-Arm_Pulldown",
+"name": "Pullover en polea (brazos rectos)",
+"primary": "dorsales",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Brazos casi rectos; lleva la barra a los muslos con los dorsales.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Straight-Arm_Pulldown/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Straight-Arm_Pulldown/1.jpg"
+]
+},
+{
+"id": "pullover_en_polea_con_cuerda",
+"src": "Rope_Straight-Arm_Pulldown",
+"name": "Pullover en polea con cuerda",
+"primary": "dorsales",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Abre la cuerda al final, junto a las caderas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Rope_Straight-Arm_Pulldown/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Rope_Straight-Arm_Pulldown/1.jpg"
+]
+},
+{
+"id": "remo_con_barra",
+"src": "Bent_Over_Barbell_Row",
+"name": "Remo con barra",
+"primary": "espalda_media",
+"secondary": [
+"biceps",
+"dorsales",
+"hombros"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Torso a unos 45°, espalda neutra; lleva la barra al ombligo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_Barbell_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_Barbell_Row/1.jpg"
+]
+},
+{
+"id": "remo_con_barra_agarre_supino",
+"src": "Reverse_Grip_Bent-Over_Rows",
+"name": "Remo con barra agarre supino",
+"primary": "espalda_media",
+"secondary": [
+"biceps",
+"dorsales",
+"hombros"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Palmas arriba; codos pegados al cuerpo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Grip_Bent-Over_Rows/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Grip_Bent-Over_Rows/1.jpg"
+]
+},
+{
+"id": "remo_con_mancuerna_a_una_mano",
+"src": "One-Arm_Dumbbell_Row",
+"name": "Remo con mancuerna a una mano",
+"primary": "espalda_media",
+"secondary": [
+"biceps",
+"dorsales",
+"hombros"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Apoya mano y rodilla en el banco; lleva el codo hacia la cadera.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Dumbbell_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Dumbbell_Row/1.jpg"
+]
+},
+{
+"id": "remo_con_dos_mancuernas",
+"src": "Bent_Over_Two-Dumbbell_Row",
+"name": "Remo con dos mancuernas",
+"primary": "espalda_media",
+"secondary": [
+"biceps",
+"dorsales",
+"hombros"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Inclínate con la espalda neutra; tira ambas mancuernas al abdomen.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_Two-Dumbbell_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_Two-Dumbbell_Row/1.jpg"
+]
+},
+{
+"id": "remo_con_mancuernas_en_banco_inclinado",
+"src": "Dumbbell_Incline_Row",
+"name": "Remo con mancuernas en banco inclinado",
+"primary": "espalda_media",
+"secondary": [
+"biceps",
+"antebrazos",
+"dorsales",
+"hombros"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Pecho apoyado en el banco; aprieta las escápulas arriba.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Incline_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Incline_Row/1.jpg"
+]
+},
+{
+"id": "remo_sentado_en_polea",
+"src": "Seated_Cable_Rows",
+"name": "Remo sentado en polea",
+"primary": "espalda_media",
+"secondary": [
+"biceps",
+"dorsales",
+"hombros"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Espalda recta; lleva el maneral al abdomen y junta las escápulas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Cable_Rows/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Cable_Rows/1.jpg"
+]
+},
+{
+"id": "remo_en_polea_a_una_mano",
+"src": "Seated_One-arm_Cable_Pulley_Rows",
+"name": "Remo en polea a una mano",
+"primary": "espalda_media",
+"secondary": [
+"biceps",
+"dorsales",
+"trapecio"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Rota ligeramente el torso al estirar; tira con el codo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_One-arm_Cable_Pulley_Rows/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_One-arm_Cable_Pulley_Rows/1.jpg"
+]
+},
+{
+"id": "remo_en_polea_alta",
+"src": "Elevated_Cable_Rows",
+"name": "Remo en polea alta",
+"primary": "dorsales",
+"secondary": [
+"espalda_media",
+"trapecio"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Tira hacia el pecho alto con codos abiertos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Elevated_Cable_Rows/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Elevated_Cable_Rows/1.jpg"
+]
+},
+{
+"id": "remo_en_t",
+"src": "T-Bar_Row_with_Handle",
+"name": "Remo en T",
+"primary": "espalda_media",
+"secondary": [
+"biceps",
+"dorsales"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Pecho fuera, espalda neutra; lleva el maneral al pecho bajo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/T-Bar_Row_with_Handle/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/T-Bar_Row_with_Handle/1.jpg"
+]
+},
+{
+"id": "remo_en_t_con_apoyo_de_pecho",
+"src": "Lying_T-Bar_Row",
+"name": "Remo en T con apoyo de pecho",
+"primary": "espalda_media",
+"secondary": [
+"biceps",
+"dorsales"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Pecho pegado al soporte; tira sin despegar el torso.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_T-Bar_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_T-Bar_Row/1.jpg"
+]
+},
+{
+"id": "remo_alto_en_maquina",
+"src": "Leverage_High_Row",
+"name": "Remo alto en máquina",
+"primary": "espalda_media",
+"secondary": [
+"dorsales"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Tira con los codos hacia atrás y abajo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_High_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_High_Row/1.jpg"
+]
+},
+{
+"id": "remo_en_maquina",
+"src": "Leverage_Iso_Row",
+"name": "Remo en máquina",
+"primary": "dorsales",
+"secondary": [
+"biceps",
+"espalda_media"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Pecho en el soporte; aprieta la espalda al final.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Iso_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Iso_Row/1.jpg"
+]
+},
+{
+"id": "remo_en_smith",
+"src": "Smith_Machine_Bent_Over_Row",
+"name": "Remo en Smith",
+"primary": "espalda_media",
+"secondary": [
+"biceps",
+"dorsales",
+"hombros"
+],
+"equipment": "smith",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Espalda neutra; barra al abdomen.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Bent_Over_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Bent_Over_Row/1.jpg"
+]
+},
+{
+"id": "remo_invertido",
+"src": "Inverted_Row",
+"name": "Remo invertido",
+"primary": "espalda_media",
+"secondary": [
+"dorsales"
+],
+"equipment": "otro",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Cuerpo recto bajo la barra; lleva el pecho a la barra.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Inverted_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Inverted_Row/1.jpg"
+]
+},
+{
+"id": "remo_con_barra_en_banco_inclinado",
+"src": "Incline_Bench_Pull",
+"name": "Remo con barra en banco inclinado",
+"primary": "espalda_media",
+"secondary": [
+"dorsales",
+"hombros"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Pecho apoyado; barra hacia el banco apretando escápulas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Bench_Pull/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Bench_Pull/1.jpg"
+]
+},
+{
+"id": "remo_en_landmine_a_una_mano",
+"src": "Bent_Over_One-Arm_Long_Bar_Row",
+"name": "Remo en landmine a una mano",
+"primary": "espalda_media",
+"secondary": [
+"biceps",
+"dorsales",
+"lumbar",
+"trapecio"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Lleva el extremo de la barra hacia la cadera.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_One-Arm_Long_Bar_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_One-Arm_Long_Bar_Row/1.jpg"
+]
+},
+{
+"id": "peso_muerto",
+"src": "Barbell_Deadlift",
+"name": "Peso muerto",
+"primary": "lumbar",
+"secondary": [
+"pantorrillas",
+"antebrazos",
+"gluteos",
+"isquiotibiales",
+"dorsales",
+"espalda_media",
+"cuadriceps",
+"trapecio"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Barra pegada a las piernas, espalda neutra; empuja el piso y extiende cadera.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Deadlift/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Deadlift/1.jpg"
+]
+},
+{
+"id": "peso_muerto_sumo",
+"src": "Sumo_Deadlift",
+"name": "Peso muerto sumo",
+"primary": "isquiotibiales",
+"secondary": [
+"aductores",
+"antebrazos",
+"gluteos",
+"lumbar",
+"espalda_media",
+"cuadriceps",
+"trapecio"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Pies muy abiertos, puntas afuera; rodillas siguen a los pies.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Sumo_Deadlift/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Sumo_Deadlift/1.jpg"
+]
+},
+{
+"id": "peso_muerto_con_barra_hexagonal",
+"src": "Trap_Bar_Deadlift",
+"name": "Peso muerto con barra hexagonal",
+"primary": "cuadriceps",
+"secondary": [
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "barra_hexagonal",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Párate dentro de la barra; empuja con piernas y extiende cadera.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Trap_Bar_Deadlift/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Trap_Bar_Deadlift/1.jpg"
+]
+},
+{
+"id": "peso_muerto_en_deficit",
+"src": "Deficit_Deadlift",
+"name": "Peso muerto en déficit",
+"primary": "lumbar",
+"secondary": [
+"antebrazos",
+"gluteos",
+"isquiotibiales",
+"espalda_media",
+"cuadriceps",
+"trapecio"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "De pie sobre un disco; mayor recorrido con espalda neutra.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Deficit_Deadlift/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Deficit_Deadlift/1.jpg"
+]
+},
+{
+"id": "peso_muerto_desde_rack",
+"src": "Rack_Pulls",
+"name": "Peso muerto desde rack",
+"primary": "lumbar",
+"secondary": [
+"antebrazos",
+"gluteos",
+"isquiotibiales",
+"trapecio"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Barra a la altura de las rodillas; extiende la cadera con fuerza.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Rack_Pulls/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Rack_Pulls/1.jpg"
+]
+},
+{
+"id": "hiperextensiones",
+"src": "Hyperextensions_Back_Extensions",
+"name": "Hiperextensiones",
+"primary": "lumbar",
+"secondary": [
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "otro",
+"tracking": "weighted_bodyweight",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Baja con la espalda neutra y sube hasta alinear cuerpo, sin hiperextender.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hyperextensions_Back_Extensions/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hyperextensions_Back_Extensions/1.jpg"
+]
+},
+{
+"id": "extensiones_lumbares_en_fitball",
+"src": "Weighted_Ball_Hyperextension",
+"name": "Extensiones lumbares en fitball",
+"primary": "lumbar",
+"secondary": [
+"gluteos",
+"isquiotibiales",
+"espalda_media"
+],
+"equipment": "fitball",
+"tracking": "reps_only",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Abdomen sobre la pelota; sube lento hasta alinear el cuerpo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Weighted_Ball_Hyperextension/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Weighted_Ball_Hyperextension/1.jpg"
+]
+},
+{
+"id": "buenos_dias_con_barra",
+"src": "Good_Morning",
+"name": "Buenos días con barra",
+"primary": "isquiotibiales",
+"secondary": [
+"abdomen",
+"gluteos",
+"lumbar"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Rodillas suaves; lleva la cadera atrás manteniendo la espalda recta.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Good_Morning/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Good_Morning/1.jpg"
+]
+},
+{
+"id": "press_militar_con_barra",
+"src": "Standing_Military_Press",
+"name": "Press militar con barra",
+"primary": "hombros",
+"secondary": [
+"triceps"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Glúteos y abdomen apretados; empuja la barra arriba pasando cerca de la cara.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Military_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Military_Press/1.jpg"
+]
+},
+{
+"id": "press_militar_sentado_con_barra",
+"src": "Seated_Barbell_Military_Press",
+"name": "Press militar sentado con barra",
+"primary": "hombros",
+"secondary": [
+"triceps"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Espalda apoyada; baja la barra a la barbilla.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Barbell_Military_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Barbell_Military_Press/1.jpg"
+]
+},
+{
+"id": "press_de_hombros_con_barra",
+"src": "Barbell_Shoulder_Press",
+"name": "Press de hombros con barra",
+"primary": "hombros",
+"secondary": [
+"pecho",
+"triceps"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Antebrazos verticales; empuja en línea recta.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Shoulder_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Shoulder_Press/1.jpg"
+]
+},
+{
+"id": "press_de_hombros_con_mancuernas",
+"src": "Dumbbell_Shoulder_Press",
+"name": "Press de hombros con mancuernas",
+"primary": "hombros",
+"secondary": [
+"triceps"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Codos bajo las muñecas; sube sin chocar las mancuernas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Shoulder_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Shoulder_Press/1.jpg"
+]
+},
+{
+"id": "press_sentado_con_mancuernas",
+"src": "Seated_Dumbbell_Press",
+"name": "Press sentado con mancuernas",
+"primary": "hombros",
+"secondary": [
+"triceps"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Respaldo vertical; controla la bajada a la altura de las orejas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Dumbbell_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Dumbbell_Press/1.jpg"
+]
+},
+{
+"id": "press_de_pie_con_mancuernas",
+"src": "Standing_Dumbbell_Press",
+"name": "Press de pie con mancuernas",
+"primary": "hombros",
+"secondary": [
+"triceps"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Core firme, sin arquear la espalda.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Dumbbell_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Dumbbell_Press/1.jpg"
+]
+},
+{
+"id": "press_arnold",
+"src": "Arnold_Dumbbell_Press",
+"name": "Press Arnold",
+"primary": "hombros",
+"secondary": [
+"triceps"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Empieza con palmas hacia ti y gira al subir.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Arnold_Dumbbell_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Arnold_Dumbbell_Press/1.jpg"
+]
+},
+{
+"id": "press_de_hombros_en_maquina",
+"src": "Machine_Shoulder_Military_Press",
+"name": "Press de hombros en máquina",
+"primary": "hombros",
+"secondary": [
+"triceps"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Ajusta el asiento: manijas a la altura de los hombros.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Shoulder_Military_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Shoulder_Military_Press/1.jpg"
+]
+},
+{
+"id": "press_de_hombros_en_maquina_de_palanca",
+"src": "Leverage_Shoulder_Press",
+"name": "Press de hombros en máquina de palanca",
+"primary": "hombros",
+"secondary": [
+"triceps"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Empuja sin despegar la espalda del respaldo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Shoulder_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Shoulder_Press/1.jpg"
+]
+},
+{
+"id": "press_de_hombros_en_smith",
+"src": "Smith_Machine_Overhead_Shoulder_Press",
+"name": "Press de hombros en Smith",
+"primary": "hombros",
+"secondary": [
+"triceps"
+],
+"equipment": "smith",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Barra frente a la cara; empuja hasta casi extender.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Overhead_Shoulder_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Overhead_Shoulder_Press/1.jpg"
+]
+},
+{
+"id": "press_de_hombros_en_polea",
+"src": "Cable_Shoulder_Press",
+"name": "Press de hombros en polea",
+"primary": "hombros",
+"secondary": [
+"triceps"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Empuja hacia arriba manteniendo la tensión.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Shoulder_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Shoulder_Press/1.jpg"
+]
+},
+{
+"id": "push_press",
+"src": "Push_Press",
+"name": "Push press",
+"primary": "hombros",
+"secondary": [
+"cuadriceps",
+"triceps"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "expert",
+"mechanic": "compound",
+"cue": "Flexiona ligeramente las rodillas y usa el impulso para subir la barra.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Push_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Push_Press/1.jpg"
+]
+},
+{
+"id": "press_sentado_con_pesa_rusa",
+"src": "Kettlebell_Seated_Press",
+"name": "Press sentado con pesa rusa",
+"primary": "hombros",
+"secondary": [
+"triceps"
+],
+"equipment": "pesa_rusa",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Muñeca recta; empuja vertical.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_Seated_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_Seated_Press/1.jpg"
+]
+},
+{
+"id": "elevaciones_laterales_con_mancuernas",
+"src": "Side_Lateral_Raise",
+"name": "Elevaciones laterales con mancuernas",
+"primary": "hombros",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Sube los brazos a los lados hasta la altura del hombro, codos suaves.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Lateral_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Lateral_Raise/1.jpg"
+]
+},
+{
+"id": "elevaciones_laterales_sentado",
+"src": "Seated_Side_Lateral_Raise",
+"name": "Elevaciones laterales sentado",
+"primary": "hombros",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Sin balanceo; sube hasta los hombros y baja lento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Side_Lateral_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Side_Lateral_Raise/1.jpg"
+]
+},
+{
+"id": "elevacion_lateral_en_polea",
+"src": "Cable_Seated_Lateral_Raise",
+"name": "Elevación lateral en polea",
+"primary": "hombros",
+"secondary": [
+"espalda_media",
+"trapecio"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Tensión constante; sube el brazo en arco hasta el hombro.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Seated_Lateral_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Seated_Lateral_Raise/1.jpg"
+]
+},
+{
+"id": "elevacion_lateral_a_una_mano",
+"src": "One-Arm_Side_Laterals",
+"name": "Elevación lateral a una mano",
+"primary": "hombros",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Sujétate de un soporte e inclínate un poco hacia afuera.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Side_Laterals/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Side_Laterals/1.jpg"
+]
+},
+{
+"id": "elevaciones_laterales_con_banda",
+"src": "Lateral_Raise_-_With_Bands",
+"name": "Elevaciones laterales con banda",
+"primary": "hombros",
+"secondary": [],
+"equipment": "bandas",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Pisa la banda y sube los brazos a los lados.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lateral_Raise_-_With_Bands/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lateral_Raise_-_With_Bands/1.jpg"
+]
+},
+{
+"id": "elevaciones_frontales_con_mancuernas",
+"src": "Front_Dumbbell_Raise",
+"name": "Elevaciones frontales con mancuernas",
+"primary": "hombros",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Sube al frente hasta la altura de los ojos sin balancear.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Dumbbell_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Dumbbell_Raise/1.jpg"
+]
+},
+{
+"id": "elevacion_frontal_con_disco",
+"src": "Front_Plate_Raise",
+"name": "Elevación frontal con disco",
+"primary": "hombros",
+"secondary": [],
+"equipment": "otro",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Sujeta el disco con ambas manos y sube al frente.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Plate_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Plate_Raise/1.jpg"
+]
+},
+{
+"id": "elevacion_frontal_en_polea",
+"src": "Front_Cable_Raise",
+"name": "Elevación frontal en polea",
+"primary": "hombros",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Polea baja; sube al frente con brazo casi recto.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Cable_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Cable_Raise/1.jpg"
+]
+},
+{
+"id": "pajaros_con_mancuernas",
+"src": "Reverse_Flyes",
+"name": "Pájaros con mancuernas",
+"primary": "hombros",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Inclínate al frente y abre los brazos apretando la parte posterior del hombro.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Flyes/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Flyes/1.jpg"
+]
+},
+{
+"id": "aperturas_invertidas_en_maquina",
+"src": "Reverse_Machine_Flyes",
+"name": "Aperturas invertidas en máquina",
+"primary": "hombros",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Pecho al respaldo; abre los brazos hacia atrás.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Machine_Flyes/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Machine_Flyes/1.jpg"
+]
+},
+{
+"id": "aperturas_posteriores_en_polea",
+"src": "Cable_Rear_Delt_Fly",
+"name": "Aperturas posteriores en polea",
+"primary": "hombros",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Cruza los cables y abre hacia atrás a la altura del hombro.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Rear_Delt_Fly/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Rear_Delt_Fly/1.jpg"
+]
+},
+{
+"id": "pajaros_sentado",
+"src": "Seated_Bent-Over_Rear_Delt_Raise",
+"name": "Pájaros sentado",
+"primary": "hombros",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Pecho cerca de los muslos; abre los brazos lento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Bent-Over_Rear_Delt_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Bent-Over_Rear_Delt_Raise/1.jpg"
+]
+},
+{
+"id": "face_pull",
+"src": "Face_Pull",
+"name": "Face pull",
+"primary": "hombros",
+"secondary": [
+"espalda_media"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Polea a la altura de la cara; tira la cuerda hacia la frente separando las manos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Face_Pull/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Face_Pull/1.jpg"
+]
+},
+{
+"id": "aperturas_con_banda",
+"src": "Band_Pull_Apart",
+"name": "Aperturas con banda",
+"primary": "hombros",
+"secondary": [
+"espalda_media",
+"trapecio"
+],
+"equipment": "bandas",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Brazos rectos al frente; separa la banda hasta el pecho.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Band_Pull_Apart/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Band_Pull_Apart/1.jpg"
+]
+},
+{
+"id": "remo_al_menton_con_barra",
+"src": "Upright_Barbell_Row",
+"name": "Remo al mentón con barra",
+"primary": "hombros",
+"secondary": [
+"trapecio"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Agarre medio; sube la barra hasta el pecho con codos arriba.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Upright_Barbell_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Upright_Barbell_Row/1.jpg"
+]
+},
+{
+"id": "remo_al_menton_con_mancuernas",
+"src": "Standing_Dumbbell_Upright_Row",
+"name": "Remo al mentón con mancuernas",
+"primary": "trapecio",
+"secondary": [
+"biceps",
+"hombros"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Codos guían el movimiento; no subas más allá de los hombros.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Dumbbell_Upright_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Dumbbell_Upright_Row/1.jpg"
+]
+},
+{
+"id": "remo_al_menton_en_polea",
+"src": "Upright_Cable_Row",
+"name": "Remo al mentón en polea",
+"primary": "trapecio",
+"secondary": [
+"hombros"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Tira hacia el pecho alto con codos afuera.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Upright_Cable_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Upright_Cable_Row/1.jpg"
+]
+},
+{
+"id": "rotacion_externa_en_polea",
+"src": "External_Rotation_with_Cable",
+"name": "Rotación externa en polea",
+"primary": "hombros",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Codo pegado al cuerpo; gira el antebrazo hacia afuera.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/External_Rotation_with_Cable/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/External_Rotation_with_Cable/1.jpg"
+]
+},
+{
+"id": "rotacion_externa_con_banda",
+"src": "External_Rotation_with_Band",
+"name": "Rotación externa con banda",
+"primary": "hombros",
+"secondary": [],
+"equipment": "bandas",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Codo a 90° pegado al costado; gira hacia afuera lento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/External_Rotation_with_Band/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/External_Rotation_with_Band/1.jpg"
+]
+},
+{
+"id": "flexiones_de_pino",
+"src": "Handstand_Push-Ups",
+"name": "Flexiones de pino",
+"primary": "hombros",
+"secondary": [
+"triceps"
+],
+"equipment": "peso_corporal",
+"tracking": "weighted_bodyweight",
+"lower": false,
+"level": "expert",
+"mechanic": "compound",
+"cue": "Contra la pared; baja la cabeza con control y empuja.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Handstand_Push-Ups/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Handstand_Push-Ups/1.jpg"
+]
+},
+{
+"id": "encogimientos_con_barra",
+"src": "Barbell_Shrug",
+"name": "Encogimientos con barra",
+"primary": "trapecio",
+"secondary": [],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Sube los hombros hacia las orejas y pausa arriba.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Shrug/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Shrug/1.jpg"
+]
+},
+{
+"id": "encogimientos_con_mancuernas",
+"src": "Dumbbell_Shrug",
+"name": "Encogimientos con mancuernas",
+"primary": "trapecio",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Brazos rectos; sube y baja los hombros sin girar.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Shrug/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Shrug/1.jpg"
+]
+},
+{
+"id": "encogimientos_en_polea",
+"src": "Cable_Shrugs",
+"name": "Encogimientos en polea",
+"primary": "trapecio",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Tensión constante; pausa arriba.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Shrugs/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Shrugs/1.jpg"
+]
+},
+{
+"id": "remo_al_menton_en_smith",
+"src": "Smith_Machine_Upright_Row",
+"name": "Remo al mentón en Smith",
+"primary": "trapecio",
+"secondary": [
+"biceps",
+"espalda_media",
+"hombros"
+],
+"equipment": "smith",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Agarre medio; codos arriba sin pasar los hombros.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Upright_Row/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Upright_Row/1.jpg"
+]
+},
+{
+"id": "encogimientos_en_maquina",
+"src": "Leverage_Shrug",
+"name": "Encogimientos en máquina",
+"primary": "trapecio",
+"secondary": [
+"antebrazos"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Sube recto, sin rodar los hombros.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Shrug/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leverage_Shrug/1.jpg"
+]
+},
+{
+"id": "curl_de_biceps_con_barra",
+"src": "Barbell_Curl",
+"name": "Curl de bíceps con barra",
+"primary": "biceps",
+"secondary": [
+"antebrazos"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Codos fijos a los costados; sube sin balancear el torso.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Curl/1.jpg"
+]
+},
+{
+"id": "curl_con_barra_z",
+"src": "EZ-Bar_Curl",
+"name": "Curl con barra Z",
+"primary": "biceps",
+"secondary": [],
+"equipment": "barra_z",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Agarre en la parte angulada; codos quietos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/EZ-Bar_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/EZ-Bar_Curl/1.jpg"
+]
+},
+{
+"id": "curl_con_barra_z_agarre_cerrado",
+"src": "Close-Grip_EZ_Bar_Curl",
+"name": "Curl con barra Z agarre cerrado",
+"primary": "biceps",
+"secondary": [
+"antebrazos"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Manos juntas; recorrido completo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Close-Grip_EZ_Bar_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Close-Grip_EZ_Bar_Curl/1.jpg"
+]
+},
+{
+"id": "curl_de_biceps_con_mancuernas",
+"src": "Dumbbell_Bicep_Curl",
+"name": "Curl de bíceps con mancuernas",
+"primary": "biceps",
+"secondary": [
+"antebrazos"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Gira la palma hacia arriba al subir; baja lento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Bicep_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Bicep_Curl/1.jpg"
+]
+},
+{
+"id": "curl_alterno_con_mancuernas",
+"src": "Dumbbell_Alternate_Bicep_Curl",
+"name": "Curl alterno con mancuernas",
+"primary": "biceps",
+"secondary": [
+"antebrazos"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Un brazo a la vez, sin balanceo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Alternate_Bicep_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Alternate_Bicep_Curl/1.jpg"
+]
+},
+{
+"id": "curl_martillo",
+"src": "Hammer_Curls",
+"name": "Curl martillo",
+"primary": "biceps",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Palmas enfrentadas todo el recorrido.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hammer_Curls/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hammer_Curls/1.jpg"
+]
+},
+{
+"id": "curl_martillo_alterno",
+"src": "Alternate_Hammer_Curl",
+"name": "Curl martillo alterno",
+"primary": "biceps",
+"secondary": [
+"antebrazos"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Alterna brazos; codos pegados.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Alternate_Hammer_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Alternate_Hammer_Curl/1.jpg"
+]
+},
+{
+"id": "curl_martillo_cruzado",
+"src": "Cross_Body_Hammer_Curl",
+"name": "Curl martillo cruzado",
+"primary": "biceps",
+"secondary": [
+"antebrazos"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Lleva la mancuerna hacia el hombro contrario.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cross_Body_Hammer_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cross_Body_Hammer_Curl/1.jpg"
+]
+},
+{
+"id": "curl_inclinado_con_mancuernas",
+"src": "Incline_Dumbbell_Curl",
+"name": "Curl inclinado con mancuernas",
+"primary": "biceps",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Banco a 45°; brazos colgando detrás del torso para estirar el bíceps.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Dumbbell_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Dumbbell_Curl/1.jpg"
+]
+},
+{
+"id": "curl_concentrado",
+"src": "Concentration_Curls",
+"name": "Curl concentrado",
+"primary": "biceps",
+"secondary": [
+"antebrazos"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Codo apoyado en la parte interna del muslo; sube lento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Concentration_Curls/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Concentration_Curls/1.jpg"
+]
+},
+{
+"id": "curl_predicador_con_barra",
+"src": "Preacher_Curl",
+"name": "Curl predicador con barra",
+"primary": "biceps",
+"secondary": [],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Brazos apoyados en el atril; no bloquees abajo de golpe.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Preacher_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Preacher_Curl/1.jpg"
+]
+},
+{
+"id": "curl_predicador_a_una_mano",
+"src": "One_Arm_Dumbbell_Preacher_Curl",
+"name": "Curl predicador a una mano",
+"primary": "biceps",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Brazo en el atril; controla la bajada.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One_Arm_Dumbbell_Preacher_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One_Arm_Dumbbell_Preacher_Curl/1.jpg"
+]
+},
+{
+"id": "curl_predicador_en_maquina",
+"src": "Machine_Preacher_Curls",
+"name": "Curl predicador en máquina",
+"primary": "biceps",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Ajusta el asiento para que el codo quede alineado con el eje.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Preacher_Curls/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Preacher_Curls/1.jpg"
+]
+},
+{
+"id": "curl_de_biceps_en_maquina",
+"src": "Machine_Bicep_Curl",
+"name": "Curl de bíceps en máquina",
+"primary": "biceps",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Codos alineados con el eje de la máquina.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Bicep_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Bicep_Curl/1.jpg"
+]
+},
+{
+"id": "curl_de_biceps_en_polea",
+"src": "Standing_Biceps_Cable_Curl",
+"name": "Curl de bíceps en polea",
+"primary": "biceps",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Polea baja; codos fijos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Biceps_Cable_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Biceps_Cable_Curl/1.jpg"
+]
+},
+{
+"id": "curl_martillo_en_polea_con_cuerda",
+"src": "Cable_Hammer_Curls_-_Rope_Attachment",
+"name": "Curl martillo en polea con cuerda",
+"primary": "biceps",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Palmas enfrentadas; sube hasta el pecho.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Hammer_Curls_-_Rope_Attachment/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Hammer_Curls_-_Rope_Attachment/1.jpg"
+]
+},
+{
+"id": "curl_en_polea_alta",
+"src": "Overhead_Cable_Curl",
+"name": "Curl en polea alta",
+"primary": "biceps",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Brazos a la altura de los hombros; lleva las manos a la cabeza.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Overhead_Cable_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Overhead_Cable_Curl/1.jpg"
+]
+},
+{
+"id": "curl_predicador_en_polea",
+"src": "Cable_Preacher_Curl",
+"name": "Curl predicador en polea",
+"primary": "biceps",
+"secondary": [
+"antebrazos"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Tensión constante en todo el recorrido.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Preacher_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Preacher_Curl/1.jpg"
+]
+},
+{
+"id": "curl_arana",
+"src": "Spider_Curl",
+"name": "Curl araña",
+"primary": "biceps",
+"secondary": [],
+"equipment": "barra_z",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Pecho apoyado en banco inclinado; brazos colgando vertical.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Spider_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Spider_Curl/1.jpg"
+]
+},
+{
+"id": "curl_arrastrado",
+"src": "Drag_Curl",
+"name": "Curl arrastrado",
+"primary": "biceps",
+"secondary": [
+"antebrazos"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Arrastra la barra pegada al torso llevando los codos atrás.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Drag_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Drag_Curl/1.jpg"
+]
+},
+{
+"id": "curl_zottman",
+"src": "Zottman_Curl",
+"name": "Curl Zottman",
+"primary": "biceps",
+"secondary": [
+"antebrazos"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Sube supino y baja prono, lento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Zottman_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Zottman_Curl/1.jpg"
+]
+},
+{
+"id": "curl_inverso_con_barra",
+"src": "Reverse_Barbell_Curl",
+"name": "Curl inverso con barra",
+"primary": "biceps",
+"secondary": [
+"antebrazos"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Palmas abajo; trabaja antebrazo y braquial.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Barbell_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Barbell_Curl/1.jpg"
+]
+},
+{
+"id": "curl_sentado_con_mancuernas",
+"src": "Seated_Dumbbell_Curl",
+"name": "Curl sentado con mancuernas",
+"primary": "biceps",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Espalda recta; sin impulso.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Dumbbell_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Dumbbell_Curl/1.jpg"
+]
+},
+{
+"id": "extension_de_triceps_en_polea",
+"src": "Triceps_Pushdown",
+"name": "Extensión de tríceps en polea",
+"primary": "triceps",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Codos pegados al cuerpo; extiende completo abajo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Pushdown/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Pushdown/1.jpg"
+]
+},
+{
+"id": "extension_de_triceps_con_cuerda",
+"src": "Triceps_Pushdown_-_Rope_Attachment",
+"name": "Extensión de tríceps con cuerda",
+"primary": "triceps",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Abre la cuerda al final del movimiento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Pushdown_-_Rope_Attachment/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Pushdown_-_Rope_Attachment/1.jpg"
+]
+},
+{
+"id": "extension_de_triceps_con_barra_v",
+"src": "Triceps_Pushdown_-_V-Bar_Attachment",
+"name": "Extensión de tríceps con barra V",
+"primary": "triceps",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Codos fijos; solo se mueven los antebrazos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Pushdown_-_V-Bar_Attachment/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Pushdown_-_V-Bar_Attachment/1.jpg"
+]
+},
+{
+"id": "extension_de_triceps_agarre_supino",
+"src": "Reverse_Grip_Triceps_Pushdown",
+"name": "Extensión de tríceps agarre supino",
+"primary": "triceps",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Palmas arriba; codos pegados.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Grip_Triceps_Pushdown/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Grip_Triceps_Pushdown/1.jpg"
+]
+},
+{
+"id": "extension_de_triceps_a_una_mano_en_polea",
+"src": "Cable_One_Arm_Tricep_Extension",
+"name": "Extensión de tríceps a una mano en polea",
+"primary": "triceps",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Extiende completo y controla el regreso.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_One_Arm_Tricep_Extension/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_One_Arm_Tricep_Extension/1.jpg"
+]
+},
+{
+"id": "extension_sobre_la_cabeza_con_cuerda",
+"src": "Triceps_Overhead_Extension_with_Rope",
+"name": "Extensión sobre la cabeza con cuerda",
+"primary": "triceps",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "De espaldas a la polea; extiende los brazos al frente y arriba.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Overhead_Extension_with_Rope/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Overhead_Extension_with_Rope/1.jpg"
+]
+},
+{
+"id": "extension_de_triceps_tras_nuca_en_polea",
+"src": "Cable_Rope_Overhead_Triceps_Extension",
+"name": "Extensión de tríceps tras nuca en polea",
+"primary": "triceps",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Codos apuntando al frente; estira bien atrás.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Rope_Overhead_Triceps_Extension/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Rope_Overhead_Triceps_Extension/1.jpg"
+]
+},
+{
+"id": "press_frances_con_barra_z",
+"src": "EZ-Bar_Skullcrusher",
+"name": "Press francés con barra Z",
+"primary": "triceps",
+"secondary": [
+"antebrazos"
+],
+"equipment": "barra_z",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Baja la barra a la frente con codos fijos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/EZ-Bar_Skullcrusher/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/EZ-Bar_Skullcrusher/1.jpg"
+]
+},
+{
+"id": "press_frances_con_barra",
+"src": "Lying_Triceps_Press",
+"name": "Press francés con barra",
+"primary": "triceps",
+"secondary": [],
+"equipment": "barra_z",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Codos quietos apuntando al techo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Triceps_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Triceps_Press/1.jpg"
+]
+},
+{
+"id": "press_frances_con_mancuernas",
+"src": "Lying_Dumbbell_Tricep_Extension",
+"name": "Press francés con mancuernas",
+"primary": "triceps",
+"secondary": [
+"pecho",
+"hombros"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Baja las mancuernas junto a la cabeza.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Dumbbell_Tricep_Extension/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Dumbbell_Tricep_Extension/1.jpg"
+]
+},
+{
+"id": "extension_de_triceps_con_mancuerna_sobre_la_cabeza",
+"src": "Standing_Dumbbell_Triceps_Extension",
+"name": "Extensión de tríceps con mancuerna sobre la cabeza",
+"primary": "triceps",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Sujeta una mancuerna con ambas manos y baja detrás de la cabeza.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Dumbbell_Triceps_Extension/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Dumbbell_Triceps_Extension/1.jpg"
+]
+},
+{
+"id": "extension_de_triceps_a_una_mano_con_mancuerna",
+"src": "Dumbbell_One-Arm_Triceps_Extension",
+"name": "Extensión de tríceps a una mano con mancuerna",
+"primary": "triceps",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Codo apuntando arriba; baja detrás de la cabeza.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_One-Arm_Triceps_Extension/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_One-Arm_Triceps_Extension/1.jpg"
+]
+},
+{
+"id": "patada_de_triceps",
+"src": "Tricep_Dumbbell_Kickback",
+"name": "Patada de tríceps",
+"primary": "triceps",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Torso inclinado, codo alto; extiende el brazo atrás.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Tricep_Dumbbell_Kickback/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Tricep_Dumbbell_Kickback/1.jpg"
+]
+},
+{
+"id": "press_de_banca_agarre_cerrado",
+"src": "Close-Grip_Barbell_Bench_Press",
+"name": "Press de banca agarre cerrado",
+"primary": "triceps",
+"secondary": [
+"pecho",
+"hombros"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Manos al ancho de hombros; codos pegados.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Close-Grip_Barbell_Bench_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Close-Grip_Barbell_Bench_Press/1.jpg"
+]
+},
+{
+"id": "press_cerrado_en_smith",
+"src": "Smith_Machine_Close-Grip_Bench_Press",
+"name": "Press cerrado en Smith",
+"primary": "triceps",
+"secondary": [
+"pecho",
+"hombros"
+],
+"equipment": "smith",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Codos cerca del cuerpo; baja al pecho bajo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Close-Grip_Bench_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Close-Grip_Bench_Press/1.jpg"
+]
+},
+{
+"id": "jm_press",
+"src": "JM_Press",
+"name": "JM press",
+"primary": "triceps",
+"secondary": [
+"pecho",
+"hombros"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Híbrido entre press cerrado y press francés; baja hacia la barbilla.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/JM_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/JM_Press/1.jpg"
+]
+},
+{
+"id": "fondos_para_triceps",
+"src": "Dips_-_Triceps_Version",
+"name": "Fondos para tríceps",
+"primary": "triceps",
+"secondary": [
+"pecho",
+"hombros"
+],
+"equipment": "peso_corporal",
+"tracking": "weighted_bodyweight",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Torso vertical; baja hasta 90° de codo y extiende.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dips_-_Triceps_Version/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dips_-_Triceps_Version/1.jpg"
+]
+},
+{
+"id": "fondos_en_paralelas",
+"src": "Parallel_Bar_Dip",
+"name": "Fondos en paralelas",
+"primary": "triceps",
+"secondary": [
+"pecho",
+"hombros"
+],
+"equipment": "otro",
+"tracking": "weighted_bodyweight",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Hombros abajo; baja controlado.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Parallel_Bar_Dip/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Parallel_Bar_Dip/1.jpg"
+]
+},
+{
+"id": "fondos_en_banco",
+"src": "Bench_Dips",
+"name": "Fondos en banco",
+"primary": "triceps",
+"secondary": [
+"pecho",
+"hombros"
+],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Manos en el banco detrás de ti; baja doblando codos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bench_Dips/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bench_Dips/1.jpg"
+]
+},
+{
+"id": "fondos_en_banco_con_peso",
+"src": "Weighted_Bench_Dip",
+"name": "Fondos en banco con peso",
+"primary": "triceps",
+"secondary": [
+"pecho",
+"hombros"
+],
+"equipment": "otro",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Disco sobre los muslos; mismo movimiento que fondos en banco.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Weighted_Bench_Dip/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Weighted_Bench_Dip/1.jpg"
+]
+},
+{
+"id": "fondos_en_maquina",
+"src": "Dip_Machine",
+"name": "Fondos en máquina",
+"primary": "triceps",
+"secondary": [
+"pecho",
+"hombros"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Empuja hacia abajo hasta extender los codos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dip_Machine/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dip_Machine/1.jpg"
+]
+},
+{
+"id": "extension_de_triceps_en_maquina",
+"src": "Machine_Triceps_Extension",
+"name": "Extensión de tríceps en máquina",
+"primary": "triceps",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Codos alineados con el eje; extiende completo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Triceps_Extension/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Triceps_Extension/1.jpg"
+]
+},
+{
+"id": "lagartijas_cerradas",
+"src": "Push-Ups_-_Close_Triceps_Position",
+"name": "Lagartijas cerradas",
+"primary": "triceps",
+"secondary": [
+"pecho",
+"hombros"
+],
+"equipment": "peso_corporal",
+"tracking": "weighted_bodyweight",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Manos juntas bajo el pecho; codos pegados.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Push-Ups_-_Close_Triceps_Position/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Push-Ups_-_Close_Triceps_Position/1.jpg"
+]
+},
+{
+"id": "press_cerrado_con_mancuernas",
+"src": "Close-Grip_Dumbbell_Press",
+"name": "Press cerrado con mancuernas",
+"primary": "triceps",
+"secondary": [
+"pecho",
+"hombros"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Mancuernas juntas; codos pegados al torso.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Close-Grip_Dumbbell_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Close-Grip_Dumbbell_Press/1.jpg"
+]
+},
+{
+"id": "curl_de_muneca_con_barra",
+"src": "Palms-Up_Barbell_Wrist_Curl_Over_A_Bench",
+"name": "Curl de muñeca con barra",
+"primary": "antebrazos",
+"secondary": [],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Antebrazos sobre el banco; mueve solo las muñecas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Palms-Up_Barbell_Wrist_Curl_Over_A_Bench/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Palms-Up_Barbell_Wrist_Curl_Over_A_Bench/1.jpg"
+]
+},
+{
+"id": "curl_de_muneca_inverso",
+"src": "Palms-Down_Wrist_Curl_Over_A_Bench",
+"name": "Curl de muñeca inverso",
+"primary": "antebrazos",
+"secondary": [],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Palmas abajo; sube los nudillos lento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Palms-Down_Wrist_Curl_Over_A_Bench/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Palms-Down_Wrist_Curl_Over_A_Bench/1.jpg"
+]
+},
+{
+"id": "curl_de_muneca_invertido_con_mancuerna",
+"src": "Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench",
+"name": "Curl de muñeca invertido con mancuerna",
+"primary": "antebrazos",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Antebrazos apoyados en el banco, palmas abajo; sube solo con la muñeca.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench/1.jpg"
+]
+},
+{
+"id": "curl_de_muneca_palmas_arriba_con_mancuerna",
+"src": "Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench",
+"name": "Curl de muñeca palmas arriba con mancuerna",
+"primary": "antebrazos",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Antebrazos apoyados, palmas arriba; deja rodar la mancuerna y sube con la muñeca.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench/1.jpg"
+]
+},
+{
+"id": "enrollador_de_muneca",
+"src": "Wrist_Roller",
+"name": "Enrollador de muñeca",
+"primary": "antebrazos",
+"secondary": [
+"hombros"
+],
+"equipment": "otro",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Enrolla la cuerda con giros de muñeca, brazos al frente.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Wrist_Roller/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Wrist_Roller/1.jpg"
+]
+},
+{
+"id": "pinza_con_discos",
+"src": "Plate_Pinch",
+"name": "Pinza con discos",
+"primary": "antebrazos",
+"secondary": [],
+"equipment": "otro",
+"tracking": "duration",
+"lower": false,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Sujeta los discos con los dedos el mayor tiempo posible.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plate_Pinch/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plate_Pinch/1.jpg"
+]
+},
+{
+"id": "sentadilla_con_barra",
+"src": "Barbell_Squat",
+"name": "Sentadilla con barra",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales",
+"lumbar"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Pecho arriba, rodillas en línea con los pies; baja al menos a paralelo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_profunda_con_barra",
+"src": "Barbell_Full_Squat",
+"name": "Sentadilla profunda con barra",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales",
+"lumbar"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Baja lo más profundo que permita tu movilidad con espalda neutra.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Full_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Full_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_frontal",
+"src": "Front_Barbell_Squat",
+"name": "Sentadilla frontal",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "expert",
+"mechanic": "compound",
+"cue": "Codos altos; torso vertical durante el descenso.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Barbell_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Barbell_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_al_cajon",
+"src": "Box_Squat",
+"name": "Sentadilla al cajón",
+"primary": "cuadriceps",
+"secondary": [
+"aductores",
+"pantorrillas",
+"gluteos",
+"isquiotibiales",
+"lumbar"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Siéntate brevemente en el cajón sin relajar el core.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Box_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Box_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_en_smith",
+"src": "Smith_Machine_Squat",
+"name": "Sentadilla en Smith",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales",
+"lumbar"
+],
+"equipment": "smith",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Pies ligeramente adelante; baja controlado.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_goblet",
+"src": "Goblet_Squat",
+"name": "Sentadilla goblet",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales",
+"hombros"
+],
+"equipment": "pesa_rusa",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Sujeta la mancuerna en el pecho; codos entre las rodillas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Goblet_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Goblet_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_con_mancuernas",
+"src": "Dumbbell_Squat",
+"name": "Sentadilla con mancuernas",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales",
+"lumbar"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Mancuernas a los lados; espalda recta.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_libre",
+"src": "Bodyweight_Squat",
+"name": "Sentadilla libre",
+"primary": "cuadriceps",
+"secondary": [
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Brazos al frente; baja como si te sentaras.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_con_barra_pies_abiertos",
+"src": "Wide_Stance_Barbell_Squat",
+"name": "Sentadilla con barra pies abiertos",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales",
+"lumbar"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Pies más abiertos, puntas afuera; rodillas siguen la punta.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Wide_Stance_Barbell_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Wide_Stance_Barbell_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_sumo_con_mancuerna",
+"src": "Plie_Dumbbell_Squat",
+"name": "Sentadilla sumo con mancuerna",
+"primary": "cuadriceps",
+"secondary": [
+"abdomen",
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Pies muy abiertos; mancuerna colgando al centro.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plie_Dumbbell_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plie_Dumbbell_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_zercher",
+"src": "Zercher_Squats",
+"name": "Sentadilla Zercher",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "expert",
+"mechanic": "compound",
+"cue": "Barra en el pliegue de los codos; torso erguido.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Zercher_Squats/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Zercher_Squats/1.jpg"
+]
+},
+{
+"id": "sentadilla_con_barra_sobre_la_cabeza",
+"src": "Overhead_Squat",
+"name": "Sentadilla con barra sobre la cabeza",
+"primary": "cuadriceps",
+"secondary": [
+"abdomen",
+"pantorrillas",
+"gluteos",
+"isquiotibiales",
+"lumbar",
+"hombros",
+"triceps"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "expert",
+"mechanic": "compound",
+"cue": "Brazos bloqueados arriba; requiere buena movilidad.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Overhead_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Overhead_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_hack_en_maquina",
+"src": "Hack_Squat",
+"name": "Sentadilla hack en máquina",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Espalda pegada al respaldo; baja profundo sin despegar talones.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hack_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hack_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_hack_con_barra",
+"src": "Barbell_Hack_Squat",
+"name": "Sentadilla hack con barra",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"antebrazos",
+"isquiotibiales"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Barra detrás de las piernas; sube extendiendo rodillas y cadera.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Hack_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Hack_Squat/1.jpg"
+]
+},
+{
+"id": "prensa_de_piernas",
+"src": "Leg_Press",
+"name": "Prensa de piernas",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Pies al ancho de hombros; baja sin despegar la zona lumbar.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Press/1.jpg"
+]
+},
+{
+"id": "prensa_con_pies_juntos",
+"src": "Narrow_Stance_Leg_Press",
+"name": "Prensa con pies juntos",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Pies juntos al centro; enfoca el cuádriceps.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Narrow_Stance_Leg_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Narrow_Stance_Leg_Press/1.jpg"
+]
+},
+{
+"id": "prensa_en_smith",
+"src": "Smith_Machine_Leg_Press",
+"name": "Prensa en Smith",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "smith",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Controla la bajada y no bloquees las rodillas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Leg_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Leg_Press/1.jpg"
+]
+},
+{
+"id": "extension_de_piernas",
+"src": "Leg_Extensions",
+"name": "Extensión de piernas",
+"primary": "cuadriceps",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Rodilla alineada con el eje; extiende y aprieta arriba.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Extensions/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Extensions/1.jpg"
+]
+},
+{
+"id": "extension_de_pierna_a_una_pierna",
+"src": "Single-Leg_Leg_Extension",
+"name": "Extensión de pierna a una pierna",
+"primary": "cuadriceps",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Una pierna a la vez; pausa arriba.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Single-Leg_Leg_Extension/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Single-Leg_Leg_Extension/1.jpg"
+]
+},
+{
+"id": "zancadas_con_barra",
+"src": "Barbell_Lunge",
+"name": "Zancadas con barra",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Paso largo; rodilla trasera casi al piso.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Lunge/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Lunge/1.jpg"
+]
+},
+{
+"id": "zancadas_con_mancuernas",
+"src": "Dumbbell_Lunges",
+"name": "Zancadas con mancuernas",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Torso recto; empuja con el talón delantero.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Lunges/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Lunges/1.jpg"
+]
+},
+{
+"id": "zancadas_caminando_con_barra",
+"src": "Barbell_Walking_Lunge",
+"name": "Zancadas caminando con barra",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Avanza alternando piernas con pasos largos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Walking_Lunge/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Walking_Lunge/1.jpg"
+]
+},
+{
+"id": "zancadas_caminando",
+"src": "Bodyweight_Walking_Lunge",
+"name": "Zancadas caminando",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "otro",
+"tracking": "reps_only",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Pasos largos; rodilla trasera casi toca el piso.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Walking_Lunge/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Walking_Lunge/1.jpg"
+]
+},
+{
+"id": "zancada_hacia_atras_con_mancuernas",
+"src": "Dumbbell_Rear_Lunge",
+"name": "Zancada hacia atrás con mancuernas",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Paso atrás; más amable con las rodillas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Rear_Lunge/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Rear_Lunge/1.jpg"
+]
+},
+{
+"id": "sentadilla_bulgara_con_mancuernas",
+"src": "Split_Squat_with_Dumbbells",
+"name": "Sentadilla búlgara con mancuernas",
+"primary": "cuadriceps",
+"secondary": [
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Pie trasero en un banco; baja vertical.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Split_Squat_with_Dumbbells/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Split_Squat_with_Dumbbells/1.jpg"
+]
+},
+{
+"id": "sentadilla_bulgara_en_smith",
+"src": "Smith_Single-Leg_Split_Squat",
+"name": "Sentadilla búlgara en Smith",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "smith",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Pie trasero elevado; baja controlado.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Single-Leg_Split_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Single-Leg_Split_Squat/1.jpg"
+]
+},
+{
+"id": "subidas_al_cajon_con_mancuernas",
+"src": "Dumbbell_Step_Ups",
+"name": "Subidas al cajón con mancuernas",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Sube empujando con el talón de la pierna de arriba.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Step_Ups/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Step_Ups/1.jpg"
+]
+},
+{
+"id": "subidas_al_cajon_con_barra",
+"src": "Barbell_Step_Ups",
+"name": "Subidas al cajón con barra",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Torso erguido; no te impulses con la pierna de abajo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Step_Ups/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Step_Ups/1.jpg"
+]
+},
+{
+"id": "sentadilla_sissy",
+"src": "Weighted_Sissy_Squat",
+"name": "Sentadilla sissy",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "barra",
+"tracking": "weighted_bodyweight",
+"lower": true,
+"level": "expert",
+"mechanic": "compound",
+"cue": "Inclina el torso atrás y lleva las rodillas al frente.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Weighted_Sissy_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Weighted_Sissy_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_pistola",
+"src": "Kettlebell_Pistol_Squat",
+"name": "Sentadilla pistola",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales",
+"hombros"
+],
+"equipment": "pesa_rusa",
+"tracking": "weighted_bodyweight",
+"lower": true,
+"level": "expert",
+"mechanic": "compound",
+"cue": "Una pierna extendida al frente; baja en una sola pierna.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_Pistol_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_Pistol_Squat/1.jpg"
+]
+},
+{
+"id": "sentadilla_con_salto",
+"src": "Freehand_Jump_Squat",
+"name": "Sentadilla con salto",
+"primary": "cuadriceps",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Baja y salta explosivo; aterriza suave.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Freehand_Jump_Squat/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Freehand_Jump_Squat/1.jpg"
+]
+},
+{
+"id": "escaladores",
+"src": "Mountain_Climbers",
+"name": "Escaladores",
+"primary": "cuadriceps",
+"secondary": [
+"pecho",
+"isquiotibiales",
+"hombros"
+],
+"equipment": "otro",
+"tracking": "duration",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Posición de plancha; lleva rodillas al pecho alternando rápido.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Mountain_Climbers/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Mountain_Climbers/1.jpg"
+]
+},
+{
+"id": "peso_muerto_rumano",
+"src": "Romanian_Deadlift",
+"name": "Peso muerto rumano",
+"primary": "isquiotibiales",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"lumbar"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Rodillas suaves; lleva la cadera atrás con la barra pegada a las piernas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Romanian_Deadlift/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Romanian_Deadlift/1.jpg"
+]
+},
+{
+"id": "peso_muerto_piernas_rigidas",
+"src": "Stiff-Legged_Barbell_Deadlift",
+"name": "Peso muerto piernas rígidas",
+"primary": "isquiotibiales",
+"secondary": [
+"gluteos",
+"lumbar"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Piernas casi rectas; espalda neutra.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Stiff-Legged_Barbell_Deadlift/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Stiff-Legged_Barbell_Deadlift/1.jpg"
+]
+},
+{
+"id": "peso_muerto_rumano_con_mancuernas",
+"src": "Stiff-Legged_Dumbbell_Deadlift",
+"name": "Peso muerto rumano con mancuernas",
+"primary": "isquiotibiales",
+"secondary": [
+"gluteos",
+"lumbar"
+],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Mancuernas cerca de las piernas; siente el estiramiento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Stiff-Legged_Dumbbell_Deadlift/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Stiff-Legged_Dumbbell_Deadlift/1.jpg"
+]
+},
+{
+"id": "peso_muerto_rumano_en_smith",
+"src": "Smith_Machine_Stiff-Legged_Deadlift",
+"name": "Peso muerto rumano en Smith",
+"primary": "isquiotibiales",
+"secondary": [
+"gluteos",
+"lumbar"
+],
+"equipment": "smith",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Cadera atrás; no redondees la espalda.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Stiff-Legged_Deadlift/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Stiff-Legged_Deadlift/1.jpg"
+]
+},
+{
+"id": "peso_muerto_a_una_pierna",
+"src": "Kettlebell_One-Legged_Deadlift",
+"name": "Peso muerto a una pierna",
+"primary": "isquiotibiales",
+"secondary": [
+"gluteos",
+"lumbar"
+],
+"equipment": "pesa_rusa",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "La pierna libre sube atrás mientras el torso baja.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_One-Legged_Deadlift/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_One-Legged_Deadlift/1.jpg"
+]
+},
+{
+"id": "curl_femoral_acostado",
+"src": "Lying_Leg_Curls",
+"name": "Curl femoral acostado",
+"primary": "isquiotibiales",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Cadera pegada al banco; flexiona hasta los glúteos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Leg_Curls/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Leg_Curls/1.jpg"
+]
+},
+{
+"id": "curl_femoral_sentado",
+"src": "Seated_Leg_Curl",
+"name": "Curl femoral sentado",
+"primary": "isquiotibiales",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Ajusta el rodillo sobre los tobillos; flexiona completo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Leg_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Leg_Curl/1.jpg"
+]
+},
+{
+"id": "curl_femoral_de_pie",
+"src": "Standing_Leg_Curl",
+"name": "Curl femoral de pie",
+"primary": "isquiotibiales",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Una pierna a la vez; controla la extensión.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Leg_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Leg_Curl/1.jpg"
+]
+},
+{
+"id": "curl_femoral_con_fitball",
+"src": "Ball_Leg_Curl",
+"name": "Curl femoral con fitball",
+"primary": "isquiotibiales",
+"secondary": [
+"pantorrillas",
+"gluteos"
+],
+"equipment": "fitball",
+"tracking": "reps_only",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Cadera arriba; lleva la pelota hacia ti con los talones.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ball_Leg_Curl/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ball_Leg_Curl/1.jpg"
+]
+},
+{
+"id": "glute_ham_raise",
+"src": "Glute_Ham_Raise",
+"name": "Glute ham raise",
+"primary": "isquiotibiales",
+"secondary": [
+"pantorrillas",
+"gluteos"
+],
+"equipment": "maquina",
+"tracking": "reps_only",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Baja el torso controlando con los isquios y sube.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Glute_Ham_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Glute_Ham_Raise/1.jpg"
+]
+},
+{
+"id": "curl_nordico",
+"src": "Natural_Glute_Ham_Raise",
+"name": "Curl nórdico",
+"primary": "isquiotibiales",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"lumbar"
+],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Rodillas fijas; baja lo más lento posible.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Natural_Glute_Ham_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Natural_Glute_Ham_Raise/1.jpg"
+]
+},
+{
+"id": "swing_con_pesa_rusa_a_una_mano",
+"src": "One-Arm_Kettlebell_Swings",
+"name": "Swing con pesa rusa a una mano",
+"primary": "isquiotibiales",
+"secondary": [
+"pantorrillas",
+"gluteos",
+"lumbar",
+"hombros"
+],
+"equipment": "pesa_rusa",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Empuja con la cadera, no con los brazos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Kettlebell_Swings/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Kettlebell_Swings/1.jpg"
+]
+},
+{
+"id": "cargada_de_potencia",
+"src": "Power_Clean",
+"name": "Cargada de potencia",
+"primary": "isquiotibiales",
+"secondary": [
+"pantorrillas",
+"antebrazos",
+"gluteos",
+"lumbar",
+"espalda_media",
+"cuadriceps",
+"hombros",
+"trapecio",
+"triceps"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Extensión explosiva de cadera y recibe la barra en los hombros.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Power_Clean/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Power_Clean/1.jpg"
+]
+},
+{
+"id": "peso_muerto_de_cargada",
+"src": "Clean_Deadlift",
+"name": "Peso muerto de cargada",
+"primary": "isquiotibiales",
+"secondary": [
+"antebrazos",
+"gluteos",
+"lumbar",
+"espalda_media",
+"cuadriceps",
+"trapecio"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Agarre de cargada; sube la barra con la espalda firme.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Clean_Deadlift/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Clean_Deadlift/1.jpg"
+]
+},
+{
+"id": "hip_thrust_con_barra",
+"src": "Barbell_Hip_Thrust",
+"name": "Hip thrust con barra",
+"primary": "gluteos",
+"secondary": [
+"pantorrillas",
+"isquiotibiales"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Espalda alta en el banco; sube la cadera y aprieta glúteos arriba.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Hip_Thrust/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Hip_Thrust/1.jpg"
+]
+},
+{
+"id": "puente_de_gluteo_con_barra",
+"src": "Barbell_Glute_Bridge",
+"name": "Puente de glúteo con barra",
+"primary": "gluteos",
+"secondary": [
+"pantorrillas",
+"isquiotibiales"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Desde el piso; sube la cadera sin arquear la zona lumbar.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Glute_Bridge/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Glute_Bridge/1.jpg"
+]
+},
+{
+"id": "puente_de_gluteo_a_una_pierna",
+"src": "Single_Leg_Glute_Bridge",
+"name": "Puente de glúteo a una pierna",
+"primary": "gluteos",
+"secondary": [
+"isquiotibiales"
+],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Una pierna arriba; empuja con el talón de apoyo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Single_Leg_Glute_Bridge/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Single_Leg_Glute_Bridge/1.jpg"
+]
+},
+{
+"id": "puente_de_gluteo",
+"src": "Butt_Lift_Bridge",
+"name": "Puente de glúteo",
+"primary": "gluteos",
+"secondary": [
+"isquiotibiales"
+],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Talones cerca de los glúteos; sube y aprieta.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Butt_Lift_Bridge/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Butt_Lift_Bridge/1.jpg"
+]
+},
+{
+"id": "patada_de_gluteo",
+"src": "Glute_Kickback",
+"name": "Patada de glúteo",
+"primary": "gluteos",
+"secondary": [
+"isquiotibiales"
+],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "En cuatro apoyos; empuja el talón hacia el techo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Glute_Kickback/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Glute_Kickback/1.jpg"
+]
+},
+{
+"id": "patada_de_gluteo_en_polea",
+"src": "One-Legged_Cable_Kickback",
+"name": "Patada de glúteo en polea",
+"primary": "gluteos",
+"secondary": [
+"isquiotibiales"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Tobillera en polea baja; lleva la pierna atrás sin arquear.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Legged_Cable_Kickback/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Legged_Cable_Kickback/1.jpg"
+]
+},
+{
+"id": "pull_through_en_polea",
+"src": "Pull_Through",
+"name": "Pull through en polea",
+"primary": "gluteos",
+"secondary": [
+"isquiotibiales",
+"lumbar"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "De espaldas a la polea; extiende la cadera apretando glúteos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pull_Through/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pull_Through/1.jpg"
+]
+},
+{
+"id": "abductores_en_maquina",
+"src": "Thigh_Abductor",
+"name": "Abductores en máquina",
+"primary": "abductores",
+"secondary": [
+"gluteos"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Abre las piernas contra la resistencia y regresa lento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Thigh_Abductor/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Thigh_Abductor/1.jpg"
+]
+},
+{
+"id": "aductores_en_maquina",
+"src": "Thigh_Adductor",
+"name": "Aductores en máquina",
+"primary": "aductores",
+"secondary": [
+"gluteos",
+"isquiotibiales"
+],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Cierra las piernas apretando y controla al abrir.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Thigh_Adductor/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Thigh_Adductor/1.jpg"
+]
+},
+{
+"id": "caminata_con_banda",
+"src": "Monster_Walk",
+"name": "Caminata con banda",
+"primary": "abductores",
+"secondary": [],
+"equipment": "bandas",
+"tracking": "reps_only",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Banda en tobillos o rodillas; pasos laterales con tensión.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Monster_Walk/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Monster_Walk/1.jpg"
+]
+},
+{
+"id": "elevacion_de_talones_de_pie_en_maquina",
+"src": "Standing_Calf_Raises",
+"name": "Elevación de talones de pie en máquina",
+"primary": "pantorrillas",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Sube en puntas lo más alto posible y baja estirando.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Calf_Raises/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Calf_Raises/1.jpg"
+]
+},
+{
+"id": "elevacion_de_talones_sentado",
+"src": "Seated_Calf_Raise",
+"name": "Elevación de talones sentado",
+"primary": "pantorrillas",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Rodillas bajo el soporte; pausa arriba.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Calf_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Calf_Raise/1.jpg"
+]
+},
+{
+"id": "elevacion_de_talones_con_mancuerna",
+"src": "Standing_Dumbbell_Calf_Raise",
+"name": "Elevación de talones con mancuerna",
+"primary": "pantorrillas",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Sobre un escalón para mayor recorrido.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Dumbbell_Calf_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Dumbbell_Calf_Raise/1.jpg"
+]
+},
+{
+"id": "pantorrilla_en_prensa",
+"src": "Calf_Press_On_The_Leg_Press_Machine",
+"name": "Pantorrilla en prensa",
+"primary": "pantorrillas",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Solo las puntas en la plataforma; empuja con los tobillos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Calf_Press_On_The_Leg_Press_Machine/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Calf_Press_On_The_Leg_Press_Machine/1.jpg"
+]
+},
+{
+"id": "elevacion_de_talones_en_smith",
+"src": "Smith_Machine_Calf_Raise",
+"name": "Elevación de talones en Smith",
+"primary": "pantorrillas",
+"secondary": [],
+"equipment": "smith",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Puntas sobre un disco; recorrido completo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Calf_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Calf_Raise/1.jpg"
+]
+},
+{
+"id": "elevacion_de_talones_tipo_burro",
+"src": "Donkey_Calf_Raises",
+"name": "Elevación de talones tipo burro",
+"primary": "pantorrillas",
+"secondary": [],
+"equipment": "otro",
+"tracking": "weight_reps",
+"lower": true,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Torso inclinado; estira bien abajo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Donkey_Calf_Raises/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Donkey_Calf_Raises/1.jpg"
+]
+},
+{
+"id": "elevacion_de_talones_con_barra",
+"src": "Standing_Barbell_Calf_Raise",
+"name": "Elevación de talones con barra",
+"primary": "pantorrillas",
+"secondary": [],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": true,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Barra en la espalda; sube en puntas sin doblar rodillas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Barbell_Calf_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Barbell_Calf_Raise/1.jpg"
+]
+},
+{
+"id": "abdominales_crunch",
+"src": "Crunches",
+"name": "Abdominales (crunch)",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Despega los hombros del piso apretando el abdomen; no jales el cuello.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Crunches/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Crunches/1.jpg"
+]
+},
+{
+"id": "crunch_en_polea",
+"src": "Cable_Crunch",
+"name": "Crunch en polea",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "De rodillas; lleva los codos hacia los muslos redondeando la espalda.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crunch/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crunch/1.jpg"
+]
+},
+{
+"id": "elevacion_de_rodillas_acostado",
+"src": "Bent-Knee_Hip_Raise",
+"name": "Elevación de rodillas acostado",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Rodillas dobladas; lleva las rodillas al pecho con el abdomen y baja lento, sin impulso.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent-Knee_Hip_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent-Knee_Hip_Raise/1.jpg"
+]
+},
+{
+"id": "crunch_en_maquina",
+"src": "Ab_Crunch_Machine",
+"name": "Crunch en máquina",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "maquina",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Encoge el torso usando el abdomen, no los brazos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ab_Crunch_Machine/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ab_Crunch_Machine/1.jpg"
+]
+},
+{
+"id": "crunch_con_peso",
+"src": "Weighted_Crunches",
+"name": "Crunch con peso",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "balon_medicinal",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Disco en el pecho; sube controlado.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Weighted_Crunches/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Weighted_Crunches/1.jpg"
+]
+},
+{
+"id": "crunch_declinado",
+"src": "Decline_Crunch",
+"name": "Crunch declinado",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": false,
+"level": "intermediate",
+"mechanic": "isolation",
+"cue": "Pies asegurados; sube lento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Decline_Crunch/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Decline_Crunch/1.jpg"
+]
+},
+{
+"id": "crunch_inverso",
+"src": "Reverse_Crunch",
+"name": "Crunch inverso",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Lleva las rodillas al pecho despegando la cadera.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Crunch/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Reverse_Crunch/1.jpg"
+]
+},
+{
+"id": "crunch_oblicuo",
+"src": "Oblique_Crunches",
+"name": "Crunch oblicuo",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Lleva el codo hacia la rodilla contraria.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Oblique_Crunches/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Oblique_Crunches/1.jpg"
+]
+},
+{
+"id": "abdominales_completos_sit_up",
+"src": "Sit-Up",
+"name": "Abdominales completos (sit-up)",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Sube el torso completo hasta sentarte.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Sit-Up/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Sit-Up/1.jpg"
+]
+},
+{
+"id": "elevacion_de_piernas_colgado",
+"src": "Hanging_Leg_Raise",
+"name": "Elevación de piernas colgado",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": false,
+"level": "expert",
+"mechanic": "isolation",
+"cue": "Colgado de la barra; sube las piernas sin balanceo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hanging_Leg_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hanging_Leg_Raise/1.jpg"
+]
+},
+{
+"id": "elevacion_de_rodillas_en_paralelas",
+"src": "Knee_Hip_Raise_On_Parallel_Bars",
+"name": "Elevación de rodillas en paralelas",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "otro",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Antebrazos apoyados; sube rodillas al pecho.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Knee_Hip_Raise_On_Parallel_Bars/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Knee_Hip_Raise_On_Parallel_Bars/1.jpg"
+]
+},
+{
+"id": "elevacion_de_piernas_acostado",
+"src": "Flat_Bench_Lying_Leg_Raise",
+"name": "Elevación de piernas acostado",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Espalda baja pegada al banco; sube y baja lento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Flat_Bench_Lying_Leg_Raise/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Flat_Bench_Lying_Leg_Raise/1.jpg"
+]
+},
+{
+"id": "rueda_abdominal",
+"src": "Ab_Roller",
+"name": "Rueda abdominal",
+"primary": "abdomen",
+"secondary": [
+"hombros"
+],
+"equipment": "otro",
+"tracking": "reps_only",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Desde rodillas; rueda al frente sin arquear la espalda.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ab_Roller/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ab_Roller/1.jpg"
+]
+},
+{
+"id": "rollout_con_barra",
+"src": "Barbell_Ab_Rollout_-_On_Knees",
+"name": "Rollout con barra",
+"primary": "abdomen",
+"secondary": [
+"lumbar",
+"hombros"
+],
+"equipment": "barra",
+"tracking": "reps_only",
+"lower": false,
+"level": "expert",
+"mechanic": "compound",
+"cue": "Barra con discos; rueda al frente y regresa con el abdomen.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Ab_Rollout_-_On_Knees/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Ab_Rollout_-_On_Knees/1.jpg"
+]
+},
+{
+"id": "plancha",
+"src": "Plank",
+"name": "Plancha",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "peso_corporal",
+"tracking": "duration",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Codos bajo hombros; cuerpo recto, aprieta abdomen y glúteos.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plank/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plank/1.jpg"
+]
+},
+{
+"id": "plancha_lateral",
+"src": "Side_Bridge",
+"name": "Plancha lateral",
+"primary": "abdomen",
+"secondary": [
+"hombros"
+],
+"equipment": "peso_corporal",
+"tracking": "duration",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Codo bajo el hombro; cadera arriba en línea recta.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Bridge/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Bridge/1.jpg"
+]
+},
+{
+"id": "giro_ruso",
+"src": "Russian_Twist",
+"name": "Giro ruso",
+"primary": "abdomen",
+"secondary": [
+"lumbar"
+],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Torso inclinado; gira de lado a lado.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Russian_Twist/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Russian_Twist/1.jpg"
+]
+},
+{
+"id": "bicho_muerto_dead_bug",
+"src": "Dead_Bug",
+"name": "Bicho muerto (dead bug)",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Espalda baja pegada al piso; extiende brazo y pierna contrarios.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dead_Bug/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dead_Bug/1.jpg"
+]
+},
+{
+"id": "press_pallof",
+"src": "Pallof_Press",
+"name": "Press Pallof",
+"primary": "abdomen",
+"secondary": [
+"pecho",
+"hombros",
+"triceps"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "De lado a la polea; empuja al frente resistiendo la rotación.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pallof_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pallof_Press/1.jpg"
+]
+},
+{
+"id": "lenador_en_polea",
+"src": "Standing_Cable_Wood_Chop",
+"name": "Leñador en polea",
+"primary": "abdomen",
+"secondary": [
+"hombros"
+],
+"equipment": "polea",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Gira el torso llevando la polea en diagonal.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Cable_Wood_Chop/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Cable_Wood_Chop/1.jpg"
+]
+},
+{
+"id": "flexion_lateral_con_mancuerna",
+"src": "Dumbbell_Side_Bend",
+"name": "Flexión lateral con mancuerna",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "mancuernas",
+"tracking": "weight_reps",
+"lower": false,
+"level": "beginner",
+"mechanic": "isolation",
+"cue": "Inclínate a un lado y regresa con el oblicuo.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Side_Bend/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Side_Bend/1.jpg"
+]
+},
+{
+"id": "elevacion_en_pica_colgado",
+"src": "Hanging_Pike",
+"name": "Elevación en pica colgado",
+"primary": "abdomen",
+"secondary": [],
+"equipment": "peso_corporal",
+"tracking": "reps_only",
+"lower": false,
+"level": "expert",
+"mechanic": "compound",
+"cue": "Sube los pies hacia la barra con piernas rectas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hanging_Pike/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hanging_Pike/1.jpg"
+]
+},
+{
+"id": "thruster_con_pesa_rusa",
+"src": "Kettlebell_Thruster",
+"name": "Thruster con pesa rusa",
+"primary": "hombros",
+"secondary": [
+"cuadriceps",
+"triceps"
+],
+"equipment": "pesa_rusa",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Sentadilla y empuje arriba en un solo movimiento.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_Thruster/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_Thruster/1.jpg"
+]
+},
+{
+"id": "cargada_y_press",
+"src": "Clean_and_Press",
+"name": "Cargada y press",
+"primary": "hombros",
+"secondary": [
+"abdomen",
+"pantorrillas",
+"gluteos",
+"isquiotibiales",
+"lumbar",
+"espalda_media",
+"cuadriceps",
+"trapecio",
+"triceps"
+],
+"equipment": "barra",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Carga la barra a los hombros y empuja arriba.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Clean_and_Press/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Clean_and_Press/1.jpg"
+]
+},
+{
+"id": "cuerdas_de_batalla",
+"src": "Battling_Ropes",
+"name": "Cuerdas de batalla",
+"primary": "hombros",
+"secondary": [
+"pecho",
+"antebrazos"
+],
+"equipment": "otro",
+"tracking": "duration",
+"lower": false,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Ondas rápidas alternando brazos con rodillas flexionadas.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Battling_Ropes/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Battling_Ropes/1.jpg"
+]
+},
+{
+"id": "trepa_de_cuerda",
+"src": "Rope_Climb",
+"name": "Trepa de cuerda",
+"primary": "dorsales",
+"secondary": [
+"biceps",
+"antebrazos",
+"espalda_media",
+"hombros"
+],
+"equipment": "otro",
+"tracking": "reps_only",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Usa piernas y brazos para subir con control.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Rope_Climb/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Rope_Climb/1.jpg"
+]
+},
+{
+"id": "muscle_up",
+"src": "Muscle_Up",
+"name": "Muscle up",
+"primary": "dorsales",
+"secondary": [
+"abdomen",
+"biceps",
+"antebrazos",
+"espalda_media",
+"hombros",
+"trapecio",
+"triceps"
+],
+"equipment": "otro",
+"tracking": "weighted_bodyweight",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Jalón explosivo y transición sobre la barra.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Muscle_Up/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Muscle_Up/1.jpg"
+]
+},
+{
+"id": "levantamiento_turco",
+"src": "Kettlebell_Turkish_Get-Up_Squat_style",
+"name": "Levantamiento turco",
+"primary": "hombros",
+"secondary": [
+"abdomen",
+"pantorrillas",
+"isquiotibiales",
+"cuadriceps",
+"triceps"
+],
+"equipment": "pesa_rusa",
+"tracking": "weight_reps",
+"lower": false,
+"level": "intermediate",
+"mechanic": "compound",
+"cue": "Brazo con la pesa siempre vertical; muévete por fases.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_Turkish_Get-Up_Squat_style/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_Turkish_Get-Up_Squat_style/1.jpg"
+]
+},
+{
+"id": "salto_al_cajon",
+"src": "Front_Box_Jump",
+"name": "Salto al cajón",
+"primary": "isquiotibiales",
+"secondary": [
+"abductores",
+"aductores",
+"pantorrillas",
+"gluteos",
+"cuadriceps"
+],
+"equipment": "otro",
+"tracking": "reps_only",
+"lower": true,
+"level": "beginner",
+"mechanic": "compound",
+"cue": "Salta con ambos pies y aterriza suave sobre el cajón.",
+"images": [
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Box_Jump/0.jpg",
+"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Box_Jump/1.jpg"
+]
+}
+]

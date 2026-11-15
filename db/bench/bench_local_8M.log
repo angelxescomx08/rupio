@@ -1,0 +1,63 @@
+     0.0s  create or replace function public.rupio_uuidv7_at(ts timestamptz) returns uuid
+     0.0s  create table if not exists public.bench_users (user_id uuid primary key, n_workouts int, t
+     0.0s  truncate public.bench_users
+     0.0s  truncate public.workout_sets, public.workout_exercises, public.workouts
+     0.0s  insert into public.bench_users
+     0.0s  alter table public.workouts disable trigger user
+     0.0s  alter table public.workout_exercises disable trigger user
+     0.0s  alter table public.workout_sets disable trigger user
+     1.9s  insert into public.workouts (id, user_id, started_at, ended_at, created_at, updated_at, lo
+    15.9s  insert into public.workout_exercises (id, workout_id, user_id, updated_at, position, rest_
+    77.3s  insert into public.workout_sets (id, workout_exercise_id, workout_id, user_id, completed_a
+     5.2s  update public.workouts w
+     0.0s  alter table public.workouts enable trigger user
+     0.0s  alter table public.workout_exercises enable trigger user
+     0.0s  alter table public.workout_sets enable trigger user
+     0.0s  create index if not exists exercises_owner_sync_idx
+     0.0s  create index if not exists routines_user_sync_idx on public.routines (user_id, updated_at)
+     0.0s  create index if not exists routine_exercises_routine_idx on public.routine_exercises (rout
+     0.0s  create index if not exists routine_exercises_user_sync_idx on public.routine_exercises (us
+     0.2s  create index if not exists workouts_user_date_idx
+     0.2s  create index if not exists workouts_user_sync_idx on public.workouts (user_id, updated_at)
+     0.8s  create index if not exists workout_exercises_workout_idx on public.workout_exercises (work
+     0.7s  create index if not exists workout_exercises_user_sync_idx on public.workout_exercises (us
+     3.9s  create index if not exists workout_sets_exercise_pos_idx on public.workout_sets (workout_e
+     8.3s  create index if not exists workout_sets_user_exercise_idx
+     6.5s  create index if not exists workout_sets_user_date_idx
+     2.8s  create index if not exists workout_sets_user_sync_idx on public.workout_sets (user_id, upd
+     0.0s  create index if not exists personal_records_user_sync_idx on public.personal_records (user
+Datos generados en 126s
+Q01 intensivo     0.529 ms  filas=20  Index Scan,Limit  workouts_user_date_idx
+Q01 normal        0.529 ms  filas=20  Index Scan,Limit  workouts_user_date_idx
+Q02 intensivo     4.371 ms  filas=20  Index Scan,Limit  workouts_user_date_idx
+Q02 normal        1.197 ms  filas=20  Index Scan,Limit  workouts_user_date_idx
+Q03 intensivo     0.518 ms  filas=20  Index Scan,Limit  workouts_user_date_idx
+Q03 normal        0.493 ms  filas=20  Index Scan,Limit  workouts_user_date_idx
+Q04 intensivo     0.748 ms  filas=24  Incremental Sort,Index Scan,Nested Loop  workout_exercises_workout_idx,workout_sets_exercise_pos_idx
+Q04 normal        0.780 ms  filas=24  Incremental Sort,Index Scan,Nested Loop  workout_exercises_workout_idx,workout_sets_exercise_pos_idx
+Q05 intensivo     0.502 ms  filas=40  Index Only Scan,Limit  workout_sets_user_exercise_idx
+Q05 normal        0.498 ms  filas=40  Index Only Scan,Limit  workout_sets_user_exercise_idx
+Q06 intensivo     1.241 ms  filas=1  Aggregate,Index Only Scan  workout_sets_user_exercise_idx
+Q06 normal        0.671 ms  filas=1  Aggregate,Index Only Scan  workout_sets_user_exercise_idx
+Q07 intensivo     0.681 ms  filas=77  Aggregate,Index Only Scan  workout_sets_user_exercise_idx
+Q07 normal        0.600 ms  filas=35  Aggregate,Index Only Scan  workout_sets_user_exercise_idx
+Q08 intensivo     0.507 ms  filas=14  Aggregate,Index Only Scan,Sort  workouts_user_date_idx
+Q08 normal        0.513 ms  filas=14  Aggregate,Index Only Scan,Sort  workouts_user_date_idx
+Q09 intensivo     0.585 ms  filas=13  Aggregate,Index Only Scan,Sort  workouts_user_date_idx
+Q09 normal        0.580 ms  filas=6  Aggregate,Index Only Scan,Sort  workouts_user_date_idx
+Q10 intensivo     0.886 ms  filas=6  Aggregate,Index Only Scan,Sort  workouts_user_date_idx
+Q10 normal        0.523 ms  filas=1  Aggregate,Index Only Scan,Sort  workouts_user_date_idx
+Q11 intensivo     9.768 ms  filas=6  Aggregate,Index Only Scan,Sort  workout_sets_user_date_idx
+Q11 normal        1.392 ms  filas=1  Aggregate,Index Only Scan,Sort  workout_sets_user_date_idx
+Q12 intensivo     1.015 ms  filas=3  Aggregate,Hash,Hash Join,Index Only Scan,Seq Scan,Sort  workout_sets_user_date_idx
+Q12 normal        0.913 ms  filas=4  Aggregate,Hash,Hash Join,Index Only Scan,Seq Scan,Sort  workout_sets_user_date_idx
+Q13 intensivo     0.483 ms  filas=120  Index Scan,Limit  workout_sets_user_sync_idx
+Q13 normal        0.469 ms  filas=120  Index Scan,Limit  workout_sets_user_sync_idx
+Q14 intensivo   378.211 ms  filas=40  Gather Merge,Limit,Seq Scan,Sort  
+Q14 normal      390.096 ms  filas=40  Gather Merge,Limit,Seq Scan,Sort  
+Q15 intensivo     1.238 ms  filas=40  Index Only Scan,Limit  workout_sets_user_exercise_idx
+Q15 normal        2.082 ms  filas=40  Index Only Scan,Limit  workout_sets_user_exercise_idx
+Q16 intensivo     1.285 ms  filas=40  Index Only Scan,Limit,Result  workout_sets_user_exercise_idx
+Q16 normal        1.252 ms  filas=40  Index Only Scan,Limit,Result  workout_sets_user_exercise_idx
+Q17 intensivo     1.143 ms  filas=40  Index Only Scan,Limit,Result  workout_sets_user_exercise_idx
+Q17 normal        1.643 ms  filas=40  Index Only Scan,Limit,Result  workout_sets_user_exercise_idx

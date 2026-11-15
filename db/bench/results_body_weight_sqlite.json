@@ -1,0 +1,88 @@
+{
+  "rows_total": 310269,
+  "rows_user": 6211,
+  "load_s": 0.53,
+  "queries": {
+    "Gráfica 1 semana (diario)": {
+      "p50_ms": 0.006,
+      "p95_ms": 0.0071,
+      "runs": 300,
+      "points": 6,
+      "plan": [
+        "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=? AND measured_on>? AND measured_on<?)",
+        "USE TEMP B-TREE FOR GROUP BY",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    "Gráfica 1 mes (diario)": {
+      "p50_ms": 0.0168,
+      "p95_ms": 0.019,
+      "runs": 300,
+      "points": 27,
+      "plan": [
+        "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=? AND measured_on>? AND measured_on<?)",
+        "USE TEMP B-TREE FOR GROUP BY",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    "Gráfica 3 meses (diario)": {
+      "p50_ms": 0.0402,
+      "p95_ms": 0.0567,
+      "runs": 300,
+      "points": 76,
+      "plan": [
+        "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=? AND measured_on>? AND measured_on<?)",
+        "USE TEMP B-TREE FOR GROUP BY",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    "Gráfica 1 año (semanal)": {
+      "p50_ms": 0.0741,
+      "p95_ms": 0.094,
+      "runs": 300,
+      "points": 53,
+      "plan": [
+        "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=? AND measured_on>? AND measured_on<?)",
+        "USE TEMP B-TREE FOR GROUP BY",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    "Gráfica histórico 20 años (agrupada)": {
+      "p50_ms": 1.1133,
+      "p95_ms": 1.1763,
+      "runs": 300,
+      "points": 153,
+      "plan": [
+        "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=? AND measured_on>? AND measured_on<?)",
+        "USE TEMP B-TREE FOR GROUP BY",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    "Historial: página de 60 (keyset)": {
+      "p50_ms": 0.0351,
+      "p95_ms": 0.048,
+      "runs": 300,
+      "points": 60,
+      "plan": [
+        "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=? AND measured_on<?)"
+      ]
+    },
+    "Último registro": {
+      "p50_ms": 0.0025,
+      "p95_ms": 0.0028,
+      "runs": 300,
+      "points": 1,
+      "plan": [
+        "SEARCH body_weights USING INDEX sqlite_autoindex_body_weights_1 (user_id=?)"
+      ]
+    },
+    "Registrar/actualizar peso (con commit)": {
+      "p50_ms": 0.1784,
+      "p95_ms": 0.2222,
+      "runs": 300,
+      "plan": [
+        "UPSERT por clave primaria (una fila)"
+      ]
+    }
+  }
+}

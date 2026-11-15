@@ -1,0 +1,190 @@
+package com.rupio.app.ui.exercises
+
+import com.rupio.app.safePop
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
+import com.rupio.app.Routes
+import com.rupio.app.container
+import com.rupio.app.core.searchKey
+import com.rupio.app.data.local.ExerciseEntity
+import com.rupio.app.data.local.Muscles
+import com.rupio.app.domain.Tracking
+import com.rupio.app.domain.label
+import com.rupio.app.ui.components.*
+import com.rupio.app.ui.theme.RupioColors
+import kotlinx.coroutines.launch
+
+/**
+ * Selector / biblioteca de ejercicios.
+ * mode = "workout" (target = id del entrenamiento) · "routine" (devuelve ids al editor) · "browse" (solo ver).
+ * Búsqueda sin acentos y por palabras sueltas: "banca manc" encuentra "Press de banca con mancuernas".
+ */
+@Composable
+fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
+    val c = container()
+    val scope = rememberCoroutineScope()
+    val catalog by c.exercises.all.collectAsStateWithLifecycle(initialValue = emptyList())
+    // rememberSaveable: la búsqueda y la selección sobreviven al abrir el detalle de un ejercicio y volver.
+    var query by rememberSaveable { mutableStateOf("") }
+    var muscle by rememberSaveable { mutableStateOf<String?>(null) }
+    var equipment by rememberSaveable { mutableStateOf<String?>(null) }
+    val selected = rememberSaveable(saver = listSaver(save = { it.toList() }, restore = { it.toMutableStateList() })) { mutableStateListOf<String>() }
+    var creating by remember { mutableStateOf(false) }
+    val browse = mode == "browse"
+
+    val filtered = remember(catalog, query, muscle, equipment) {
+        val tokens = query.searchKey().split(' ').filter { it.isNotBlank() }
+        catalog.filter { e ->
+            (muscle == null || e.primaryMuscle == muscle) &&
+                (equipment == null || e.equipment == equipment) &&
+                tokens.all { t -> e.searchKey.contains(t) || Muscles.label(e.primaryMuscle).searchKey().contains(t) }
+        }.sortedWith(compareBy<ExerciseEntity>({ !it.isCustom }, { it.searchKey }))
+    }
+    val usedMuscles = remember(catalog) { Muscles.names.keys.filter { m -> catalog.any { it.primaryMuscle == m } } }
+    val usedEquip = remember(catalog) { Muscles.equipment.keys.filter { q -> catalog.any { it.equipment == q } } }
+
+    fun confirm() {
+        when (mode) {
+            "workout" -> scope.launch { c.workouts.addExercises(target, selected.toList()); nav.safePop() }
+            "routine" -> { nav.previousBackStackEntry?.savedStateHandle?.set("picked", ArrayList(selected)); nav.safePop() }
+        }
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        RupioTopBar(if (browse) "Ejercicios" else "Agregar ejercicios", onBack = { nav.safePop() }, subtitle = "${filtered.size} de ${catalog.size}") {
+            IconButton(onClick = { creating = true }) { Icon(Icons.Rounded.AddCircleOutline, "Crear ejercicio") }
+        }
+        OutlinedTextField(
+            query, { query = it }, placeholder = { Text("Buscar: press banca, sentadilla, bíceps…") },
+            leadingIcon = { Icon(Icons.Rounded.Search, null) },
+            trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Rounded.Close, "Borrar") } },
+            singleLine = true, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        )
+        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FilterChip(muscle == null, { muscle = null }, label = { Text("Todos") })
+            usedMuscles.forEach { m -> FilterChip(muscle == m, { muscle = if (muscle == m) null else m }, label = { Text(Muscles.label(m)) }) }
+        }
+        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            usedEquip.forEach { q ->
+                FilterChip(equipment == q, { equipment = if (equipment == q) null else q }, label = { Text(Muscles.equipmentLabel(q)) },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = RupioColors.Rest.copy(alpha = 0.25f)))
+            }
+        }
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (filtered.isEmpty()) item {
+                EmptyState(Icons.Rounded.SearchOff, "Sin resultados", "Prueba con otra palabra o crea tu propio ejercicio.") {
+                    Button(onClick = { creating = true }) { Text("Crear ejercicio") }
+                }
+            }
+            items(filtered, key = { it.id }) { e ->
+                val order = selected.indexOf(e.id)
+                ExerciseRow(e, order, browse,
+                    onClick = { if (browse) nav.navigate(Routes.exercise(e.id)) else if (order >= 0) selected.remove(e.id) else selected.add(e.id) },
+                    onInfo = { nav.navigate(Routes.exercise(e.id)) })
+            }
+        }
+        if (!browse && selected.isNotEmpty()) Surface(color = RupioColors.Surface) {
+            Button(
+                onClick = { confirm() },
+                modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp).height(54.dp), shape = RoundedCornerShape(16.dp),
+            ) { Text(if (selected.size == 1) "Agregar 1 ejercicio" else "Agregar ${selected.size} ejercicios", style = MaterialTheme.typography.titleMedium) }
+        }
+    }
+
+    if (creating) CreateExerciseDialog(query, { creating = false }) { name, m, eq, tr ->
+        scope.launch {
+            val id = c.exercises.createCustom(name, m, eq, tr.code, m in setOf("cuadriceps", "isquiotibiales", "gluteos", "pantorrillas", "aductores", "abductores", "lumbar"))
+            if (!browse) selected.add(id)
+            creating = false
+        }
+    }
+}
+
+@Composable
+private fun ExerciseRow(e: ExerciseEntity, order: Int, browse: Boolean, onClick: () -> Unit, onInfo: () -> Unit) {
+    val sel = order >= 0
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+            .background(if (sel) RupioColors.Primary.copy(alpha = 0.14f) else RupioColors.Surface)
+            .clickable(onClick = onClick).padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ExerciseThumb(e.image0, 52.dp)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(e.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text("${Muscles.label(e.primaryMuscle)} · ${Muscles.equipmentLabel(e.equipment)}", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim, maxLines = 1)
+            val tr = Tracking.of(e.tracking)
+            if (tr != Tracking.WEIGHT_REPS || e.isCustom) Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 3.dp)) {
+                if (tr != Tracking.WEIGHT_REPS) Pill(tr.label, RupioColors.Rest)
+                if (e.isCustom) Pill("Personalizado", RupioColors.Warning)
+            }
+        }
+        if (!browse) IconButton(onClick = onInfo) { Icon(Icons.Rounded.Info, "Ver detalles", tint = RupioColors.TextDim) }
+        if (!browse) Box(
+            Modifier.size(28.dp).clip(CircleShape).background(if (sel) RupioColors.Primary else RupioColors.Surface3),
+            contentAlignment = Alignment.Center,
+        ) { if (sel) Text("${order + 1}", color = RupioColors.OnPrimary, style = MaterialTheme.typography.labelLarge) }
+        else Icon(Icons.Rounded.ChevronRight, null, tint = RupioColors.TextFaint)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreateExerciseDialog(initial: String, onDismiss: () -> Unit, onCreate: (String, String, String, Tracking) -> Unit) {
+    var name by remember { mutableStateOf(initial.replaceFirstChar { it.uppercase() }) }
+    var muscle by remember { mutableStateOf("pecho") }
+    var equip by remember { mutableStateOf("mancuernas") }
+    var tracking by remember { mutableStateOf(Tracking.WEIGHT_REPS) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Crear ejercicio") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(name, { name = it }, label = { Text("Nombre") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Dropdown("Músculo principal", Muscles.names.entries.map { it.key to it.value }, muscle) { muscle = it }
+                Dropdown("Equipo", Muscles.equipment.entries.map { it.key to it.value }, equip) { equip = it }
+                Dropdown("Cómo se registra", Tracking.entries.map { it.code to it.label }, tracking.code) { tracking = Tracking.of(it) }
+            }
+        },
+        confirmButton = { TextButton(onClick = { if (name.isNotBlank()) onCreate(name, muscle, equip, tracking) }, enabled = name.isNotBlank()) { Text("Crear") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun Dropdown(label: String, options: List<Pair<String, String>>, value: String, onPick: (String) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(open, { open = it }) {
+        OutlinedTextField(
+            options.firstOrNull { it.first == value }?.second.orEmpty(), {}, readOnly = true, label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(open) },
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+        )
+        ExposedDropdownMenu(open, { open = false }) {
+            options.forEach { (k, v) -> DropdownMenuItem(text = { Text(v) }, onClick = { onPick(k); open = false }) }
+        }
+    }
+}

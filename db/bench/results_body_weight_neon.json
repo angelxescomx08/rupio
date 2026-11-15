@@ -1,0 +1,58 @@
+{
+  "rows_total": 730000,
+  "table_size": "152 MB",
+  "load_s": 5.0,
+  "queries": {
+    "Gráfica 3 meses (Data API: rango por fecha)": {
+      "p50_ms": 0.213,
+      "best_ms": 0.202,
+      "plan": [
+        "Result (filas 90.0, bloques 5)",
+        "  Result (filas 1.0, bloques 0)",
+        "  Index Only Scan using body_weights_pkey (filas 90.0, bloques 5)"
+      ]
+    },
+    "Gráfica 1 año agrupada por semana": {
+      "p50_ms": 0.372,
+      "best_ms": 0.366,
+      "plan": [
+        "Sort (filas 53.0, bloques 8)",
+        "  Result (filas 1.0, bloques 0)",
+        "  Aggregate (filas 53.0, bloques 8)",
+        "    Result (filas 365.0, bloques 8)",
+        "      Index Only Scan using body_weights_pkey (filas 365.0, bloques 8)"
+      ]
+    },
+    "Sincronización: cambios desde ayer": {
+      "p50_ms": 0.183,
+      "best_ms": 0.175,
+      "plan": [
+        "Limit (filas 1.0, bloques 4)",
+        "  Result (filas 1.0, bloques 0)",
+        "  Result (filas 1.0, bloques 4)",
+        "    Index Scan using body_weights_user_sync_idx (filas 1.0, bloques 4)"
+      ]
+    },
+    "Primera sincronización: lote de 400": {
+      "p50_ms": 0.666,
+      "best_ms": 0.628,
+      "plan": [
+        "Limit (filas 400.0, bloques 407)",
+        "  Result (filas 1.0, bloques 0)",
+        "  Result (filas 400.0, bloques 407)",
+        "    Index Scan using body_weights_user_sync_idx (filas 400.0, bloques 407)"
+      ]
+    },
+    "Upsert de un día (on conflict)": {
+      "p50_ms": 0.207,
+      "best_ms": 0.183,
+      "plan": [
+        "ModifyTable (filas 0.0, bloques 20)",
+        "  Result (filas 1.0, bloques 0)",
+        "  Result (filas 1.0, bloques 0)",
+        "  Result (filas 1.0, bloques 0)",
+        "  Result (filas 1.0, bloques 0)"
+      ]
+    }
+  }
+}

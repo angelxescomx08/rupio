@@ -1,0 +1,106 @@
+package com.rupio.app.data.local
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.rupio.app.core.searchKey
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+
+@Database(
+    entities = [
+        ExerciseEntity::class, RoutineEntity::class, RoutineExerciseEntity::class, WorkoutEntity::class,
+        WorkoutExerciseEntity::class, WorkoutSetEntity::class, PersonalRecordEntity::class, BodyWeightEntity::class,
+    ],
+    version = 3,
+    exportSchema = true,
+)
+abstract class RupioDatabase : RoomDatabase() {
+    abstract fun exercises(): ExerciseDao
+    abstract fun routines(): RoutineDao
+    abstract fun workouts(): WorkoutDao
+    abstract fun records(): RecordDao
+    abstract fun bodyWeights(): BodyWeightDao
+    abstract fun stats(): StatsDao
+    abstract fun admin(): AdminDao
+
+    companion object {
+        /** v2: series planeadas por serie en rutinas (y su copia en el entrenamiento). Sin pérdida de datos. */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE routine_exercises ADD COLUMN set_plan TEXT")
+                db.execSQL("ALTER TABLE workout_exercises ADD COLUMN set_plan TEXT")
+            }
+        }
+
+        /** v3: registro de peso corporal (una fila por día). */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `body_weights` (`user_id` TEXT NOT NULL, `measured_on` INTEGER NOT NULL, `weight_kg` REAL NOT NULL, `updated_at` INTEGER NOT NULL, `deleted` INTEGER NOT NULL, `dirty` INTEGER NOT NULL, PRIMARY KEY(`user_id`, `measured_on`))")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_body_weights_dirty` ON `body_weights` (`dirty`)")
+            }
+        }
+
+        fun build(context: Context): RupioDatabase =
+            Room.databaseBuilder(context, RupioDatabase::class.java, "rupio.db")
+                // WAL: lecturas (estadísticas) no bloquean escrituras (marcar series).
+                .setJournalMode(JournalMode.WRITE_AHEAD_LOGGING)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addCallback(object : Callback() {
+                    override fun onOpen(db: SupportSQLiteDatabase) {
+                        db.execSQL("PRAGMA foreign_keys = ON")
+                        // Mantiene las estadísticas del planificador de SQLite al día (barato, SQLite ≥ 3.18).
+                        db.query("PRAGMA optimize").close()
+                    }
+                })
+                .build()
+    }
+}
+
+/** Catálogo de ejercicios en español (assets/exercises_es.json), con imágenes de dominio público. */
+object CatalogSeeder {
+    @Serializable
+    private data class Item(
+        val id: String, val src: String, val name: String, val primary: String, val secondary: List<String>,
+        val equipment: String, val tracking: String, val lower: Boolean, val level: String, val mechanic: String,
+        val cue: String, val images: List<String>,
+    )
+
+    private val json = Json { ignoreUnknownKeys = true }
+
+    suspend fun seedIfNeeded(context: Context, db: RupioDatabase) {
+        val text = context.assets.open("exercises_es.json").bufferedReader().use { it.readText() }
+        val items = json.decodeFromString<List<Item>>(text)
+        if (db.exercises().catalogCount() >= items.size) return
+        db.exercises().upsert(items.map {
+            ExerciseEntity(
+                id = it.id, name = it.name, searchKey = it.name.searchKey(), primaryMuscle = it.primary,
+                secondaryMuscles = it.secondary.joinToString(","), equipment = it.equipment, tracking = it.tracking,
+                isLowerBody = it.lower, level = it.level, cue = it.cue, image0 = it.images.getOrNull(0),
+                image1 = it.images.getOrNull(1), isCustom = false, dirty = false,
+            )
+        })
+    }
+}
+
+object Muscles {
+    val names = linkedMapOf(
+        "pecho" to "Pecho", "dorsales" to "Dorsales", "espalda_media" to "Espalda media", "lumbar" to "Lumbar",
+        "hombros" to "Hombros", "trapecio" to "Trapecio", "biceps" to "Bíceps", "triceps" to "Tríceps",
+        "antebrazos" to "Antebrazos", "abdomen" to "Abdomen", "cuadriceps" to "Cuádriceps",
+        "isquiotibiales" to "Isquiotibiales", "gluteos" to "Glúteos", "pantorrillas" to "Pantorrillas",
+        "aductores" to "Aductores", "abductores" to "Abductores", "cuello" to "Cuello",
+    )
+    fun label(code: String) = names[code] ?: code.replaceFirstChar { it.uppercase() }
+
+    val equipment = mapOf(
+        "barra" to "Barra", "mancuernas" to "Mancuernas", "polea" to "Polea", "maquina" to "Máquina",
+        "peso_corporal" to "Peso corporal", "pesa_rusa" to "Pesa rusa", "bandas" to "Bandas", "barra_z" to "Barra Z",
+        "smith" to "Máquina Smith", "barra_hexagonal" to "Barra hexagonal", "fitball" to "Fitball",
+        "balon_medicinal" to "Balón medicinal", "otro" to "Otro",
+    )
+    fun equipmentLabel(code: String) = equipment[code] ?: code
+}

@@ -1,0 +1,150 @@
+package com.rupio.app.ui.history
+
+import com.rupio.app.safePop
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
+import com.rupio.app.Routes
+import com.rupio.app.container
+import com.rupio.app.core.Dates
+import com.rupio.app.core.Fmt
+import com.rupio.app.core.WeightUnit
+import com.rupio.app.data.local.Muscles
+import com.rupio.app.domain.SetType
+import com.rupio.app.domain.SupersetRestMode
+import com.rupio.app.domain.Tracking
+import com.rupio.app.ui.components.*
+import com.rupio.app.ui.exercises.formatSet
+import com.rupio.app.ui.theme.RupioColors
+import com.rupio.app.ui.theme.Tabular
+import kotlinx.coroutines.launch
+
+/** [celebrate] > 0 → recién terminado; récords = celebrate − 1. */
+@Composable
+fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
+    val c = container()
+    val scope = rememberCoroutineScope()
+    val w by c.workouts.observe(id).collectAsStateWithLifecycle(initialValue = null)
+    val exercises by c.workouts.observeExercises(id).collectAsStateWithLifecycle(initialValue = emptyList())
+    val sets by c.workouts.observeSets(id).collectAsStateWithLifecycle(initialValue = emptyList())
+    val catalog by c.exercises.all.collectAsStateWithLifecycle(initialValue = emptyList())
+    val settings by c.settings.settings.collectAsStateWithLifecycle(initialValue = null)
+    val zone by c.zone.collectAsStateWithLifecycle()
+    val unit = settings?.unit ?: WeightUnit.LB
+    val byId = remember(catalog) { catalog.associateBy { it.id } }
+    var menu by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
+    val workout = w
+
+    Scaffold(containerColor = RupioColors.Black, snackbarHost = { SnackbarHost(snackbar) }, topBar = {
+        RupioTopBar(workout?.name ?: "Entrenamiento", onBack = { nav.safePop() }) {
+            Box {
+                IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, "Opciones") }
+                DropdownMenu(menu, { menu = false }) {
+                    DropdownMenuItem(text = { Text("Guardar como rutina") }, leadingIcon = { Icon(Icons.Rounded.BookmarkAdd, null) }, onClick = {
+                        menu = false
+                        scope.launch { if (c.routines.saveFromWorkout(id) != null) snackbar.showSnackbar("Rutina creada. La encuentras en Entrenar.") }
+                    })
+                    DropdownMenuItem(text = { Text("Eliminar entrenamiento", color = RupioColors.Danger) }, leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = RupioColors.Danger) },
+                        onClick = { menu = false; confirmDelete = true })
+                }
+            }
+        }
+    }) { pad ->
+        if (workout == null) return@Scaffold
+        val groups = groupConsecutive(exercises) { it.supersetId }
+        val ssIndex = supersetIndexMap(exercises.map { it.supersetId })
+        val setsBy = sets.groupBy { it.workoutExerciseId }
+        LazyColumn(Modifier.padding(pad), contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (celebrate > 0) item {
+                Surface(shape = RoundedCornerShape(20.dp), color = RupioColors.Success.copy(alpha = 0.14f), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("🎉", style = MaterialTheme.typography.displaySmall)
+                        Text("¡Entrenamiento guardado!", style = MaterialTheme.typography.titleLarge, color = RupioColors.Success)
+                        val prs = celebrate - 1
+                        Text(if (prs > 0) "Rompiste $prs ${if (prs == 1) "récord" else "récords"} personales. ¡Así se progresa!" else "Cada sesión cuenta. La próxima vez Rupio te dirá cuánto subir.",
+                            style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim, textAlign = TextAlign.Center)
+                    }
+                }
+            }
+            item {
+                SectionCard {
+                    Text(Dates.formatDay(workout.localDate), style = MaterialTheme.typography.titleSmall)
+                    Text("Empezó a las " + Dates.formatTimeWithOrigin(workout.startedAt, zone, workout.timeZone) +
+                        (workout.endedAt?.let { " · terminó a las " + Dates.formatTime(it, zone) } ?: ""),
+                        style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
+                    Spacer(Modifier.height(12.dp))
+                    TileRow {
+                        Tile("Duración", Fmt.durationHuman((workout.durationSec ?: 0).toLong()))
+                        Tile("Volumen", Fmt.volume(workout.totalVolumeKg, unit), sub = Fmt.volume(workout.totalVolumeKg, unit.other))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    TileRow {
+                        Tile("Series", "${workout.totalSets}")
+                        Tile("Repeticiones", "${workout.totalReps}")
+                        Tile("Récords", "${workout.prCount}")
+                    }
+                    workout.notes?.let { Spacer(Modifier.height(10.dp)); Text("📝 $it", style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim) }
+                }
+            }
+            items(groups, key = { it.first().id }) { g ->
+                val ss = g.first().supersetId
+                @Composable
+                fun card(k: Int, idx: Int?) {
+                    val we = g[k]
+                    val ex = byId[we.exerciseId]
+                    val tr = Tracking.of(ex?.tracking ?: "weight_reps")
+                    val ss2 = setsBy[we.id].orEmpty().filter { it.completed }
+                    Surface(shape = RoundedCornerShape(16.dp), color = RupioColors.Surface, modifier = Modifier.fillMaxWidth(),
+                        onClick = { nav.navigate(Routes.exercise(we.exerciseId)) }) {
+                        Column(Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                ExerciseThumb(ex?.image0, 40.dp)
+                                Spacer(Modifier.width(10.dp))
+                                if (idx != null) { SupersetTag(idx, k); Spacer(Modifier.width(6.dp)) }
+                                Column(Modifier.weight(1f)) {
+                                    Text(ex?.name ?: "Ejercicio", style = MaterialTheme.typography.titleSmall)
+                                    Text(Muscles.label(ex?.primaryMuscle ?: ""), style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim)
+                                }
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            ss2.forEachIndexed { i, s ->
+                                val type = SetType.of(s.setType)
+                                Row(Modifier.padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(if (type == SetType.NORMAL) "${ss2.take(i + 1).count { it.setType != SetType.WARMUP.code }}" else type.short,
+                                        modifier = Modifier.width(28.dp), color = if (type == SetType.WARMUP) RupioColors.Warning else RupioColors.TextDim,
+                                        style = MaterialTheme.typography.bodyMedium.merge(Tabular))
+                                    Text(formatSet(s.weightKg, s.reps, s.durationSec, tr, unit), style = MaterialTheme.typography.bodyMedium.merge(Tabular), modifier = Modifier.weight(1f))
+                                    if (tr.usesWeight && (s.weightKg ?: 0.0) != 0.0) Text(Fmt.weight(kotlin.math.abs(s.weightKg ?: 0.0), unit.other), style = MaterialTheme.typography.labelSmall.merge(Tabular), color = RupioColors.TextFaint)
+                                    if (s.isPr) Text("  🏆", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+                if (ss != null && g.size > 1) {
+                    val idx = ssIndex[ss] ?: 0
+                    SupersetGroup(idx, g.size, SupersetRestMode.of(g.first().supersetRestMode), g.first().supersetRestSec, null, null) { k -> card(k, idx) }
+                } else card(0, null)
+            }
+        }
+    }
+
+    if (confirmDelete) ConfirmDialog("¿Eliminar entrenamiento?", "Se quitará del historial y de tus estadísticas. Tus récords guardados no cambian.", "Eliminar", { confirmDelete = false }, danger = true) {
+        confirmDelete = false
+        scope.launch { c.workouts.deleteWorkout(id); nav.safePop() }
+    }
+}
