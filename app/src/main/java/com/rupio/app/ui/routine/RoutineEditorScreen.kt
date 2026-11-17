@@ -4,6 +4,7 @@ import com.rupio.app.safePop
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -330,13 +331,13 @@ private fun ItemCard(
     val tracking = Tracking.of(ex?.tracking ?: "weight_reps")
     val shared = inSuperset && item.ssMode == SupersetRestMode.SHARED.code
     Surface(
-        Modifier.fillMaxWidth().then(if (selecting) Modifier.clickable(onClick = onSelect) else Modifier),
+        Modifier.fillMaxWidth().then(if (selecting) Modifier.toggleable(value = isSelected, role = androidx.compose.ui.semantics.Role.Checkbox, onValueChange = { onSelect() }) else Modifier),
         shape = RoundedCornerShape(16.dp),
         color = if (isSelected) RupioColors.Primary.copy(alpha = 0.16f) else RupioColors.Surface,
     ) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (selecting) { Checkbox(isSelected, { onSelect() }); Spacer(Modifier.width(4.dp)) }
+                if (selecting) { Checkbox(isSelected, null); Spacer(Modifier.width(4.dp)) }
                 Box(Modifier.clickable(onClick = onOpen)) { ExerciseThumb(ex?.image0, 44.dp) }
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f).clickable(onClick = onOpen)) {

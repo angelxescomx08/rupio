@@ -1,5 +1,6 @@
 package com.rupio.app.ui.learn
 
+import com.rupio.app.goToTab
 import com.rupio.app.safePop
 import android.content.Context
 import androidx.compose.foundation.BorderStroke
@@ -151,7 +152,8 @@ fun LearnScreen(nav: NavHostController) {
     LaunchedEffect(Unit) { LearnProgress.load(ctx) }
     val done by LearnProgress.done.collectAsState()
     Column(Modifier.fillMaxSize()) {
-    RupioTopBar("Aprende", onBack = null)
+    // Se abre desde Perfil o Progreso (ya no es pestaña): con flecha para regresar.
+    RupioTopBar("Aprende", onBack = { nav.safePop() })
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Text("Lo más importante", style = MaterialTheme.typography.titleMedium)
@@ -193,7 +195,7 @@ fun LearnScreen(nav: NavHostController) {
                 HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
                 NavRow(Icons.Rounded.FitnessCenter, "Biblioteca de ejercicios", "Imágenes, técnica y búsqueda de videos") { nav.navigate(Routes.picker("browse", "-")) }
                 HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
-                NavRow(Icons.Rounded.MonitorWeight, "Peso corporal", "Registra tu peso y mira tu tendencia") { nav.navigate(Routes.BODY_WEIGHT) }
+                NavRow(Icons.Rounded.MonitorWeight, "Peso corporal", "Registra tu peso y mira tu tendencia") { nav.goToTab(Routes.BODY_WEIGHT) }
             }
         }
     }

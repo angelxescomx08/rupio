@@ -132,6 +132,8 @@ fun ProgressLineChart(
     label: (Double) -> String = { Fmt.weight(it, unit) },
     subLabel: ((Double) -> String)? = { Fmt.weight(it, unit.other) },
     deltaLabel: (Double) -> String = { "${Fmt.num(it)} ${unit.label}" },
+    /** Qué mide la gráfica, para el resumen que lee TalkBack ("1RM estimado"). */
+    title: String = "Progreso",
 ) {
     if (points.size < 2) {
         Text("Registra al menos dos sesiones para ver tu curva de progreso.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = modifier.padding(vertical = 24.dp))
@@ -145,7 +147,10 @@ fun ProgressLineChart(
     val density = LocalDensity.current
     val sel = points[selected]
     val first = vals.first(); val last = vals.last()
-    Column(modifier) {
+    // Resumen hablado: "1RM estimado: de 80 kg a 95 kg entre marzo de 2019 y el 14 de noviembre de 2026".
+    val spoken = "$title: de ${label(points.first().second)} a ${label(points.last().second)} entre " +
+        Dates.spokenDay(points.first().first) + " de ${points.first().first.year} y " + Dates.spokenDay(points.last().first) + " de ${points.last().first.year}"
+    Column(modifier.semantics { contentDescription = spoken }) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text(label(sel.second), style = MaterialTheme.typography.titleLarge.merge(Tabular))
             Spacer(Modifier.width(8.dp))
@@ -211,7 +216,7 @@ fun MuscleSetsChart(rows: List<MuscleLoad>, weeks: Double, modifier: Modifier = 
             }
         }
         Text("La rayita marca 10 series por semana: a partir de ahí la evidencia muestra más crecimiento; más series siguen sumando, pero cada vez menos. Los músculos secundarios cuentan como media serie.",
-            style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
+            style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
     }
 }
 

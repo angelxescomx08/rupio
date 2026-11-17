@@ -1,5 +1,7 @@
 package com.rupio.app.ui.stats
 
+import com.rupio.app.goToTab
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -99,8 +101,8 @@ fun StatsScreen(nav: NavHostController) {
         }
         LazyColumn(contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { ProgressStoryCard { nav.navigate(Routes.PROGRESS) } }
-            item { BodyWeightCard { nav.navigate(Routes.BODY_WEIGHT) } }
-            if (s == null) { item { Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }; return@LazyColumn }
+            item { BodyWeightCard { nav.goToTab(Routes.BODY_WEIGHT) } }
+            if (s == null) { item { LoadingBlock("Calculando tus estadísticas…") }; return@LazyColumn }
             item {
                 Text(rangeLabel(s), style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
                 Spacer(Modifier.height(8.dp))
@@ -151,14 +153,14 @@ fun StatsScreen(nav: NavHostController) {
             if (s.topExercises.isNotEmpty()) item {
                 SectionCard {
                     TitleWithHelp("Fuerza estimada (1RM)", "1rm")
-                    Text("Lo que podrías levantar una vez, calculado de tu mejor serie de cada sesión.", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
+                    Text("Lo que podrías levantar una vez, calculado de tu mejor serie de cada sesión.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
                     Spacer(Modifier.height(8.dp))
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         s.topExercises.forEach { e -> FilterChip(vm.exerciseId == e.exerciseId, { vm.selectExercise(e.exerciseId) }, label = { Text(e.name, maxLines = 1) }) }
                     }
                     Spacer(Modifier.height(10.dp))
                     vm.curve?.let { cv ->
-                        ProgressLineChart(cv.points, unit)
+                        ProgressLineChart(cv.points, unit, title = "1RM estimado de ${cv.name}")
                         TextButton(onClick = { nav.navigate(Routes.exercise(cv.exerciseId)) }) { Text("Ver historial de ${cv.name}") }
                     }
                 }
@@ -181,6 +183,20 @@ fun StatsScreen(nav: NavHostController) {
                                 else -> Fmt.weightBoth(r.value, unit)
                             }, style = MaterialTheme.typography.labelLarge.merge(Tabular))
                         }
+                    }
+                }
+            }
+            // Aprende ya no está en la barra (la pestaña es Peso): aquí queda a un toque, junto a tus números.
+            item {
+                SectionCard(Modifier.clickable { nav.navigate(Routes.LEARN) }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.School, null, tint = RupioColors.Primary)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Aprende", style = MaterialTheme.typography.titleMedium)
+                            Text("Cómo progresar, cuánto entrenar, nutrición y glosario con estudios", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                        }
+                        Icon(Icons.Rounded.ChevronRight, null, tint = RupioColors.TextFaint)
                     }
                 }
             }

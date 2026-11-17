@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import com.rupio.app.data.auth.AuthRepository
 import com.rupio.app.data.auth.AuthState
 import com.rupio.app.data.auth.NeonAuthClient
+import com.rupio.app.data.billing.SupportRepository
 import com.rupio.app.data.local.CatalogSeeder
 import com.rupio.app.data.local.RupioDatabase
 import com.rupio.app.data.prefs.SecureStore
@@ -33,6 +34,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import androidx.room.withTransaction
 import okhttp3.OkHttpClient
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
@@ -46,7 +48,7 @@ class AppContainer(val app: Application) {
     val db = RupioDatabase.build(app)
     val settings = SettingsStore(app, BuildConfig.NEON_AUTH_URL, BuildConfig.NEON_DATA_API_URL)
     val secure = SecureStore(app)
-    val auth = AuthRepository(secure, settings, NeonAuthClient(http))
+    val auth = AuthRepository(secure, settings, NeonAuthClient(http), scope)
     private val uid: () -> String? = { auth.currentUserId }
     private val pendingDeletes = PendingDeletes(app)
     val exercises = ExerciseRepository(db, uid)
@@ -54,8 +56,27 @@ class AppContainer(val app: Application) {
     val workouts = WorkoutRepository(db, settings, uid, pendingDeletes)
     val stats = StatsRepository(db, settings)
     val bodyWeight = BodyWeightRepository(db, uid)
-    val sync = SyncEngine(app, db, DataApiClient(http), auth, settings, pendingDeletes, onRemoteSetDeletes = { workouts.rebuildRecords(it) })
-    val restTimer = RestTimerController { SystemClock.elapsedRealtime() }
+    private val dataApi = DataApiClient(http)
+    val sync = SyncEngine(app, db, dataApi, auth, settings, pendingDeletes, onRemoteSetDeletes = { workouts.rebuildRecords(it) })
+    val restTimer = RestTimerController { SystemClock.elapsedRealtime() }.also {
+        // Si Android cerró la app a media pausa, el descanso sigue y suena a su hora.
+        it.store = com.rupio.app.timer.RestTimerPrefsStore(app) { SystemClock.elapsedRealtime() }
+    }
+    val support = SupportRepository(app, scope)
+    val signOut = SignOutController(this)
+
+    /** La cuenta se acaba de eliminar: MainActivity muestra la confirmación encima de la pantalla de inicio de sesión. */
+    val accountDeleted = MutableStateFlow(false)
+
+    /** Avisos con "Deshacer" que deben verse aunque cambies de pantalla (p. ej. "Entrenamiento eliminado"). */
+    val notices = kotlinx.coroutines.flow.MutableSharedFlow<Notice>(extraBufferCapacity = 4)
+
+    /** ¿Hay red ahora? (para decir "Sin internet" en vez de tocar "Ahora" sin que pase nada). */
+    fun isOnline(): Boolean = runCatching {
+        val cm = app.getSystemService(android.net.ConnectivityManager::class.java)
+        val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
+        caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }.getOrDefault(true)
 
     /** Zona horaria actual del teléfono; se actualiza al instante si el usuario la cambia o viaja. */
     private val _zone = MutableStateFlow(ZoneId.systemDefault())
@@ -77,9 +98,58 @@ class AppContainer(val app: Application) {
         val prefs = app.getSharedPreferences("rupio_owner", Context.MODE_PRIVATE)
         val owner = prefs.getString("uid", null)
         if (owner != null && owner != uid) wipeLocalData()
-        prefs.edit().putString("uid", uid).commit()
+        prefs.edit().putString("uid", uid).putBoolean("local", auth.isLocalOnly).commit()
+    }
+
+    /**
+     * Dueño de los datos restaurados de una copia de Google si era un usuario SIN cuenta (su id no viene en la
+     * sesión cifrada, que no viaja). Así "Probar sin cuenta" en el teléfono nuevo recupera sus entrenos.
+     */
+    fun restoredLocalOwner(): String? = app.getSharedPreferences("rupio_owner", Context.MODE_PRIVATE)
+        .takeIf { it.getBoolean("local", false) }?.getString("uid", null)
+
+    /**
+     * "Crear cuenta y conservar mis datos": todo lo guardado sin cuenta pasa a la cuenta [uid] y queda pendiente de
+     * subir. Se marca como dueño ANTES de cambiar de sesión, para que claimLocalData no lo borre.
+     */
+    suspend fun adoptLocalData(uid: String) {
+        val t = System.currentTimeMillis()
+        val a = db.admin()
+        db.withTransaction {
+            a.adoptCustomExercises(uid, t); a.adoptRoutines(uid, t); a.adoptRoutineExercises(uid, t)
+            a.adoptWorkouts(uid, t); a.adoptWorkoutExercises(uid, t); a.adoptSets(uid, t)
+            a.adoptRecords(uid, t); a.adoptBodyWeights(uid, t)
+        }
+        // Una cuenta que ya existía puede traer datos de otro teléfono: se bajan completos.
+        sync.resetCursors()
+        app.getSharedPreferences("rupio_owner", Context.MODE_PRIVATE).edit().putString("uid", uid).putBoolean("local", false).commit()
+    }
+
+    /**
+     * Eliminar la cuenta: confirma la contraseña, borra en el servidor (función SQL rupio_delete_my_account: todas las
+     * filas y el usuario de Neon Auth, en una sola transacción) y luego todo lo del teléfono.
+     */
+    suspend fun deleteAccount(password: String) {
+        auth.reauthenticate(password)
+        val jwt = auth.validJwt(force = true) ?: throw com.rupio.app.data.auth.AuthException("No se pudo confirmar tu sesión. Revisa tu internet e inténtalo de nuevo.")
+        val base = settings.current().dataApiUrl
+        try {
+            dataApi.rpc(base, jwt, "rupio_delete_my_account")
+        } catch (e: java.io.IOException) {
+            throw com.rupio.app.data.auth.AuthException("Sin conexión. Revisa tu internet e inténtalo de nuevo.")
+        } catch (e: com.rupio.app.data.remote.DataApiException) {
+            throw com.rupio.app.data.auth.AuthException("No se pudo eliminar la cuenta (código ${e.code}). No se borró nada; inténtalo más tarde.")
+        }
+        SyncEngine.cancel(app)
+        restTimer.cancel(); runCatching { com.rupio.app.timer.WorkoutService.stop(app) }
+        wipeLocalData()
+        app.getSharedPreferences("rupio_owner", Context.MODE_PRIVATE).edit().clear().commit()
+        auth.signOut()
     }
 }
+
+/** Aviso breve para el snackbar global; [undo] agrega el botón "Deshacer". */
+data class Notice(val text: String, val undo: (suspend () -> Unit)? = null)
 
 class RupioApp : Application() {
     lateinit var container: AppContainer
@@ -90,6 +160,8 @@ class RupioApp : Application() {
         container = AppContainer(this)
         createChannels()
         container.scope.launch { CatalogSeeder.seedIfNeeded(this@RupioApp, container.db) }
+        // Confirma con Google Play las compras de apoyo (reembolsos, reinstalaciones, pagos pendientes en OXXO).
+        container.support.connect()
         // Cambios de zona horaria / hora del sistema → la UI se repinta con la hora correcta.
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context?, i: Intent?) {
@@ -135,10 +207,17 @@ class RupioApp : Application() {
             setShowBadge(false)
             description = "Suena una vez cuando termina tu descanso entre series"
         })
+        // Mismo aviso sin sonido de canal: para "Solo vibración" y "Con el volumen de la música" (ese sonido lo pone la app).
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_REST_QUIET, "Fin del descanso (sin sonido)", NotificationManager.IMPORTANCE_HIGH).apply {
+            setSound(null, null); enableVibration(true); vibrationPattern = longArrayOf(0, 180, 120, 260)
+            setShowBadge(false)
+            description = "Vibra cuando termina tu descanso (el sonido lo decide el ajuste de Rupio)"
+        })
     }
 
     companion object {
         const val CHANNEL_WORKOUT = "workout_active"
         const val CHANNEL_REST = "rest_done_v1"
+        const val CHANNEL_REST_QUIET = "rest_done_quiet_v1"
     }
 }

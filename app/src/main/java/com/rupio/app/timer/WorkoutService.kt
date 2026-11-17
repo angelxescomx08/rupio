@@ -40,11 +40,11 @@ import kotlinx.coroutines.launch
 class WorkoutService : LifecycleService() {
     private val container by lazy { (application as RupioApp).container }
     private var wakeLock: PowerManager.WakeLock? = null
-    private var fallback: FallbackBeep? = null
+    @Volatile private var alertMode = com.rupio.app.data.prefs.RestAlertMode.SOUND
 
     override fun onCreate() {
         super.onCreate()
-        fallback = FallbackBeep(this)
+        lifecycleScope.launch { container.settings.settings.collect { alertMode = it.restAlert } }
         ServiceCompat.startForeground(this, NOTIF_ID, build("Entrenamiento en curso", "Rupio", null, null),
             if (Build.VERSION.SDK_INT >= 34) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0)
 
@@ -63,7 +63,13 @@ class WorkoutService : LifecycleService() {
         lifecycleScope.launch {
             restAlertLoop(container.restTimer, { SystemClock.elapsedRealtime() },
                 onWait = { holdWake(it + 15_000) }, onIdle = { releaseWake() },
-                onFinish = { RestAlert.fire(this@WorkoutService, it.label, fallback) })
+                onFinish = {
+                    // Con la app a la vista no se publica la notificación emergente (tapaba "Terminar" hasta 20 s):
+                    // el aviso sale dentro de la pantalla del entreno, con el mismo sonido y vibración.
+                    val visible = androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)
+                    container.restTimer.markFinished(it.label)
+                    RestAlert.fire(this@WorkoutService, it.label, alertMode, visible)
+                })
         }
     }
 
@@ -77,7 +83,7 @@ class WorkoutService : LifecycleService() {
     }
 
     override fun onDestroy() {
-        releaseWake(); fallback?.release(); fallback = null
+        releaseWake()
         super.onDestroy()
     }
 
@@ -150,7 +156,13 @@ fun canNotify(ctx: Context): Boolean =
     (Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) &&
         NotificationManagerCompat.from(ctx).areNotificationsEnabled()
 
-/** Aviso de fin de descanso: una notificación con sonido y vibración (o un beep si las notificaciones están apagadas). */
+/**
+ * Aviso de fin de descanso. Según el ajuste de la persona (Perfil → Aviso de fin de descanso):
+ *  - SOUND: notificación con sonido y vibración (volumen de notificaciones).
+ *  - MEDIA: notificación sin sonido + el sonido por el volumen de la música, bajando la música un momento (se oye en audífonos).
+ *  - VIBRATE: notificación sin sonido, solo vibra.
+ * Con la app a la vista [fire] no publica notificación: suena/vibra y la pantalla del entreno muestra "¡Listo!".
+ */
 object RestAlert {
     const val NOTIF_ID = 43
 
@@ -159,37 +171,92 @@ object RestAlert {
 
     fun soundUri(ctx: Context): Uri = Uri.parse("android.resource://${ctx.packageName}/${R.raw.rest_done}")
 
-    fun fire(ctx: Context, label: String, fallback: FallbackBeep?) {
+    fun fire(ctx: Context, label: String, mode: com.rupio.app.data.prefs.RestAlertMode, visible: Boolean) {
         fired++
+        if (visible) { feedback(ctx, mode); return }
+        val channel = if (mode == com.rupio.app.data.prefs.RestAlertMode.SOUND) RupioApp.CHANNEL_REST else RupioApp.CHANNEL_REST_QUIET
         val channelOn = Build.VERSION.SDK_INT < 26 ||
-            ctx.getSystemService(NotificationManager::class.java)?.getNotificationChannel(RupioApp.CHANNEL_REST)?.importance != NotificationManager.IMPORTANCE_NONE
+            ctx.getSystemService(NotificationManager::class.java)?.getNotificationChannel(channel)?.importance != NotificationManager.IMPORTANCE_NONE
         if (canNotify(ctx) && channelOn) {
-            val n = NotificationCompat.Builder(ctx, RupioApp.CHANNEL_REST)
+            val n = NotificationCompat.Builder(ctx, channel)
                 .setSmallIcon(R.drawable.ic_stat_rupio)
                 .setContentTitle("¡Descanso terminado!")
                 .setContentText(label)
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setSound(soundUri(ctx))                       // Android 7 y anteriores (en 8+ lo pone el canal)
+                .apply { if (mode == com.rupio.app.data.prefs.RestAlertMode.SOUND) setSound(soundUri(ctx)) else setSilent(false) }
                 .setVibrate(longArrayOf(0, 180, 120, 260))
                 .setAutoCancel(true)
                 .setTimeoutAfter(20_000)
                 .setContentIntent(WorkoutService.openApp(ctx))
                 .build()
             NotificationManagerCompat.from(ctx).notify(NOTIF_ID, n)
+            if (mode == com.rupio.app.data.prefs.RestAlertMode.MEDIA) RestSound.play(ctx, media = true)
         } else {
-            fallback?.play()
+            // Notificaciones apagadas: al menos el sonido y la vibración.
+            feedback(ctx, mode)
+        }
+    }
+
+    /** "Probar" en Perfil: exactamente lo que se oirá y sentirá, sin notificación. */
+    fun preview(ctx: Context, mode: com.rupio.app.data.prefs.RestAlertMode) = feedback(ctx, mode, force = true)
+
+    private fun feedback(ctx: Context, mode: com.rupio.app.data.prefs.RestAlertMode, force: Boolean = false) {
+        val am = ctx.getSystemService(android.media.AudioManager::class.java)
+        val ringer = am?.ringerMode ?: android.media.AudioManager.RINGER_MODE_NORMAL
+        // Respeta el modo silencio y vibración del teléfono (salvo "Probar", que la persona pidió).
+        when (mode) {
+            com.rupio.app.data.prefs.RestAlertMode.SOUND -> if (force || ringer == android.media.AudioManager.RINGER_MODE_NORMAL) RestSound.play(ctx, media = false)
+            com.rupio.app.data.prefs.RestAlertMode.MEDIA -> RestSound.play(ctx, media = true)
+            com.rupio.app.data.prefs.RestAlertMode.VIBRATE -> {}
+        }
+        if (force || ringer != android.media.AudioManager.RINGER_MODE_SILENT) vibrate(ctx)
+    }
+
+    private fun vibrate(ctx: Context) = runCatching {
+        val v = if (Build.VERSION.SDK_INT >= 31) ctx.getSystemService(android.os.VibratorManager::class.java)?.defaultVibrator
+        else @Suppress("DEPRECATION") ctx.getSystemService(android.os.Vibrator::class.java)
+        v?.vibrate(android.os.VibrationEffect.createWaveform(longArrayOf(0, 180, 120, 260), -1))
+    }
+}
+
+/**
+ * Reproduce rest_done.wav una vez. [media] = por el volumen de la música y con foco de audio "transitorio, puede
+ * bajar a los demás": la música se baja un momento y el aviso se oye en los audífonos.
+ */
+object RestSound {
+    fun play(ctx: Context, media: Boolean) {
+        runCatching {
+            val attrs = AudioAttributes.Builder()
+                .setUsage(if (media) AudioAttributes.USAGE_MEDIA else AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()
+            val am = ctx.getSystemService(android.media.AudioManager::class.java)
+            val focus = if (media && am != null) android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(attrs).build().also { am.requestAudioFocus(it) } else null
+            val afd = ctx.resources.openRawResourceFd(R.raw.rest_done)
+            android.media.MediaPlayer().apply {
+                setAudioAttributes(attrs)
+                setDataSource(afd.fileDescriptor, afd.startOffset, afd.length); afd.close()
+                setOnCompletionListener { mp -> mp.release(); focus?.let { am?.abandonAudioFocusRequest(it) } }
+                setOnErrorListener { mp, _, _ -> mp.release(); focus?.let { am?.abandonAudioFocusRequest(it) }; true }
+                prepare(); start()
+            }
         }
     }
 }
 
-/** Solo si las notificaciones están apagadas: el mismo sonido por el volumen de notificaciones. */
-class FallbackBeep(context: Context) {
-    private val pool = SoundPool.Builder().setMaxStreams(1).setAudioAttributes(
-        AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()
-    ).build()
-    private val soundId = pool.load(context, R.raw.rest_done, 1)
-    fun play() { pool.play(soundId, 1f, 1f, 1, 0, 1f) }
-    fun release() = pool.release()
+/** Guarda el descanso en curso (con hora de reloj de pared) para restaurarlo si Android reinicia la app. */
+class RestTimerPrefsStore(context: Context, private val clock: () -> Long) : RestTimerController.Store {
+    private val prefs = context.getSharedPreferences("rupio_rest_timer", Context.MODE_PRIVATE)
+    override fun save(s: RestTimerController.State?) {
+        if (s == null) { prefs.edit().clear().apply(); return }
+        prefs.edit().putLong("wall_end", System.currentTimeMillis() + s.remainingMs(clock())).putInt("total", s.totalSec)
+            .putString("source", s.sourceSetId).putString("label", s.label).putLong("gen", s.generation).apply()
+    }
+    override fun load(): RestTimerController.State? {
+        val wallEnd = prefs.getLong("wall_end", 0)
+        val left = wallEnd - System.currentTimeMillis()
+        if (wallEnd == 0L || left <= 0 || left > 60 * 60_000) return null
+        return RestTimerController.State(prefs.getLong("gen", 0), clock() + left, prefs.getInt("total", 60), prefs.getString("source", null), prefs.getString("label", "") ?: "")
+    }
 }

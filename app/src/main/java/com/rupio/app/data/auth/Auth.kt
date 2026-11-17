@@ -4,12 +4,14 @@ import android.util.Base64
 import com.rupio.app.core.Ids
 import com.rupio.app.data.prefs.SecureStore
 import com.rupio.app.data.prefs.SettingsStore
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -28,8 +30,15 @@ import java.net.URI
 sealed interface AuthState {
     data object Loading : AuthState
     data object SignedOut : AuthState
-    data class SignedIn(val userId: String, val email: String, val name: String, val localOnly: Boolean) : AuthState
+    /**
+     * [sessionExpired]: la sesión del servidor venció (p. ej. semanas sin abrir la app). La app sigue funcionando y
+     * guardando en el teléfono, pero no respalda nada hasta que la persona vuelva a escribir su contraseña.
+     */
+    data class SignedIn(val userId: String, val email: String, val name: String, val localOnly: Boolean, val sessionExpired: Boolean = false) : AuthState
 }
+
+/** Por qué no se pudo obtener un JWT: cada causa se explica distinto al usuario (ver SyncProblem). */
+enum class JwtFailure { NONE, OFFLINE, EXPIRED, SERVER }
 
 class AuthException(message: String) : Exception(message)
 
@@ -73,18 +82,19 @@ class NeonAuthClient(private val http: OkHttpClient) {
 }
 
 /**
- * Sesión persistente "de toda la vida":
- *  1. La cookie de sesión se guarda cifrada (Keystore) y se renueva sola al pedir get-session.
+ * Sesión persistente:
+ *  1. La cookie de sesión (pedida con rememberMe) se guarda cifrada (Keystore) y se renueva sola al pedir get-session.
  *  2. El JWT (15 min) se pide cuando hace falta y se cachea.
- *  3. Si la sesión del servidor expirara (p. ej. meses sin abrir la app), se re-autentica en
- *     silencio con las credenciales cifradas — solo si "Mantener sesión siempre" está activo.
+ *  3. La contraseña NUNCA se guarda (OWASP MASWE-0036). Si la sesión del servidor vence, la cuenta queda en
+ *     "sesión vencida": todo sigue guardándose en el teléfono y la app pide entrar de nuevo para respaldar.
  *  4. Sin internet NUNCA se cierra la sesión: la app sigue funcionando y sincroniza después.
- * Solo se sale con "Cerrar sesión".
  */
 class AuthRepository(
     private val secure: SecureStore,
     private val settings: SettingsStore,
     private val client: NeonAuthClient,
+    /** Si se da, la sesión guardada se lee en segundo plano (no retrasa el arranque en el hilo principal). */
+    scope: CoroutineScope? = null,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val _state = MutableStateFlow<AuthState>(AuthState.Loading)
@@ -94,11 +104,25 @@ class AuthRepository(
     private var jwt: String? = null
     private var jwtExp: Long = 0
 
+    /** Última razón por la que [validJwt] devolvió null. */
+    @Volatile var lastFailure: JwtFailure = JwtFailure.NONE
+        private set
+
     init {
+        if (scope == null) load() else scope.launch(Dispatchers.IO) { load() }
+    }
+
+    private fun load() {
+        // Hasta la v1.5 se guardaban correo y contraseña para volver a entrar solos. Ya no: se borran.
+        secure.put("cred_email", null); secure.put("cred_pass", null)
         val uid = secure.get("user_id")
-        _state.value = if (uid != null) AuthState.SignedIn(uid, secure.get("email") ?: "", secure.get("name") ?: "", secure.get("local_only") == "1")
+        val loaded = if (uid != null) AuthState.SignedIn(uid, secure.get("email") ?: "", secure.get("name") ?: "", secure.get("local_only") == "1",
+            sessionExpired = secure.get("session_expired") == "1")
         else AuthState.SignedOut
-        jwt = secure.get("jwt"); jwtExp = secure.get("jwt_exp")?.toLongOrNull() ?: 0
+        // Si mientras tanto alguien ya inició sesión o entró sin cuenta, no se pisa.
+        if (_state.compareAndSet(AuthState.Loading, loaded) && jwt == null) {
+            jwt = secure.get("jwt"); jwtExp = secure.get("jwt_exp")?.toLongOrNull() ?: 0
+        }
     }
 
     val currentUserId: String? get() = (state.value as? AuthState.SignedIn)?.userId
@@ -106,33 +130,81 @@ class AuthRepository(
 
     suspend fun serverConfigured(): Boolean = settings.current().authUrl.isNotBlank()
 
-    suspend fun signIn(email: String, password: String) = authenticate("/sign-in/email", buildJsonObject {
+    /**
+     * [adopt]: se llama con el id de la cuenta ANTES de cambiar de usuario. Desde el modo sin cuenta pasa los datos
+     * del teléfono a la cuenta nueva (si no, claimLocalData los borraría por ser de "otro dueño").
+     */
+    suspend fun signIn(email: String, password: String, adopt: (suspend (String) -> Unit)? = null) = authenticate("/sign-in/email", buildJsonObject {
         put("email", email.trim()); put("password", password); put("rememberMe", true)
-    }, email, password, null)
+    }, email, null, adopt)
 
-    suspend fun signUp(name: String, email: String, password: String) = authenticate("/sign-up/email", buildJsonObject {
+    suspend fun signUp(name: String, email: String, password: String, adopt: (suspend (String) -> Unit)? = null) = authenticate("/sign-up/email", buildJsonObject {
         put("name", name.trim()); put("email", email.trim()); put("password", password)
-    }, email, password, name)
+    }, email, name, adopt)
 
-    private suspend fun authenticate(path: String, body: JsonObject, email: String, password: String, name: String?) {
-        val base = settings.current().authUrl
-        if (base.isBlank()) throw AuthException("No se pudo conectar con el servidor. Inténtalo más tarde.")
-        val r = try { client.post(base, path, body) } catch (e: IOException) { throw AuthException("Sin conexión. Revisa tu internet e inténtalo de nuevo.") }
-        if (r.code !in 200..299) throw AuthException(errorMessage(r))
-        val user = r.body?.get("user")?.jsonObject ?: throw AuthException("Respuesta inesperada del servidor.")
-        val uid = user["id"]?.jsonPrimitive?.content ?: throw AuthException("Respuesta inesperada del servidor.")
+    private suspend fun authenticate(path: String, body: JsonObject, email: String, name: String?, adopt: (suspend (String) -> Unit)?) {
+        val r = postAuth(path, body)
+        val user = r.body?.get("user")?.jsonObject ?: throw AuthException("Respuesta inesperada del servidor (código R1).")
+        val uid = user["id"]?.jsonPrimitive?.content ?: throw AuthException("Respuesta inesperada del servidor (código R2).")
         val displayName = user["name"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: name ?: email.substringBefore('@')
+        adopt?.invoke(uid)
         saveCookies(r.cookies, merge = false)
         secure.put("user_id", uid); secure.put("email", email.trim()); secure.put("name", displayName); secure.put("local_only", "0")
-        if (settings.current().keepSignedIn) { secure.put("cred_email", email.trim()); secure.put("cred_pass", password) }
+        secure.put("session_expired", null)
+        jwt = null; jwtExp = 0; secure.put("jwt", null)
         r.jwt?.let { storeJwt(it) }
+        lastFailure = JwtFailure.NONE
         _state.value = AuthState.SignedIn(uid, email.trim(), displayName, localOnly = false)
         runCatching { validJwt() }
     }
 
-    /** Modo sin cuenta: todo se guarda solo en este teléfono. */
-    fun useLocalMode(name: String) {
-        val uid = secure.get("local_uid") ?: Ids.uuidV7().also { secure.put("local_uid", it) }
+    /**
+     * Sesión vencida → la persona vuelve a escribir su contraseña. Se queda en la MISMA cuenta: nada del teléfono se
+     * borra y lo pendiente se sube en la siguiente sincronización. También sirve para confirmar la identidad
+     * antes de una acción delicada (eliminar la cuenta).
+     */
+    suspend fun reauthenticate(password: String) {
+        val s = state.value as? AuthState.SignedIn ?: throw AuthException("No hay una cuenta abierta.")
+        if (s.localOnly) throw AuthException("Estás usando la app sin cuenta.")
+        val r = postAuth("/sign-in/email", buildJsonObject { put("email", s.email); put("password", password); put("rememberMe", true) })
+        val uid = r.body?.get("user")?.jsonObject?.get("id")?.jsonPrimitive?.content ?: throw AuthException("Respuesta inesperada del servidor (código R2).")
+        if (uid != s.userId) throw AuthException("Esa no es la cuenta de este teléfono.")
+        saveCookies(r.cookies, merge = false)
+        secure.put("session_expired", null)
+        r.jwt?.let { storeJwt(it) }
+        lastFailure = JwtFailure.NONE
+        _state.value = s.copy(sessionExpired = false)
+        runCatching { validJwt() }
+    }
+
+    /**
+     * "¿Olvidaste tu contraseña?": Neon Auth manda un código de 6 dígitos al correo. La respuesta es la misma exista o
+     * no la cuenta (no revela qué correos están registrados).
+     */
+    suspend fun requestPasswordReset(email: String) {
+        postAuth("/email-otp/request-password-reset", buildJsonObject { put("email", email.trim()) })
+    }
+
+    /** Cambia la contraseña con el código del correo. Después hay que iniciar sesión con la nueva. */
+    suspend fun resetPassword(email: String, code: String, newPassword: String) {
+        postAuth("/email-otp/reset-password", buildJsonObject { put("email", email.trim()); put("otp", code.trim()); put("password", newPassword) })
+    }
+
+    private suspend fun postAuth(path: String, body: JsonObject): NeonAuthClient.Result {
+        val base = settings.current().authUrl
+        if (base.isBlank()) throw AuthException("No se pudo conectar con el servidor. Inténtalo más tarde.")
+        val r = try { client.post(base, path, body) } catch (e: IOException) { throw AuthException("Sin conexión. Revisa tu internet e inténtalo de nuevo.") }
+        if (r.code !in 200..299) throw AuthException(errorMessage(r))
+        return r
+    }
+
+    /**
+     * Modo sin cuenta: todo se guarda solo en este teléfono.
+     * [restoredOwner]: dueño de los datos que vinieron en una copia de Google (teléfono nuevo). Si era un usuario sin
+     * cuenta, se reutiliza su id para no borrar los entrenos restaurados.
+     */
+    fun useLocalMode(name: String, restoredOwner: String? = null) {
+        val uid = secure.get("local_uid") ?: (restoredOwner ?: Ids.uuidV7()).also { secure.put("local_uid", it) }
         secure.put("user_id", uid); secure.put("email", ""); secure.put("name", name.trim().ifBlank { "Atleta" }); secure.put("local_only", "1")
         _state.value = AuthState.SignedIn(uid, "", name.trim().ifBlank { "Atleta" }, localOnly = true)
     }
@@ -142,46 +214,56 @@ class AuthRepository(
         secure.put("name", name); _state.value = s.copy(name = name)
     }
 
-    /** JWT vigente para la Data API, o null si no se puede obtener ahora (sin red, etc.). */
-    suspend fun validJwt(): String? = mutex.withLock {
-        if (isLocalOnly || currentUserId == null) return null
+    /**
+     * JWT vigente para la Data API, o null si no se puede obtener ahora; [lastFailure] dice por qué.
+     * [force]: ignora el JWT guardado (el servidor respondió 401 a media sincronización).
+     */
+    suspend fun validJwt(force: Boolean = false): String? = mutex.withLock {
+        val s = state.value as? AuthState.SignedIn ?: return null
+        if (s.localOnly) return null
+        if (s.sessionExpired) { lastFailure = JwtFailure.EXPIRED; return null }
         val now = System.currentTimeMillis() / 1000
-        jwt?.let { if (jwtExp - now > 60) return it }
-        val base = settings.current().authUrl.ifBlank { return null }
+        if (!force) jwt?.let { if (jwtExp - now > 60) { lastFailure = JwtFailure.NONE; return it } }
+        val base = settings.current().authUrl.ifBlank { lastFailure = JwtFailure.SERVER; return null }
         val cookies = loadCookies()
+        if (cookies.isEmpty()) { markExpired(); return null }
         try {
-            if (cookies.isNotEmpty()) {
-                val r = client.get(base, "/get-session", cookies)
-                saveCookies(r.cookies, merge = true)
-                val hasSession = r.code == 200 && r.body?.get("session") != null
-                var token = r.jwt
-                if (hasSession && token == null) {
-                    val t = client.get(base, "/token", loadCookies())
-                    token = t.body?.get("token")?.jsonPrimitive?.content
-                }
-                if (hasSession && token != null) { storeJwt(token); return token }
+            val r = client.get(base, "/get-session", cookies)
+            saveCookies(r.cookies, merge = true)
+            if (r.code == 200 && r.body?.get("session") != null) {
+                val token = r.jwt ?: client.get(base, "/token", loadCookies()).body?.get("token")?.jsonPrimitive?.content
+                if (token != null) { storeJwt(token); lastFailure = JwtFailure.NONE; return token }
+                lastFailure = JwtFailure.SERVER; return null
             }
-            // Sesión del servidor vencida → re-login silencioso (si el usuario lo permitió).
-            val e = secure.get("cred_email"); val p = secure.get("cred_pass")
-            if (e != null && p != null) {
-                val r = client.post(base, "/sign-in/email", buildJsonObject { put("email", e); put("password", p); put("rememberMe", true) })
-                if (r.code in 200..299) {
-                    saveCookies(r.cookies, merge = false)
-                    val token = r.jwt ?: client.get(base, "/get-session", loadCookies()).also { saveCookies(it.cookies, true) }.jwt
-                    if (token != null) { storeJwt(token); return token }
-                }
-            }
-        } catch (_: IOException) { /* sin red: se reintenta en la siguiente sincronización */ }
+            // El servidor respondió y dice que ya no hay sesión (200 con "null" o 401): hay que volver a entrar.
+            if (r.code == 200 || r.code == 401) { markExpired(); return null }
+            lastFailure = JwtFailure.SERVER
+        } catch (_: IOException) { lastFailure = JwtFailure.OFFLINE }
         null
     }
 
-    suspend fun signOut() {
+    private fun markExpired() {
+        lastFailure = JwtFailure.EXPIRED
+        jwt = null; jwtExp = 0; secure.put("jwt", null)
+        secure.put("session_expired", "1")
+        (state.value as? AuthState.SignedIn)?.let { if (!it.sessionExpired) _state.value = it.copy(sessionExpired = true) }
+    }
+
+    /**
+     * [background]: si se da, el aviso al servidor ("cierra esta sesión") va en segundo plano y no se espera.
+     * Antes se esperaba y, con mala señal, "Cerrar sesión" se quedaba hasta 45 s sin decir nada.
+     */
+    suspend fun signOut(background: kotlinx.coroutines.CoroutineScope? = null) {
         val base = settings.current().authUrl
-        if (!isLocalOnly && base.isNotBlank()) runCatching { client.post(base, "/sign-out", JsonObject(emptyMap()), loadCookies()) }
+        if (!isLocalOnly && base.isNotBlank()) {
+            val cookies = loadCookies()
+            if (background != null) background.launch { runCatching { client.post(base, "/sign-out", JsonObject(emptyMap()), cookies) } }
+            else runCatching { client.post(base, "/sign-out", JsonObject(emptyMap()), cookies) }
+        }
         val localUid = secure.get("local_uid")
         secure.clear()
         localUid?.let { secure.put("local_uid", it) }
-        jwt = null; jwtExp = 0
+        jwt = null; jwtExp = 0; lastFailure = JwtFailure.NONE
         _state.value = AuthState.SignedOut
     }
 
@@ -210,6 +292,9 @@ class AuthRepository(
     private fun errorMessage(r: NeonAuthClient.Result): String {
         val code = r.body?.get("code")?.jsonPrimitive?.content.orEmpty()
         return when {
+            code.contains("INVALID_OTP") -> "El código no es correcto. Revisa el correo o pide otro."
+            code.contains("OTP_EXPIRED") -> "El código ya venció. Pide uno nuevo."
+            code.contains("TOO_MANY_ATTEMPTS") -> "Demasiados intentos con ese código. Pide uno nuevo."
             code.contains("INVALID_EMAIL_OR_PASSWORD") || r.code == 401 -> "Correo o contraseña incorrectos."
             code.contains("USER_ALREADY_EXISTS") || r.code == 422 -> "Ya existe una cuenta con ese correo. Inicia sesión."
             code.contains("PASSWORD_TOO_SHORT") -> "La contraseña debe tener al menos 8 caracteres."
@@ -218,7 +303,8 @@ class AuthRepository(
             code.contains("EMAIL_NOT_VERIFIED") -> "Confirma tu correo con el enlace que te enviamos y vuelve a intentar."
             r.code == 403 -> "No se pudo conectar con el servidor. Inténtalo más tarde."
             r.code == 429 -> "Demasiados intentos. Espera un momento."
-            else -> "No se pudo completar (${r.code}). Inténtalo de nuevo."
+            r.code >= 500 -> "El servidor no responde (código ${r.code}). Inténtalo en unos minutos."
+            else -> "No se pudo completar (código ${r.code}). Inténtalo de nuevo."
         }
     }
 }

@@ -243,3 +243,9 @@ data class WorkoutExerciseSummary(
     val name: String, val sets: Int,
 )
 data class ExerciseSetCount(@ColumnInfo(name = "exercise_id") val exerciseId: String, val sets: Int, val volume: Double)
+
+/** Nombre y día de una fila, para decir qué cambio rechazó el servidor. */
+data class RowLabel(val name: String?, val day: Int?)
+
+/** Meses con entrenos (selector de mes del Historial). ym = "2019-03". */
+data class MonthCount(val ym: String, val n: Int)

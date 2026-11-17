@@ -160,6 +160,27 @@ object Dates {
     fun formatMonth(date: LocalDate): String = date.format(monthFmt).replaceFirstChar { it.uppercase() }
     fun formatTime(epochMs: Long, zone: ZoneId): String = Instant.ofEpochMilli(epochMs).atZone(zone).format(timeFmt)
 
+    /**
+     * Cuándo pasó algo, como lo diría una persona: "hace un momento", "hace 5 min", "hoy 14:05", "ayer 14:05",
+     * "14 nov" o "14 nov 2025". Antes solo se mostraba la hora y "14:05" de hace 3 días se leía como de hoy.
+     */
+    fun relative(epochMs: Long, nowMs: Long, zone: ZoneId): String {
+        val diff = nowMs - epochMs
+        if (diff in 0 until 60_000) return "hace un momento"
+        if (diff in 60_000 until 3_600_000) return "hace ${diff / 60_000} min"
+        val then = Instant.ofEpochMilli(epochMs).atZone(zone)
+        val today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
+        return when (then.toLocalDate()) {
+            today -> "hoy " + then.format(timeFmt)
+            today.minusDays(1) -> "ayer " + then.format(timeFmt)
+            else -> if (then.year == today.year) then.toLocalDate().format(dayShort) else then.toLocalDate().format(dayShort) + " " + then.year
+        }
+    }
+
+    /** "martes 11 de noviembre" (para lectores de pantalla). */
+    fun spokenDay(date: LocalDate): String = date.format(spokenFmt)
+    private val spokenFmt = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Fmt.locale)
+
     /** "19:05" o "03:05 (19:05 hora de Ciudad de México)" si se entrenó en otra zona. */
     fun formatTimeWithOrigin(epochMs: Long, current: ZoneId, origin: String): String {
         val now = formatTime(epochMs, current)

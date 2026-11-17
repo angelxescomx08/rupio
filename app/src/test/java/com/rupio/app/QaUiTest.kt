@@ -78,7 +78,16 @@ class QaUiTest {
         else compose.onAllNodesWithText(text, substring = true, useUnmergedTree = true)[0].performTouchInput { click(center) }
         settle()
     }
-    private fun tapTab(label: String) { compose.onAllNodesWithText(label).onLast().performClick(); settle() }
+    /**
+     * Pestañas: con letra al 200 % en 320 dp las etiquetas ya no se achican (v1.6, WCAG 1.4.4): se ocultan y el ícono
+     * lleva el nombre como descripción. Se busca por texto o por descripción, como lo haría TalkBack.
+     */
+    private fun tabNode(label: String) = compose.onAllNodes((hasText(label) or hasContentDescription(label)) and hasClickAction())
+    private fun waitTab(label: String) {
+        val t0 = System.currentTimeMillis()
+        while (tabNode(label).fetchSemanticsNodes().isEmpty()) { if (System.currentTimeMillis() - t0 > 15_000) throw AssertionError("No apareció la pestaña \"$label\""); settle(300) }
+    }
+    private fun tapTab(label: String) { waitTab(label); tabNode(label).onLast().performClick(); settle() }
 
     /** Auditoría de accesibilidad de lo que está en pantalla + captura. */
     private fun audit(screen: String) {
@@ -146,7 +155,7 @@ class QaUiTest {
     @Test fun pantallasEnElPeorCaso() = runBlocking {
         seedLong()
         app { MainShell() }
-        waitText("Entrenar"); audit("01_inicio")
+        waitTab("Entrenar"); waitText("Esta semana"); audit("01_inicio")
         scrollTo("Rutina de torso"); audit("01b_inicio_rutina")
         tapTab("Progreso"); waitText("Tu progreso"); audit("02_progreso")
         tap("Ver cómo has cambiado")
@@ -155,14 +164,14 @@ class QaUiTest {
         compose.onNodeWithContentDescription("Atrás").performClick(); settle()
         tap("Registrar"); audit("05_registrar_peso")
         compose.onNodeWithText("Cancelar").performClick(); settle()
-        tap("Tendencia"); waitText("Registros"); audit("04_peso")
-        compose.onNodeWithContentDescription("Atrás").performClick(); settle()
+        tapTab("Peso"); waitText("Tu peso (tendencia)"); audit("04_peso")
         tapTab("Historial"); waitText("Sesión de pierna"); audit("06_historial")
-        tapTab("Aprende"); waitText("Lo más importante"); audit("07_aprende")
+        tapTab("Perfil"); waitText("Unidad de las pesas"); audit("09_perfil")
+        tap("Tutoriales, glosario"); waitText("Lo más importante"); audit("07_aprende")
         tap("Cómo progresar"); waitText("Sobrecarga"); audit("08_tutorial")
         compose.onNodeWithContentDescription("Atrás").performClick(); settle()
-        tapTab("Perfil"); waitText("Unidad de peso"); audit("09_perfil")
-        tapTab("Entrenar"); waitText("Entrenar")
+        compose.onNodeWithContentDescription("Atrás").performClick(); settle()
+        tapTab("Entrenar"); waitText("Esta semana")
         tap("Guía"); waitText("rutina a tu medida"); audit("10_guia")
         compose.onNodeWithText("Empezar").performClick(); settle(); audit("10b_guia_dias")
         repeat(6) { if (compose.onAllNodesWithText("Siguiente").fetchSemanticsNodes().isNotEmpty()) { compose.onAllNodesWithText("Siguiente")[0].performClick(); settle() } }

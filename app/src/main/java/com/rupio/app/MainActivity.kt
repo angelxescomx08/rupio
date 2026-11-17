@@ -44,6 +44,11 @@ import com.rupio.app.core.Fmt
 import com.rupio.app.data.auth.AuthState
 import com.rupio.app.timer.WorkoutService
 import com.rupio.app.ui.auth.AuthScreen
+import com.rupio.app.ui.auth.SignOutOverlay
+import com.rupio.app.data.billing.SupportEvent
+import com.rupio.app.domain.SupportTier
+import com.rupio.app.ui.support.SupportScreen
+import com.rupio.app.ui.support.ThanksDialog
 import com.rupio.app.ui.exercises.ExerciseDetailScreen
 import com.rupio.app.ui.exercises.ExercisePickerScreen
 import com.rupio.app.ui.history.HistoryScreen
@@ -52,8 +57,6 @@ import com.rupio.app.ui.home.HomeScreen
 import com.rupio.app.ui.profile.ProfileScreen
 import com.rupio.app.ui.routine.RoutineEditorScreen
 import com.rupio.app.ui.stats.StatsScreen
-import com.rupio.app.ui.components.FitText
-import com.rupio.app.ui.components.FitGroup
 import androidx.compose.ui.platform.LocalConfiguration
 import com.rupio.app.ui.theme.RupioColors
 import com.rupio.app.ui.theme.RupioTheme
@@ -91,11 +94,18 @@ class MainActivity : ComponentActivity() {
                         AuthState.Loading -> Box(Modifier.fillMaxSize())
                         AuthState.SignedOut -> AuthScreen()
                         is AuthState.SignedIn -> {
-                            val st = settings ?: return@Surface
-                            if (!st.onboardingDone) OnboardingScreen(s.name) { scope.launch { container.settings.setOnboardingDone(true) } }
+                            val st = settings
+                            if (st == null) Box(Modifier.fillMaxSize())
+                            else if (!st.onboardingDone) OnboardingScreen(s.name) { scope.launch { container.settings.setOnboardingDone(true) } }
                             else MainShell()
                         }
                     }
+                    // Encima de todo: sigue visible aunque la app cambie a la pantalla de inicio de sesión.
+                    val signOut by container.signOut.state.collectAsStateWithLifecycle()
+                    SignOutOverlay(signOut, onRetry = container.signOut::retry, onExitAnyway = container.signOut::exitWithoutUpload, onCancel = container.signOut::cancel)
+                    SupportThanksHost()
+                    val deleted by container.accountDeleted.collectAsStateWithLifecycle()
+                    if (deleted) com.rupio.app.ui.legal.AccountDeletedDialog { container.accountDeleted.value = false }
                   }
                 }
             }
@@ -105,6 +115,8 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         (application as RupioApp).container.refreshZone()
+        // Un pago pendiente (p. ej. en OXXO) pudo completarse mientras la app no estaba a la vista.
+        (application as RupioApp).container.support.refresh()
     }
 }
 
@@ -132,6 +144,10 @@ object Routes {
     const val CONCEPT = "concept/{id}"; fun concept(id: String) = "concept/$id"
     const val TUTORIAL = "tutorial/{id}"; fun tutorial(id: String) = "tutorial/$id"
     const val BODY_WEIGHT = "body_weight"; const val PROGRESS = "progress"; const val GUIDE = "guide"
+    const val SUPPORT = "support"
+    /** Modo sin cuenta → crear cuenta (o entrar) conservando los datos del teléfono. */
+    const val ACCOUNT = "account"
+    const val DELETE_ACCOUNT = "delete_account"
 }
 
 /**
@@ -172,37 +188,55 @@ fun MainShell() {
     val active by c.workouts.active.collectAsStateWithLifecycle(initialValue = null)
     val context = LocalContext.current
     LaunchedEffect(active?.id) { if (active != null) WorkoutService.start(context) }
-    // Android 13+: sin este permiso no hay notificación ni sonido de fin de descanso con la pantalla apagada.
-    val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    // El permiso de notificaciones ya NO se pide al abrir la app: se pide al empezar el primer entreno, después de
+    // explicar para qué sirve (ver HomeScreen · NotificationRationaleDialog).
+    val syncUi = remember { com.rupio.app.ui.components.SyncUiController() }
+    val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
-            notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        c.notices.collect { n ->
+            val r = kotlinx.coroutines.withTimeoutOrNull(if (n.undo != null) 5_000L else 3_000L) {
+                snackbar.showSnackbar(n.text, actionLabel = if (n.undo != null) "Deshacer" else null, duration = SnackbarDuration.Indefinite)
+            }
+            if (r == null) snackbar.currentSnackbarData?.dismiss()
+            if (r == SnackbarResult.ActionPerformed) n.undo?.let { c.scope.launch { it() } }
+        }
     }
 
     val tabs = listOf(
         Tab(Routes.HOME, "Entrenar", Icons.Rounded.FitnessCenter), Tab(Routes.HISTORY, "Historial", Icons.Rounded.History),
-        Tab(Routes.STATS, "Progreso", Icons.Rounded.Insights), Tab(Routes.LEARN, "Aprende", Icons.Rounded.School),
+        // Peso corporal tiene su propia pestaña (antes estaba escondido dentro de Progreso/Perfil). Aprende vive en Perfil y Progreso.
+        Tab(Routes.STATS, "Progreso", Icons.Rounded.Insights), Tab(Routes.BODY_WEIGHT, "Peso", Icons.Rounded.MonitorWeight),
         Tab(Routes.PROFILE, "Perfil", Icons.Rounded.Person),
     )
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
     val showBar = tabs.any { it.route == route }
 
+    CompositionLocalProvider(com.rupio.app.ui.components.LocalSyncUi provides syncUi) {
     CoachHost(coach) {
         Scaffold(
             containerColor = RupioColors.Black,
+            snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 if (showBar) Column {
                     AnimatedVisibility(active != null, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
-                        active?.let { w -> ActiveWorkoutBanner(w.name, w.startedAt) { nav.navigate(Routes.WORKOUT) } }
+                        val done by c.restTimer.finished.collectAsStateWithLifecycle()
+                        active?.let { w -> ActiveWorkoutBanner(w.name, w.startedAt, restDone = done != null) { c.restTimer.clearFinished(); nav.navigate(Routes.WORKOUT) } }
                     }
-                    val navLabels = remember(LocalConfiguration.current.fontScale, LocalConfiguration.current.screenWidthDp) { FitGroup() }
+                    // Las etiquetas NUNCA se achican (antes bajaban hasta 35 %, más chicas que el tamaño normal aun con letra
+                    // al 200 %). Si alguna no cabe a su tamaño, se ocultan todas y el ícono dice su nombre al lector de pantalla.
+                    var hideLabels by remember(LocalConfiguration.current.fontScale, LocalConfiguration.current.screenWidthDp) { mutableStateOf(false) }
                     NavigationBar(containerColor = RupioColors.Surface, tonalElevation = 0.dp) {
                         tabs.forEach { t ->
                             NavigationBarItem(
                                 selected = route == t.route,
                                 onClick = { nav.goToTab(t.route) },
-                                icon = { Icon(t.icon, null) }, label = { FitText(t.label, MaterialTheme.typography.labelMedium, minScale = 0.35f, group = navLabels) },
+                                icon = { Icon(t.icon, if (hideLabels) t.label else null) },
+                                label = if (hideLabels) null else ({
+                                    Text(t.label, style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false,
+                                        onTextLayout = { if (it.hasVisualOverflow) hideLabels = true })
+                                }),
+                                alwaysShowLabel = true,
                                 colors = NavigationBarItemDefaults.colors(indicatorColor = RupioColors.Primary.copy(alpha = 0.18f), selectedIconColor = RupioColors.Primary, selectedTextColor = RupioColors.Text),
                             )
                         }
@@ -213,6 +247,8 @@ fun MainShell() {
             // Respeta barra de estado, barra de navegación, recortes de cámara y teclado en TODAS las pantallas.
             NavGraph(nav, Modifier.padding(pad).consumeWindowInsets(pad).imePadding())
         }
+        com.rupio.app.ui.components.SyncUiHost(syncUi, onCreateAccount = { nav.navigate(Routes.ACCOUNT) })
+    }
     }
 }
 
@@ -235,6 +271,9 @@ private fun NavGraph(nav: NavHostController, modifier: Modifier) {
         composable(Routes.BODY_WEIGHT) { BodyWeightScreen(nav) }
         composable(Routes.PROGRESS) { ProgressStoryScreen(nav) }
         composable(Routes.GUIDE) { RoutineGuideScreen(nav) }
+        composable(Routes.SUPPORT) { SupportScreen(nav) }
+        composable(Routes.ACCOUNT) { AuthScreen(upgrade = true, onBack = { nav.safePop() }, onDone = { nav.safePop() }) }
+        composable(Routes.DELETE_ACCOUNT) { com.rupio.app.ui.legal.DeleteAccountScreen(nav) }
         composable(Routes.DETAIL, arguments = listOf(navArgument("c") { type = NavType.IntType; defaultValue = 0 })) { e ->
             WorkoutDetailScreen(nav, e.arguments?.getString("id") ?: "", e.arguments?.getInt("c") ?: 0)
         }
@@ -242,7 +281,7 @@ private fun NavGraph(nav: NavHostController, modifier: Modifier) {
 }
 
 @Composable
-private fun ActiveWorkoutBanner(name: String, startedAt: Long, onClick: () -> Unit) {
+private fun ActiveWorkoutBanner(name: String, startedAt: Long, restDone: Boolean = false, onClick: () -> Unit) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { delay(1000); now = System.currentTimeMillis() } }
     Row(
@@ -253,9 +292,21 @@ private fun ActiveWorkoutBanner(name: String, startedAt: Long, onClick: () -> Un
         Icon(Icons.Rounded.PlayCircle, null, tint = RupioColors.OnPrimary)
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text("Entrenamiento en curso", style = MaterialTheme.typography.labelMedium, color = RupioColors.OnPrimary.copy(alpha = 0.8f))
+            Text(if (restDone) "¡Descanso terminado! A la siguiente serie" else "Entrenamiento en curso", style = MaterialTheme.typography.labelMedium, color = RupioColors.OnPrimary.copy(alpha = 0.8f))
             Text(name, style = MaterialTheme.typography.titleSmall, color = RupioColors.OnPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Text(Fmt.duration(((now - startedAt) / 1000).coerceAtLeast(0)), style = MaterialTheme.typography.titleMedium.merge(Tabular), color = RupioColors.OnPrimary)
+    }
+}
+
+/** Muestra la pantalla de gracias cuando Google Play confirma una compra de apoyo (desde cualquier pantalla). */
+@Composable
+private fun SupportThanksHost() {
+    val c = container()
+    val state by c.support.state.collectAsStateWithLifecycle()
+    var thanks by remember { mutableStateOf<SupportTier?>(null) }
+    LaunchedEffect(Unit) { c.support.events.collect { e -> if (e is SupportEvent.Thanks) thanks = e.tier } }
+    thanks?.let { t ->
+        ThanksDialog(t, state, onAccent = { c.support.setAccent(it) }, onGoldIcon = { c.support.setGoldIcon(it) }, onClose = { thanks = null })
     }
 }

@@ -60,8 +60,14 @@ abstract class RupioDatabase : RoomDatabase() {
     }
 }
 
-/** Catálogo de ejercicios en español (assets/exercises_es.json), con imágenes de dominio público. */
+/**
+ * Catálogo de ejercicios en español (assets/exercises_es.json), con imágenes de dominio público (free-exercise-db).
+ * Desde la v1.6 las 512 imágenes vienen DENTRO de la app (assets/ex, WebP): antes se bajaban de
+ * raw.githubusercontent.com (repositorio de un tercero), con huecos si GitHub limitaba y enviándole la IP de cada usuario.
+ */
 object CatalogSeeder {
+    /** Súbelo cuando cambie el catálogo (nombres, imágenes…): se vuelve a escribir aunque ya esté completo. */
+    private const val VERSION = 2
     @Serializable
     private data class Item(
         val id: String, val src: String, val name: String, val primary: String, val secondary: List<String>,
@@ -74,7 +80,8 @@ object CatalogSeeder {
     suspend fun seedIfNeeded(context: Context, db: RupioDatabase) {
         val text = context.assets.open("exercises_es.json").bufferedReader().use { it.readText() }
         val items = json.decodeFromString<List<Item>>(text)
-        if (db.exercises().catalogCount() >= items.size) return
+        val prefs = context.getSharedPreferences("rupio_app", Context.MODE_PRIVATE)
+        if (db.exercises().catalogCount() >= items.size && prefs.getInt("catalog_v", 1) >= VERSION) return
         db.exercises().upsert(items.map {
             ExerciseEntity(
                 id = it.id, name = it.name, searchKey = it.name.searchKey(), primaryMuscle = it.primary,
@@ -83,6 +90,7 @@ object CatalogSeeder {
                 image1 = it.images.getOrNull(1), isCustom = false, dirty = false,
             )
         })
+        prefs.edit().putInt("catalog_v", VERSION).apply()
     }
 }
 

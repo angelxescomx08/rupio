@@ -30,6 +30,10 @@ import com.rupio.app.ui.exercises.formatSet
 import com.rupio.app.ui.theme.RupioColors
 import com.rupio.app.ui.theme.Tabular
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.rupio.app.domain.SupportPolicy
+import com.rupio.app.ui.support.SupportPromptCard
 
 /** [celebrate] > 0 → recién terminado; récords = celebrate − 1. */
 @Composable
@@ -45,9 +49,23 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
     val unit = settings?.unit ?: WeightUnit.LB
     val byId = remember(catalog) { catalog.associateBy { it.id } }
     var menu by remember { mutableStateOf(false) }
-    var confirmDelete by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val workout = w
+
+    // Mensaje "Apoya Rupio": solo al terminar (celebrate > 0), en hitos (entreno 3, 10, 25, 50, 100…), máximo una vez
+    // cada 30 días y nunca después de 3 "Ahora no" (SupportPolicy). Es una tarjeta dentro del resumen que se puede
+    // ignorar, no un diálogo. Se marca antes de mostrarse: girar el teléfono o volver atrás no lo repite.
+    val support by c.support.state.collectAsStateWithLifecycle()
+    var supportAsk by rememberSaveable { mutableStateOf<Pair<Int, Double>?>(null) }
+    LaunchedEffect(id, celebrate) {
+        if (celebrate <= 0) return@LaunchedEffect
+        val finished = c.db.admin().finishedCount()
+        val s = c.support
+        if (!SupportPolicy.shouldPrompt(s.state.value.isSupporter, finished, id, s.lastPromptedWorkoutId, s.lastPromptedMilestone, s.lastPromptAt, s.dismissals)) return@LaunchedEffect
+        s.markPrompted(id, SupportPolicy.milestone(finished))
+        delay(SupportPolicy.DELAY_AFTER_SUMMARY_MS)
+        supportAsk = finished to c.db.admin().totalVolumeKg()
+    }
 
     Scaffold(containerColor = RupioColors.Black, snackbarHost = { SnackbarHost(snackbar) }, topBar = {
         RupioTopBar(workout?.name ?: "Entrenamiento", onBack = { nav.safePop() }) {
@@ -59,7 +77,16 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
                         scope.launch { if (c.routines.saveFromWorkout(id) != null) snackbar.showSnackbar("Rutina creada. La encuentras en Entrenar.") }
                     })
                     DropdownMenuItem(text = { Text("Eliminar entrenamiento", color = RupioColors.Danger) }, leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = RupioColors.Danger) },
-                        onClick = { menu = false; confirmDelete = true })
+                        onClick = {
+                            menu = false
+                            // Se puede deshacer (el borrado es suave): sin diálogo, se borra y sale "Deshacer" 5 s.
+                            // El aviso dice la verdad sobre los récords: los de este entreno se recalculan con los demás.
+                            c.scope.launch {
+                                val undo = c.workouts.deleteWorkout(id)
+                                c.notices.tryEmit(com.rupio.app.Notice("Entrenamiento eliminado; sus récords se recalcularon", undo))
+                            }
+                            nav.safePop()
+                        })
                 }
             }
         }
@@ -78,6 +105,13 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
                         Text(if (prs > 0) "Rompiste $prs ${if (prs == 1) "récord" else "récords"} personales. ¡Así se progresa!" else "Cada sesión cuenta. La próxima vez Rupio te dirá cuánto subir.",
                             style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim, textAlign = TextAlign.Center)
                     }
+                }
+            }
+            supportAsk?.let { (n, kg) ->
+                if (!support.isSupporter) item(key = "apoyo") {
+                    SupportPromptCard(support, n, Fmt.volume(kg, unit),
+                        onSeeOptions = { supportAsk = null; nav.navigate(Routes.SUPPORT) },
+                        onNotNow = { supportAsk = null; c.support.markDismissed() })
                 }
             }
             item {
@@ -143,8 +177,4 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
         }
     }
 
-    if (confirmDelete) ConfirmDialog("¿Eliminar entrenamiento?", "Se quitará del historial y de tus estadísticas. Tus récords guardados no cambian.", "Eliminar", { confirmDelete = false }, danger = true) {
-        confirmDelete = false
-        scope.launch { c.workouts.deleteWorkout(id); nav.safePop() }
-    }
 }

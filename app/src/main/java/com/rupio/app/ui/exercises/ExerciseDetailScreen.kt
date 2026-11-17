@@ -147,9 +147,9 @@ fun ExerciseDetailScreen(nav: NavHostController, id: String) {
                         style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
                     Spacer(Modifier.height(8.dp))
                     when (tr) {
-                        Tracking.WEIGHT_REPS, Tracking.WEIGHTED_BODYWEIGHT -> ProgressLineChart(curve, unit)
-                        Tracking.DURATION -> ProgressLineChart(curve, unit, toDisplay = { it }, label = { Fmt.duration(it.toLong()) }, subLabel = null, deltaLabel = { Fmt.duration(it.toLong()) })
-                        else -> ProgressLineChart(curve, unit, toDisplay = { it }, label = { "${it.toInt()} reps" }, subLabel = null, deltaLabel = { "${it.toInt()} reps" })
+                        Tracking.WEIGHT_REPS, Tracking.WEIGHTED_BODYWEIGHT -> ProgressLineChart(curve, unit, title = "1RM estimado")
+                        Tracking.DURATION -> ProgressLineChart(curve, unit, title = "Mejor tiempo", toDisplay = { it }, label = { Fmt.duration(it.toLong()) }, subLabel = null, deltaLabel = { Fmt.duration(it.toLong()) })
+                        else -> ProgressLineChart(curve, unit, title = "Más repeticiones", toDisplay = { it }, label = { "${it.toInt()} reps" }, subLabel = null, deltaLabel = { "${it.toInt()} reps" })
                     }
                 }
             }

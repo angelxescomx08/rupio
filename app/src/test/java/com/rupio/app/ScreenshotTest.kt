@@ -120,7 +120,7 @@ class ScreenshotTest {
 
         // Perfil
         compose.onNodeWithText("Perfil").performClick()
-        waitText("Unidad de peso")
+        waitText("Unidad de las pesas")
         shot("14_perfil")
 
         // Entrenamiento activo con una serie completada y el descanso corriendo
@@ -139,7 +139,8 @@ class ScreenshotTest {
         shot("16_entrenamiento_superserie")
 
         // Opciones de serie (tipo + RPE)
-        scrollTo("Sentadilla goblet"); compose.onAllNodesWithText("2")[0].performClick(); settle()
+        // El número de serie se anuncia completo para TalkBack ("Serie 2 de Sentadilla goblet, normal").
+        scrollTo("Sentadilla goblet"); compose.onAllNodesWithContentDescription("Serie 2 de Sentadilla goblet", substring = true)[0].performClick(); settle()
         shot("17_opciones_de_serie")
         compose.onAllNodes(isRoot()).onLast().performTouchInput { click(androidx.compose.ui.geometry.Offset(centerX, 60f)) }; settle(1500)
 
@@ -198,16 +199,17 @@ class ScreenshotTest {
         shot("26_tu_progreso_explicacion")
         compose.onNodeWithContentDescription("Atrás").performClick(); settle()
         compose.onAllNodesWithText("Peso corporal")[0].performClick()
-        waitText("Registros")
+        waitText("Tu peso (tendencia)")
         shot("27_peso_corporal")
-        compose.onNode(hasText("Registrar peso"), useUnmergedTree = true).performClick(); settle()
+        compose.onAllNodes(hasClickAction() and (hasText("Corregir el de hoy") or hasText("Registrar peso de hoy")))[0].performClick(); settle()
         shot("28_registrar_peso")
     }
 
     @Test fun e_aprende() = runBlocking {
         setupLocal()
         app { MainShell() }
-        compose.onNodeWithText("Aprende").performClick()
+        compose.onAllNodesWithText("Perfil").onLast().performClick(); waitText("Tutoriales, glosario")
+        compose.onNodeWithText("Tutoriales, glosario", substring = true).performScrollTo().performClick()
         waitText("Lo más importante")
         shot("29_aprende")
         scrollTo("Cómo progresar")

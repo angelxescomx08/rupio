@@ -3,6 +3,7 @@ package com.rupio.app.ui.routine
 import com.rupio.app.safePop
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -167,9 +168,10 @@ private fun ChoiceRow(options: List<String>, selected: Int, onPick: (Int) -> Uni
 private fun OptionCard(title: String, sub: String, selected: Boolean, onClick: () -> Unit) {
     Surface(shape = RoundedCornerShape(16.dp), color = if (selected) RupioColors.Primary.copy(alpha = 0.12f) else RupioColors.Surface,
         border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) RupioColors.Primary else RupioColors.Outline.copy(alpha = 0.6f)),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+        // Toda la tarjeta es UNA opción: TalkBack dice "botón de opción, seleccionado" (antes el radio y la tarjeta iban separados).
+        modifier = Modifier.fillMaxWidth().selectable(selected = selected, role = androidx.compose.ui.semantics.Role.RadioButton, onClick = onClick)) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            RadioButton(selected, onClick)
+            RadioButton(selected, null)
             Spacer(Modifier.width(6.dp))
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleSmall)

@@ -71,7 +71,7 @@ fun TutorialScreen(nav: NavHostController, id: String) {
                                 nav.goToTab(Routes.HOME)
                             }
                             TutorialAction.OPEN_STATS -> nav.goToTab(Routes.STATS)
-                            TutorialAction.LOG_WEIGHT -> nav.navigate(Routes.BODY_WEIGHT)
+                            TutorialAction.LOG_WEIGHT -> nav.goToTab(Routes.BODY_WEIGHT)
                             TutorialAction.OPEN_GUIDE -> nav.navigate(Routes.GUIDE)
                         }
                     }
@@ -201,7 +201,7 @@ fun DemoView(d: Demo, unit: WeightUnit) {
                 val noise = sin(i * 2.3) * 0.6 + (if (i % 7 == 6) 0.7 else 0.0)
                 WeightPoint(base + i, 84.0 - i * 0.075 + noise, 1)
             }
-            BodyWeightChart(pts, WeightTrend.smooth(pts), unit, Modifier.fillMaxWidth().height(200.dp), interactive = true)
+            BodyWeightChart(pts, WeightTrend.smooth(pts), com.rupio.app.ui.body.rememberBodyUnit(), Modifier.fillMaxWidth().height(200.dp), interactive = true)
             Text("Los puntos brincan (agua, sal, comida); la línea baja poco a poco: eso es lo real.", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim)
         }
         Demo.ENERGY -> EnergyDemo()

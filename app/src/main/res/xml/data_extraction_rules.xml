@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+: qué entra en la copia de Google y en el paso a un teléfono nuevo.
+     Entra la base de entrenamientos (para quien usa la app sin cuenta es su única copia) y las preferencias.
+     NO entran la sesión cifrada (su llave del Keystore no viaja y no serviría), los cursores de sincronización
+     ni las borraduras pendientes: en el teléfono nuevo se vuelve a iniciar sesión y se baja todo de la nube. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="rupio_secure.xml" />
+        <exclude domain="sharedpref" path="rupio_sync.xml" />
+        <exclude domain="sharedpref" path="rupio_sync_rejected.xml" />
+        <exclude domain="sharedpref" path="rupio_pending_deletes.xml" />
+        <exclude domain="sharedpref" path="rupio_rest_timer.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="rupio_secure.xml" />
+        <exclude domain="sharedpref" path="rupio_sync.xml" />
+        <exclude domain="sharedpref" path="rupio_sync_rejected.xml" />
+        <exclude domain="sharedpref" path="rupio_pending_deletes.xml" />
+        <exclude domain="sharedpref" path="rupio_rest_timer.xml" />
+    </device-transfer>
+</data-extraction-rules>

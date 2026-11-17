@@ -33,6 +33,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.rupio.app.Routes
@@ -74,9 +82,10 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
     var notifOk by remember { mutableStateOf(com.rupio.app.timer.canNotify(context)) }
     androidx.lifecycle.compose.LifecycleResumeEffect(Unit) { notifOk = com.rupio.app.timer.canNotify(context); onPauseOrDispose { } }
 
-    // Pantalla siempre encendida mientras entrenas.
+    // Pantalla encendida mientras entrenas (se puede apagar en Perfil → Pantalla encendida al entrenar).
     val view = LocalView.current
-    DisposableEffect(Unit) { view.keepScreenOn = true; onDispose { view.keepScreenOn = false } }
+    val keepOn = settings?.keepScreenOn ?: true
+    DisposableEffect(keepOn) { view.keepScreenOn = keepOn; onDispose { view.keepScreenOn = false } }
 
     // Si ya no hay entrenamiento activo (terminado o descartado), volver.
     LaunchedEffect(ui) { if (ui != null && ui?.workout == null) nav.safePop() }
@@ -90,6 +99,14 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
                     snackbar.showSnackbar("🏆 ¡Nuevo récord en ${e.exercise}! " + e.kinds.joinToString(" · ") { it.label })
                 }
                 WorkoutEvent.Completed -> haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                is WorkoutEvent.Undoable -> {
+                    // 5 s para deshacer (en vez de borrar al instante sin aviso, o de un diálogo para algo reversible).
+                    val r = kotlinx.coroutines.withTimeoutOrNull(5_000) {
+                        snackbar.showSnackbar(e.text, actionLabel = "Deshacer", duration = SnackbarDuration.Indefinite)
+                    }
+                    if (r == null) snackbar.currentSnackbarData?.dismiss()
+                    if (r == SnackbarResult.ActionPerformed) scope.launch { e.undo() }
+                }
             }
         }
     }
@@ -156,8 +173,16 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
             }
         },
         bottomBar = {
-            AnimatedVisibility(rest != null, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
-                rest?.let { RestBar(it, c.restTimer) }
+            val finished by c.restTimer.finished.collectAsStateWithLifecycle()
+            // El aviso de fin de descanso, DENTRO de la pantalla (ya no como notificación emergente encima de "Terminar").
+            LaunchedEffect(finished) { if (finished != null) { delay(8_000); c.restTimer.clearFinished() } }
+            Column {
+                AnimatedVisibility(rest == null && finished != null, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
+                    finished?.let { f -> RestDoneBar(f.label) { c.restTimer.clearFinished() } }
+                }
+                AnimatedVisibility(rest != null, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
+                    rest?.let { RestBar(it, c.restTimer) }
+                }
             }
         },
     ) { pad ->
@@ -225,7 +250,7 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
     }
     restFor?.let { e ->
         RestPickerDialog("Descanso · ${e.name}", e.we.restSec, { restFor = null }, { vm.setRest(e, it); restFor = null }) {
-            Text("Más de 60–90 s entre series ayuda a rendir; en ejercicios pesados 2–3 min.", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint, modifier = Modifier.padding(top = 10.dp))
+            Text("Más de 60–90 s entre series ayuda a rendir; en ejercicios pesados 2–3 min.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = Modifier.padding(top = 10.dp))
         }
     }
     repsFor?.let { e -> RepRangeDialog(e.we.repMin, e.we.repMax, { repsFor = null }) { lo, hi -> vm.setRepRange(e, lo, hi); repsFor = null } }
@@ -381,9 +406,13 @@ private fun SetRow(e: ExUi, s: WorkoutSetEntity, index: Int, vm: ActiveWorkoutVM
         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(bg).padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        // Número / tipo de serie
+        // Número / tipo de serie (TalkBack: "Serie 2, normal. Toca para cambiar el tipo")
+        val setNo = index + 1
+        val spokenSet = "Serie $setNo de ${e.name}, ${type.label.lowercase()}" + (s.rpe?.let { ", RPE ${Fmt.num(it)}" } ?: "")
         Box(
-            Modifier.width(W_SET).height(36.dp).clip(RoundedCornerShape(8.dp)).clickable { onSetMenu(s) }
+            Modifier.width(W_SET).heightIn(min = 36.dp).clip(RoundedCornerShape(8.dp))
+                .clickable(onClickLabel = "cambiar el tipo de serie o el RPE", role = Role.Button) { onSetMenu(s) }
+                .clearAndSetSemantics { contentDescription = spokenSet; role = Role.Button }
                 .then(if (coach) Modifier.coachTarget("set_number") else Modifier),
             contentAlignment = Alignment.Center,
         ) {
@@ -403,7 +432,9 @@ private fun SetRow(e: ExUi, s: WorkoutSetEntity, index: Int, vm: ActiveWorkoutVM
             val shown = s.weightKg?.let { kg -> if (tr == Tracking.ASSISTED_BODYWEIGHT) -kg else kg }
             val ph = sug.weightKg?.let { kg -> if (tr == Tracking.ASSISTED_BODYWEIGHT) -kg else kg }
             Column(Modifier.width(W_VAL), horizontalAlignment = Alignment.CenterHorizontally) {
+                val what = when (tr) { Tracking.WEIGHTED_BODYWEIGHT -> "Lastre"; Tracking.ASSISTED_BODYWEIGHT -> "Ayuda"; else -> "Peso" }
                 NumberCell(
+                    label = "$what en ${if (unit == WeightUnit.LB) "libras" else "kilos"}, serie $setNo, ${e.name}" + (ph?.let { ", sugerido ${Fmt.num(unit.fromKg(it))}" } ?: ""),
                     value = shown?.let { Fmt.num(unit.fromKg(it)) } ?: "",
                     placeholder = ph?.let { Fmt.num(unit.fromKg(it)) } ?: if (tr == Tracking.WEIGHT_REPS) unit.label else "0",
                     onValue = { txt ->
@@ -419,13 +450,15 @@ private fun SetRow(e: ExUi, s: WorkoutSetEntity, index: Int, vm: ActiveWorkoutVM
         // Reps o segundos
         if (tr == Tracking.DURATION) {
             Column(Modifier.width(W_VAL), horizontalAlignment = Alignment.CenterHorizontally) {
-                NumberCell(s.durationSec?.toString() ?: "", sug.durationSec?.toString() ?: "seg",
+                NumberCell(label = "Segundos, serie $setNo, ${e.name}" + (sug.durationSec?.let { ", sugerido $it" } ?: ""),
+                    value = s.durationSec?.toString() ?: "", placeholder = sug.durationSec?.toString() ?: "seg", onValue =
                     { txt -> vm.edit(s.id) { it.copy(durationSec = txt.toIntOrNull()?.coerceIn(0, 86_400)) } }, decimal = false, done = s.completed, modifier = Modifier.fillMaxWidth())
                 Text((s.durationSec ?: sug.durationSec)?.let { Fmt.duration(it.toLong()) } ?: " ", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
             }
         } else {
             Column(Modifier.width(W_REPS), horizontalAlignment = Alignment.CenterHorizontally) {
-                NumberCell(s.reps?.toString() ?: "", sug.reps?.toString() ?: "reps",
+                NumberCell(label = "Repeticiones, serie $setNo, ${e.name}" + (sug.reps?.let { ", sugerido $it" } ?: ""),
+                    value = s.reps?.toString() ?: "", placeholder = sug.reps?.toString() ?: "reps", onValue =
                     { txt -> vm.edit(s.id) { it.copy(reps = txt.toIntOrNull()?.coerceIn(0, 1000)) } }, decimal = false, done = s.completed, modifier = Modifier.fillMaxWidth())
                 if (tr.usesWeight) Text(" ", style = MaterialTheme.typography.labelSmall)
             }
@@ -437,7 +470,7 @@ private fun SetRow(e: ExUi, s: WorkoutSetEntity, index: Int, vm: ActiveWorkoutVM
                 .clickable { vm.toggle(e, s) }
                 .then(if (coach) Modifier.coachTarget("set_check") else Modifier),
             contentAlignment = Alignment.Center,
-        ) { Icon(Icons.Rounded.Check, if (s.completed) "Desmarcar serie" else "Completar serie", tint = if (s.completed) Color.Black else RupioColors.TextDim) }
+        ) { Icon(Icons.Rounded.Check, if (s.completed) "Desmarcar serie $setNo de ${e.name}" else "Completar serie $setNo de ${e.name}", tint = if (s.completed) Color.Black else RupioColors.TextDim) }
     }
 }
 
@@ -477,6 +510,21 @@ private fun RestBar(s: RestTimerController.State, timer: RestTimerController) {
     }
 }
 
+@Composable
+private fun RestDoneBar(label: String, onClose: () -> Unit) {
+    Surface(color = RupioColors.Rest, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }) {
+        Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Rounded.NotificationsActive, null, tint = Color.Black)
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text("¡Listo! A la siguiente serie", style = MaterialTheme.typography.titleMedium, color = Color.Black)
+                if (label.isNotBlank()) Text(label, style = MaterialTheme.typography.bodySmall, color = Color.Black.copy(alpha = 0.8f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            TextButton(onClick = onClose, colors = ButtonDefaults.textButtonColors(contentColor = Color.Black)) { Text("OK") }
+        }
+    }
+}
+
 // ============================================================================ opciones de serie
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -491,7 +539,7 @@ private fun SetOptionsSheet(e: ExUi, s: WorkoutSetEntity, vm: ActiveWorkoutVM, o
                 }
             }
             Text("Calentamiento no cuenta para volumen ni récords. Drop set = bajas el peso y sigues sin descanso (no arranca el temporizador antes de él y no se usa para decidir cuándo subir).",
-                style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
+                style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("¿Qué tan difícil fue? (RPE)", style = MaterialTheme.typography.labelLarge, color = RupioColors.TextDim)
                 com.rupio.app.ui.learn.HelpIcon("rir_rpe")
@@ -503,7 +551,7 @@ private fun SetOptionsSheet(e: ExUi, s: WorkoutSetEntity, vm: ActiveWorkoutVM, o
                 }
             }
             Text("RPE 10 = no podías hacer ni una más · 9 = te quedaba 1 · 8 = te quedaban 2. Para crecer, termina la mayoría de series a 0–3 reps del fallo.",
-                style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
+                style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
             OutlinedButton(onClick = { vm.removeSet(s); onDismiss() }, modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = RupioColors.Danger)) { Icon(Icons.Rounded.Delete, null); Spacer(Modifier.width(6.dp)); Text("Eliminar serie") }
         }
@@ -511,32 +559,42 @@ private fun SetOptionsSheet(e: ExUi, s: WorkoutSetEntity, vm: ActiveWorkoutVM, o
 }
 
 // ============================================================================ terminar
+/**
+ * Terminar el entreno a PANTALLA COMPLETA (antes era un diálogo chico con tarjetas, dos campos y scroll: con el
+ * teclado abierto quedaba apretado). Material indica diálogo de pantalla completa para tareas con teclado.
+ */
 @Composable
 private fun FinishDialog(name: String, items: List<ExUi>, doneSets: Int, volumeKg: Double, unit: WeightUnit, durationSec: Long, onDismiss: () -> Unit,
                          onDiscard: () -> Unit = {}, onSave: (String, String) -> Unit) {
     var n by remember { mutableStateOf(name) }
     var notes by remember { mutableStateOf("") }
     val pending = items.sumOf { e -> e.sets.count { !it.completed } }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (doneSets == 0) "No has completado series" else "¿Terminar entrenamiento?") },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                TileRow {
-                    Tile("Duración", Fmt.durationHuman(durationSec))
-                    Tile("Series", "$doneSets")
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        Surface(Modifier.fillMaxSize(), color = RupioColors.Black) {
+            Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, "Seguir entrenando") }
+                    Text(if (doneSets == 0) "No has completado series" else "Terminar entrenamiento", style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f).semantics { heading() }, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    if (doneSets > 0) Button(onClick = { onSave(n, notes) }, modifier = Modifier.padding(end = 8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = RupioColors.Success, contentColor = Color.Black)) { Text("Guardar", fontWeight = FontWeight.SemiBold) }
                 }
-                StatTile("Volumen", Fmt.volume(volumeKg, unit), Modifier.fillMaxWidth(), sub = Fmt.volume(volumeKg, unit.other))
-                if (doneSets == 0) Text("Para guardar, marca con ✓ al menos una serie. Si no entrenaste, puedes descartarlo.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
-                else if (pending > 0) Text("Hay $pending series sin marcar: no se guardarán.", color = RupioColors.Warning, style = MaterialTheme.typography.bodySmall)
-                OutlinedTextField(n, { n = it }, label = { Text("Nombre") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(notes, { notes = it }, label = { Text("¿Cómo te sentiste? (opcional)") }, modifier = Modifier.fillMaxWidth(), maxLines = 3)
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    TileRow {
+                        Tile("Duración", Fmt.durationHuman(durationSec))
+                        Tile("Series", "$doneSets")
+                        Tile("Volumen", Fmt.volume(volumeKg, unit), sub = Fmt.volume(volumeKg, unit.other))
+                    }
+                    if (doneSets == 0) Text("Para guardar, marca con ✓ al menos una serie. Si no entrenaste, puedes descartarlo.", style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
+                    else if (pending > 0) Text("Hay $pending series sin marcar: no se guardarán.", color = RupioColors.Warning, style = MaterialTheme.typography.bodyMedium)
+                    OutlinedTextField(n, { n = it }, label = { Text("Nombre") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(notes, { notes = it }, label = { Text("¿Cómo te sentiste? (opcional)") }, modifier = Modifier.fillMaxWidth(), minLines = 3, maxLines = 6)
+                    if (doneSets == 0) Button(onClick = onDiscard, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = RupioColors.Danger, contentColor = Color.Black)) { Text("Descartar entrenamiento") }
+                    TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Seguir entrenando") }
+                    Spacer(Modifier.height(16.dp))
+                }
             }
-        },
-        confirmButton = {
-            if (doneSets > 0) TextButton(onClick = { onSave(n, notes) }) { Text("Guardar") }
-            else TextButton(onClick = onDiscard, colors = ButtonDefaults.textButtonColors(contentColor = RupioColors.Danger)) { Text("Descartar") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Seguir entrenando") } },
-    )
+        }
+    }
 }

@@ -113,6 +113,7 @@ class BodyWeightVM(private val c: AppContainer) : ViewModel() {
     }
 
     fun log(day: LocalDate, kg: Double) = viewModelScope.launch { c.bodyWeight.log(day, kg); SyncEngine.now(c.app) }
+    fun setUnit(u: WeightUnit) = viewModelScope.launch { c.settings.setBodyUnit(u) }
     fun delete(day: Int) = viewModelScope.launch { c.bodyWeight.delete(day); SyncEngine.now(c.app) }
 }
 
@@ -121,8 +122,7 @@ class BodyWeightVM(private val c: AppContainer) : ViewModel() {
 @Composable
 fun BodyWeightCard(onOpen: () -> Unit) {
     val vm = appViewModel { BodyWeightVM(it) }
-    val c = container()
-    val unit = c.settings.settings.collectAsStateWithLifecycle(initialValue = null).value?.unit ?: WeightUnit.LB
+    val unit = rememberBodyUnit()
     val latest by vm.latest.collectAsStateWithLifecycle()
     val v by vm.view.collectAsStateWithLifecycle()
     var logging by remember { mutableStateOf(false) }
@@ -157,7 +157,24 @@ fun BodyWeightCard(onOpen: () -> Unit) {
             }
         }
     }
-    if (logging) LogWeightDialog(latest?.weightKg, unit, onDismiss = { logging = false }) { d, kg -> vm.log(d, kg); logging = false }
+    if (logging) LogWeightDialog(latest?.weightKg, unit, onUnitChange = vm::setUnit, onDismiss = { logging = false }) { d, kg -> vm.log(d, kg); logging = false }
+}
+
+/** Unidad del peso corporal (kg por defecto, aparte de la de las pesas). */
+@Composable
+fun rememberBodyUnit(): WeightUnit =
+    container().settings.settings.collectAsStateWithLifecycle(initialValue = null).value?.bodyUnit ?: WeightUnit.KG
+
+/** Botón kg | lb. Cambia toda la sección de peso y se recuerda. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BodyUnitToggle(unit: WeightUnit, onChange: (WeightUnit) -> Unit, modifier: Modifier = Modifier) {
+    SingleChoiceSegmentedButtonRow(modifier.semantics { contentDescription = "Unidad del peso corporal: ${unit.label}" }) {
+        listOf(WeightUnit.KG, WeightUnit.LB).forEachIndexed { i, u ->
+            SegmentedButton(unit == u, { onChange(u) }, SegmentedButtonDefaults.itemShape(i, 2), icon = {},
+                modifier = Modifier.widthIn(min = 56.dp)) { Text(u.label) }
+        }
+    }
 }
 
 @Composable
@@ -172,7 +189,8 @@ private fun RateText(rate: Double) {
 fun BodyWeightScreen(nav: NavHostController) {
     val vm = appViewModel { BodyWeightVM(it) }
     val c = container()
-    val unit = c.settings.settings.collectAsStateWithLifecycle(initialValue = null).value?.unit ?: WeightUnit.LB
+    val unit = rememberBodyUnit()
+    val today = Dates.today(c.zone.collectAsStateWithLifecycle().value).toEpochDay().toInt()
     val range by vm.range.collectAsStateWithLifecycle()
     val v by vm.view.collectAsStateWithLifecycle()
     val latest by vm.latest.collectAsStateWithLifecycle()
@@ -185,15 +203,21 @@ fun BodyWeightScreen(nav: NavHostController) {
 
     Scaffold(
         containerColor = RupioColors.Black,
-        topBar = { RupioTopBar("Peso corporal", onBack = { nav.safePop() }) },
+        // Es una pestaña de la barra de abajo: sin flecha de atrás. Arriba a la derecha, kg | lb.
+        topBar = { RupioTopBar("Peso corporal", onBack = null) { BodyUnitToggle(unit, vm::setUnit, Modifier.padding(end = 12.dp)) } },
+        // El botón grande está en el resumen de arriba; el flotante solo aparece cuando ya bajaste (historial).
         floatingActionButton = {
-            ExtendedFloatingActionButton(onClick = { logging = true }, icon = { Icon(Icons.Rounded.Add, null) }, text = { Text("Registrar peso") },
-                modifier = Modifier.semantics { contentDescription = "Registrar peso" },
-                containerColor = RupioColors.Primary, contentColor = RupioColors.OnPrimary)
+            val scrolled by remember { derivedStateOf { list.firstVisibleItemIndex > 0 } }
+            androidx.compose.animation.AnimatedVisibility(scrolled, enter = androidx.compose.animation.scaleIn(), exit = androidx.compose.animation.scaleOut()) {
+                ExtendedFloatingActionButton(onClick = { logging = true }, icon = { Icon(Icons.Rounded.Add, null) }, text = { Text("Registrar peso") },
+                    modifier = Modifier.semantics { contentDescription = "Registrar peso" },
+                    containerColor = RupioColors.Primary, contentColor = RupioColors.OnPrimary)
+            }
         },
     ) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad), state = list, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item { WeightHero(latest, v, unit, today) { if (latest?.measuredOn == today) editing = latest else logging = true } }
             item {
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     WeightRange.entries.forEachIndexed { i, r ->
@@ -263,13 +287,49 @@ fun BodyWeightScreen(nav: NavHostController) {
             }
         }
     }
-    if (logging) LogWeightDialog(latest?.weightKg, unit, onDismiss = { logging = false }) { d, kg -> vm.log(d, kg); logging = false }
+    if (logging) LogWeightDialog(latest?.weightKg, unit, onUnitChange = vm::setUnit, onDismiss = { logging = false }) { d, kg -> vm.log(d, kg); logging = false }
     editing?.let { e ->
-        LogWeightDialog(e.weightKg, unit, LocalDate.ofEpochDay(e.measuredOn.toLong()), lockDate = true, onDismiss = { editing = null }) { d, kg -> vm.log(d, kg); editing = null }
+        LogWeightDialog(e.weightKg, unit, LocalDate.ofEpochDay(e.measuredOn.toLong()), lockDate = true, onUnitChange = vm::setUnit, onDismiss = { editing = null }) { d, kg -> vm.log(d, kg); editing = null }
     }
     deleting?.let { e ->
         ConfirmDialog("¿Borrar este registro?", "${Dates.formatDay(e.measuredOn)}: ${Fmt.weightBoth(e.weightKg, unit)}", "Borrar", { deleting = null }, danger = true) {
             vm.delete(e.measuredOn); deleting = null
+        }
+    }
+}
+
+/**
+ * Lo primero que ves en la pestaña: tu peso (tendencia) en grande, en tu unidad y en la otra, el ritmo y si ya te
+ * pesaste hoy, con el botón para registrar (o corregir lo de hoy) a un toque.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WeightHero(latest: BodyWeightEntity?, v: WeightView, unit: WeightUnit, today: Int, onLog: () -> Unit) {
+    SectionCard {
+        if (latest == null) {
+            Text("⚖️", style = MaterialTheme.typography.headlineMedium)
+            Spacer(Modifier.height(6.dp))
+            Text("Registra tu peso", style = MaterialTheme.typography.titleLarge)
+            Text("Pésate 2 o 3 veces por semana y Rupio te muestra tu tendencia, sin que te asusten los días raros.",
+                style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim, modifier = Modifier.padding(top = 4.dp))
+        } else {
+            val shown = v.trend.lastOrNull() ?: latest.weightKg
+            Text("Tu peso (tendencia)", style = MaterialTheme.typography.labelLarge, color = RupioColors.TextDim)
+            FlowRow(verticalArrangement = Arrangement.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(Fmt.weight(shown, unit), style = MaterialTheme.typography.displaySmall.merge(Tabular))
+                Text(Fmt.weight(shown, unit.other), style = MaterialTheme.typography.titleSmall.merge(Tabular), color = RupioColors.TextFaint,
+                    modifier = Modifier.align(Alignment.Bottom).padding(bottom = 8.dp))
+            }
+            v.ratePct?.let { RateText(it) }
+            val todayDone = latest.measuredOn == today
+            Text(if (todayDone) "Hoy: ${Fmt.weight(latest.weightKg, unit)} ✓" else "Último registro: ${Dates.formatDay(latest.measuredOn)} · ${Fmt.weight(latest.weightKg, unit)}",
+                style = MaterialTheme.typography.bodySmall, color = if (todayDone) RupioColors.Success else RupioColors.TextDim)
+        }
+        Spacer(Modifier.height(12.dp))
+        val todayDone = latest?.measuredOn == today
+        Button(onClick = onLog, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp), shape = RoundedCornerShape(14.dp)) {
+            Icon(if (todayDone) Icons.Rounded.Edit else Icons.Rounded.Add, null); Spacer(Modifier.width(8.dp))
+            Text(if (todayDone) "Corregir el de hoy" else "Registrar peso de hoy", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         }
     }
 }
@@ -280,19 +340,21 @@ fun BodyWeightScreen(nav: NavHostController) {
  * Registrar en 3 toques: viene con tu último peso; ajustas con − / + (0.1) o escribes; guardar.
  * Si ya registraste ese día, se actualiza (una fila por día).
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun LogWeightDialog(
     lastKg: Double?,
     unit: WeightUnit,
     initialDay: LocalDate? = null,
     lockDate: Boolean = false,
+    onUnitChange: (WeightUnit) -> Unit = {},
     onDismiss: () -> Unit,
     onSave: (LocalDate, Double) -> Unit,
 ) {
     val c = container()
     val today = Dates.today(c.zone.value)
     var day by remember { mutableStateOf(initialDay ?: today) }
+    var unit by remember { mutableStateOf(unit) }
     val start = lastKg?.let { unit.fromKg(it) } ?: if (unit == WeightUnit.LB) 160.0 else 72.0
     var text by remember { mutableStateOf(Fmt.num(start, 1).replace(",", ".")) }
     var picking by remember { mutableStateOf(false) }
@@ -306,23 +368,40 @@ fun LogWeightDialog(
         title = { Text(if (lockDate) "Editar peso" else "Registrar peso") },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // kg | lb: convierte lo que ya escribiste (no se pierde) y se recuerda para la próxima.
+                BodyUnitToggle(unit, { u ->
+                    if (u != unit) {
+                        val kgNow = value?.let { unit.toKg(it) }
+                        unit = u
+                        kgNow?.let { text = Fmt.num(u.fromKg(it), 1).replace(",", ".") }
+                        onUnitChange(u)
+                    }
+                })
+                Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     FilledTonalIconButton(onClick = { bump(-0.1) }, Modifier.size(48.dp)) { Icon(Icons.Rounded.Remove, "Menos") }
+                    // La letra no crece sin límite y con letra muy grande la unidad se queda solo en el botón kg | lb:
+                    // así "173.1" se ve completo aun en libras y con letra al 200 % (antes, en libras, solo se veía el "1").
+                    // (Ancho fijo a propósito: con weight() dentro de AlertDialog Compose entra en un ciclo de medición.)
+                    val fs = LocalDensity.current.fontScale
+                    val big = MaterialTheme.typography.headlineSmall
                     OutlinedTextField(
                         text, { t -> text = t.filter { it.isDigit() || it == '.' || it == ',' }.take(6) },
-                        modifier = Modifier.width(130.dp).padding(horizontal = 10.dp),
-                        textStyle = MaterialTheme.typography.headlineSmall.merge(Tabular).copy(textAlign = TextAlign.Center),
-                        singleLine = true, suffix = { Text(unit.label) },
+                        modifier = Modifier.width(if (fs > 1.3f) 136.dp else 150.dp).padding(horizontal = 8.dp).semantics { contentDescription = "Peso en ${unit.label}" },
+                        textStyle = big.merge(Tabular).copy(textAlign = TextAlign.Center, fontSize = big.fontSize / maxOf(1f, fs / 1.15f)),
+                        singleLine = true, suffix = if (fs > 1.3f) null else ({ Text(unit.label, style = MaterialTheme.typography.labelLarge) }),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         isError = !valid,
                     )
                     FilledTonalIconButton(onClick = { bump(0.1) }, Modifier.size(48.dp)) { Icon(Icons.Rounded.Add, "Más") }
                 }
-                Text(if (valid) "= " + Fmt.weight(kg, unit.other) else "Escribe un peso válido",
+                // El error dice qué SÍ es válido (antes solo "Escribe un peso válido").
+                Text(if (valid) "= " + Fmt.weight(kg, unit.other) else if (unit == WeightUnit.KG) "Entre 20 y 400 kg (44–880 lb)" else "Entre 44 y 880 lb (20–400 kg)",
                     style = MaterialTheme.typography.labelMedium, color = if (valid) RupioColors.TextFaint else RupioColors.Danger, modifier = Modifier.padding(top = 6.dp))
                 if (!lockDate) {
                     Spacer(Modifier.height(12.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Con letra grande los chips bajan de renglón en vez de apretarse letra por letra.
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
                         FilterChip(day == today, { day = today }, { Text("Hoy") })
                         FilterChip(day == today.minusDays(1), { day = today.minusDays(1) }, { Text("Ayer") })
                         FilterChip(day != today && day != today.minusDays(1), { picking = true },

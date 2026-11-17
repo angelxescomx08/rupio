@@ -37,6 +37,8 @@ data class Suggestion(val weightKg: Double?, val reps: Int?, val durationSec: In
 sealed interface WorkoutEvent {
     data class Message(val text: String) : WorkoutEvent
     data class Record(val exercise: String, val kinds: Set<RecordKind>) : WorkoutEvent
+    /** Se quitó algo: snackbar con "Deshacer" (5 s) en vez de un diálogo de confirmación. */
+    data class Undoable(val text: String, val undo: suspend () -> Unit) : WorkoutEvent
     data object Completed : WorkoutEvent
 }
 
@@ -199,7 +201,12 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
 
     // ------------------------------------------------------------------ acciones simples
     fun addSet(item: ExUi) = viewModelScope.launch { c.workouts.addSet(item.we.id) }
-    fun removeSet(set: WorkoutSetEntity) = viewModelScope.launch { c.restTimer.cancelIfSource(set.id); c.workouts.removeSet(set.id) }
+    fun removeSet(set: WorkoutSetEntity) = viewModelScope.launch {
+        c.restTimer.cancelIfSource(set.id)
+        val before = c.workouts.snapshot(set.workoutId, null).let { snap -> snap.copy(exercises = emptyList(), sets = snap.sets.filter { it.id == set.id }) }
+        c.workouts.removeSet(set.id)
+        _events.tryEmit(WorkoutEvent.Undoable("Serie eliminada") { c.workouts.restore(before) })
+    }
     fun setType(set: WorkoutSetEntity, type: SetType) = viewModelScope.launch { c.workouts.editSet(set.id) { it.copy(setType = type.code) } }
     fun setRpe(set: WorkoutSetEntity, rpe: Double?) = viewModelScope.launch { c.workouts.editSet(set.id) { it.copy(rpe = rpe) } }
     fun setRest(item: ExUi, sec: Int) = viewModelScope.launch { c.workouts.updateExerciseRest(item.we.id, item.we.workoutId, sec) }
@@ -208,7 +215,9 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
     fun move(item: ExUi, delta: Int) = viewModelScope.launch { c.workouts.move(item.we.workoutId, item.we.id, delta) }
     fun remove(item: ExUi) = viewModelScope.launch {
         item.sets.forEach { c.restTimer.cancelIfSource(it.id) }
+        val before = c.workouts.snapshot(item.we.workoutId, item.we.id)
         c.workouts.removeExercise(item.we.id, item.we.workoutId)
+        _events.tryEmit(WorkoutEvent.Undoable("${item.name} quitado") { c.workouts.restore(before) })
     }
     fun removeFromSuperset(item: ExUi) = viewModelScope.launch { c.workouts.removeFromSuperset(item.we.workoutId, item.we.id) }
 

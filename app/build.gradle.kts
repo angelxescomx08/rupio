@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -16,16 +17,24 @@ val localProps = Properties().apply {
 }
 fun cfg(key: String): String = (localProps.getProperty(key) ?: System.getenv(key) ?: "").trim()
 
+// Llave de subida a Google Play (NO va en git). Si no existe keystore.properties, el release se firma con la de debug
+// (sirve para probar, pero Play Console no lo acepta). Ver docs/PAGOS_PLAY.md.
+val keystoreProps = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
 android {
     namespace = "com.rupio.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.rupio.app"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 13
-        versionName = "1.3"
+        // Play exige Android 16 (API 36) para apps nuevas y actualizaciones desde el 31 ago 2026.
+        targetSdk = 36
+        versionCode = 16
+        versionName = "1.6"
         // URLs públicas del proyecto Neon "Rupio" (no son secretos). Se pueden sobreescribir en local.properties.
         val authUrl = cfg("NEON_AUTH_URL").ifBlank { "https://ep-wild-art-bdlip6s4.neonauth.c-8.us-east-2.aws.neon.tech/neondb/auth" }
         val dataUrl = cfg("NEON_DATA_API_URL").ifBlank { "https://ep-wild-art-bdlip6s4.apirest.c-8.us-east-2.aws.neon.tech/neondb/rest/v1" }
@@ -33,19 +42,27 @@ android {
         buildConfigField("String", "NEON_DATA_API_URL", "\"$dataUrl\"")
     }
 
+    signingConfigs {
+        if (keystoreProps.getProperty("storeFile") != null) create("upload") {
+            storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+            storePassword = keystoreProps.getProperty("storePassword")
+            keyAlias = keystoreProps.getProperty("keyAlias")
+            keyPassword = keystoreProps.getProperty("keyPassword")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("upload") ?: signingConfigs.getByName("debug")
         }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
     buildFeatures {
         compose = true
         buildConfig = true
@@ -56,6 +73,10 @@ android {
         // Capturas de pantalla (Roborazzi): se graban en app/screenshots/ al correr las pruebas.
         unitTests.all { it.systemProperty("roborazzi.test.record", "true"); it.maxHeapSize = "3g" }
     }
+}
+
+kotlin {
+    compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
 }
 
 ksp {
@@ -87,6 +108,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.coil.compose)
+    implementation(libs.play.billing)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

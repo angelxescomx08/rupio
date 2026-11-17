@@ -16,6 +16,7 @@ local.properties
 .neon_env
 *.jks
 *.keystore
+keystore.properties
 google-services.json
 
 # Archivos generados

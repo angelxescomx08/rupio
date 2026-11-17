@@ -33,32 +33,71 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.TextStyle
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 
-/** Historial con keyset pagination: cada página cuesta lo mismo aunque tengas 10 años de entrenamientos. */
+/**
+ * Historial con keyset pagination: cada página cuesta lo mismo aunque tengas 10 años de entrenamientos.
+ * Se puede buscar por ejercicio o nombre y saltar a un mes (antes, para ver 2019 había que bajar ~57 páginas).
+ */
 class HistoryVM(private val c: AppContainer) : ViewModel() {
     val items = mutableStateListOf<WorkoutEntity>()
     val summaries = mutableStateMapOf<String, List<WorkoutExerciseSummary>>()
     var end by mutableStateOf(false); private set
     var loaded by mutableStateOf(false); private set
+    var query by mutableStateOf(""); private set
+    var fromMonth by mutableStateOf<YearMonth?>(null); private set
     private val mutex = Mutex()
     private val page = 30
 
     init {
-        viewModelScope.launch { c.workouts.observeCount().distinctUntilChanged().collect { reload() } }
+        viewModelScope.launch { c.workouts.observeCount().distinctUntilChanged().collect { refresh() } }
     }
 
-    private suspend fun reload() = mutex.withLock {
-        val first = c.workouts.historyPage(Int.MAX_VALUE, Long.MAX_VALUE, page)
-        items.clear(); items.addAll(first); end = first.size < page
-        summaries.clear(); load(first); loaded = true
+    /** Dónde empieza la lista: lo más reciente o el último día del mes elegido. */
+    private fun start(): Pair<Int, Long> = fromMonth?.let { it.plusMonths(1).atDay(1).toEpochDay().toInt() to Long.MIN_VALUE } ?: (Int.MAX_VALUE to Long.MAX_VALUE)
+
+    private suspend fun fetch(beforeDay: Int, beforeStart: Long, n: Int): List<WorkoutEntity> =
+        if (query.isBlank()) c.workouts.historyPage(beforeDay, beforeStart, n)
+        else c.workouts.historySearch(query.trim(), beforeDay, beforeStart, n)
+
+    /**
+     * Cambió el número de entrenos (borraste uno o la sincronización bajó otros): se vuelve a leer lo que YA estaba
+     * cargado, sin vaciar la lista. Antes regresaba a la primera página y si ibas en 2021 te subía hasta arriba;
+     * ahora la lista conserva la posición por la llave de cada entreno.
+     */
+    private suspend fun refresh() = mutex.withLock {
+        val n = maxOf(page, items.size)
+        val (d, st) = start()
+        val fresh = fetch(d, st, n)
+        if (fresh != items.toList()) { items.clear(); items.addAll(fresh) }
+        end = fresh.size < n
+        load(fresh.filter { it.id !in summaries }); loaded = true
     }
+
+    private fun restart() = viewModelScope.launch {
+        mutex.withLock {
+            loaded = false
+            val (d, st) = start()
+            val first = fetch(d, st, page)
+            items.clear(); items.addAll(first); end = first.size < page
+            summaries.clear(); load(first); loaded = true
+        }
+    }
+
+    fun search(q: String) { if (q != query) { query = q; restart() } }
+    fun jumpTo(month: YearMonth?) { fromMonth = month; restart() }
+    suspend fun months() = c.workouts.months()
 
     fun more() = viewModelScope.launch {
         mutex.withLock {
             if (end) return@withLock
             val last = items.lastOrNull() ?: return@withLock
-            val next = c.workouts.historyPage(last.localDate, last.startedAt, page)
+            val next = fetch(last.localDate, last.startedAt, page)
             items.addAll(next); end = next.size < page
             load(next)
         }
@@ -69,6 +108,7 @@ class HistoryVM(private val c: AppContainer) : ViewModel() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun HistoryScreen(nav: NavHostController) {
     val vm = appViewModel { HistoryVM(it) }
@@ -77,48 +117,106 @@ fun HistoryScreen(nav: NavHostController) {
     val zone by c.zone.collectAsStateWithLifecycle()
     val unit = settings?.unit ?: WeightUnit.LB
     val list = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     val nearEnd by remember { derivedStateOf { list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 >= list.layoutInfo.totalItemsCount - 5 } }
     LaunchedEffect(nearEnd, vm.items.size) { if (nearEnd && vm.loaded) vm.more() }
+    var searching by rememberSaveable { mutableStateOf(vm.query.isNotEmpty()) }
+    var text by rememberSaveable { mutableStateOf(vm.query) }
+    LaunchedEffect(text) { kotlinx.coroutines.delay(300); vm.search(text) }
+    var picking by remember { mutableStateOf(false) }
 
     val byMonth = vm.items.groupBy { LocalDate.ofEpochDay(it.localDate.toLong()).withDayOfMonth(1) }
 
     Column(Modifier.fillMaxSize()) {
-        RupioTopBar("Historial", onBack = null, subtitle = if (vm.items.isNotEmpty()) "Horas en tu zona: ${zone.id}" else null)
+        RupioTopBar("Historial", onBack = null, subtitle = if (vm.items.isNotEmpty() && !searching) "Horas en tu zona: ${zone.id}" else null) {
+            IconButton(onClick = { searching = !searching; if (!searching) text = "" }) {
+                Icon(if (searching) Icons.Rounded.SearchOff else Icons.Rounded.Search, if (searching) "Cerrar búsqueda" else "Buscar por ejercicio")
+            }
+            IconButton(onClick = { picking = true }) { Icon(Icons.Rounded.CalendarMonth, "Ir a un mes") }
+            SyncStatusIcon()
+        }
+        if (searching) OutlinedTextField(text, { text = it }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            placeholder = { Text("Buscar ejercicio o entreno (p. ej. sentadilla)") }, singleLine = true, leadingIcon = { Icon(Icons.Rounded.Search, null) },
+            trailingIcon = { if (text.isNotEmpty()) IconButton(onClick = { text = "" }) { Icon(Icons.Rounded.Close, "Borrar búsqueda") } },
+            shape = RoundedCornerShape(14.dp))
+        vm.fromMonth?.let { m ->
+            FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                InputChip(selected = true, onClick = { vm.jumpTo(null) }, label = { Text("Desde " + monthName(m)) },
+                    trailingIcon = { Icon(Icons.Rounded.Close, "Volver a lo más reciente", Modifier.size(18.dp)) })
+            }
+        }
         LazyColumn(state = list, contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (vm.loaded && vm.items.isEmpty()) item {
-                EmptyState(Icons.Rounded.History, "Aún no hay entrenamientos", "Cuando termines tu primer entrenamiento aparecerá aquí con tu volumen, récords y series.")
+                if (vm.query.isNotBlank()) EmptyState(Icons.Rounded.SearchOff, "Sin resultados", "Ningún entreno tiene «${vm.query}»" + (vm.fromMonth?.let { " antes de " + monthName(it.plusMonths(1)) } ?: "") + ".")
+                else EmptyState(Icons.Rounded.History, "Aún no hay entrenamientos", "Cuando termines tu primer entrenamiento aparecerá aquí con tu volumen, récords y series.")
             }
             byMonth.forEach { (month, ws) ->
                 item(key = "m$month") {
-                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.Bottom) {
+                    // Mes y totales en un renglón si caben; si no (letra grande), el total baja. Antes el mes se partía letra por letra.
+                    FlowRow(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.Bottom) {
                         Text(month.month.getDisplayName(TextStyle.FULL_STANDALONE, Fmt.locale).replaceFirstChar { it.uppercase() } + " " + month.year,
-                            style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                        Text("${ws.size} entrenos · ${Fmt.volume(ws.sumOf { it.totalVolumeKg }, unit)}", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
+                            style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() }.padding(end = 8.dp))
+                        Text("${ws.size} entrenos · ${Fmt.volume(ws.sumOf { it.totalVolumeKg }, unit)}", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim,
+                            modifier = Modifier.align(Alignment.Bottom))
                     }
                 }
                 items(ws, key = { it.id }) { w -> WorkoutCard(w, vm.summaries[w.id].orEmpty(), unit, zone) { nav.navigate(Routes.detail(w.id)) } }
             }
             if (!vm.end && vm.items.isNotEmpty()) item {
-                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp) }
+                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { RupioSpinner(size = 24.dp, label = "Cargando más entrenamientos") }
+            }
+        }
+    }
+
+    if (picking) {
+        var months by remember { mutableStateOf<List<com.rupio.app.data.local.MonthCount>?>(null) }
+        LaunchedEffect(Unit) { months = vm.months() }
+        ModalBottomSheet(onDismissRequest = { picking = false }, containerColor = RupioColors.Surface) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
+                Text("Ir a un mes", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+                val ms = months
+                if (ms == null) RupioSpinner(size = 24.dp)
+                else if (ms.isEmpty()) Text("Aún no hay entrenamientos.", color = RupioColors.TextDim)
+                else LazyColumn(Modifier.heightIn(max = 460.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    item { AssistChip(onClick = { vm.jumpTo(null); picking = false; scope.launch { list.scrollToItem(0) } }, label = { Text("Lo más reciente") }) }
+                    ms.groupBy { it.ym.take(4) }.forEach { (year, inYear) ->
+                        item(key = year) {
+                            Text("$year · ${inYear.sumOf { it.n }} entrenos", style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
+                            Spacer(Modifier.height(6.dp))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                inYear.forEach { mc ->
+                                    val ym = runCatching { YearMonth.parse(mc.ym) }.getOrNull() ?: return@forEach
+                                    FilterChip(selected = vm.fromMonth == ym, onClick = { vm.jumpTo(ym); picking = false; scope.launch { list.scrollToItem(0) } },
+                                        label = { Text(ym.month.getDisplayName(TextStyle.SHORT_STANDALONE, Fmt.locale).replaceFirstChar { it.uppercase() }.trimEnd('.') + " · ${mc.n}") })
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 }
 
+private fun monthName(m: YearMonth) = m.month.getDisplayName(TextStyle.FULL_STANDALONE, Fmt.locale) + " " + m.year
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WorkoutCard(w: WorkoutEntity, ex: List<WorkoutExerciseSummary>, unit: WeightUnit, zone: java.time.ZoneId, onClick: () -> Unit) {
     Surface(onClick = onClick, shape = MaterialTheme.shapes.large, color = RupioColors.Surface, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(w.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(w.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(Dates.formatDay(w.localDate) + " · " + Dates.formatTimeWithOrigin(w.startedAt, zone, w.timeZone),
                         style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
                 }
                 if (w.prCount > 0) Pill("🏆 ${w.prCount}", RupioColors.Warning)
             }
             Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Con letra grande las métricas bajan de renglón en vez de partirse letra por letra.
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Metric(Icons.Rounded.Schedule, Fmt.durationHuman((w.durationSec ?: 0).toLong()))
                 Metric(Icons.Rounded.FitnessCenter, Fmt.volume(w.totalVolumeKg, unit), Fmt.volume(w.totalVolumeKg, unit.other))
                 Metric(Icons.Rounded.Repeat, "${w.totalSets} series")

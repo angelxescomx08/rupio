@@ -155,6 +155,19 @@ interface WorkoutDao {
               ORDER BY local_date DESC, started_at DESC LIMIT :limit""")
     suspend fun historyPage(beforeDay: Int, beforeStart: Long, limit: Int): List<WorkoutEntity>
 
+    /** Historial filtrado (búsqueda): entrenos con un ejercicio que coincide (sin acentos) o con ese nombre. Misma paginación. */
+    @Query("""SELECT * FROM workouts w WHERE w.deleted = 0 AND w.ended_at IS NOT NULL
+              AND (w.local_date < :beforeDay OR (w.local_date = :beforeDay AND w.started_at < :beforeStart))
+              AND (w.name LIKE '%' || :raw || '%' OR EXISTS (SELECT 1 FROM workout_exercises we JOIN exercises e ON e.id = we.exercise_id
+                   WHERE we.workout_id = w.id AND we.deleted = 0 AND e.search_key LIKE '%' || :key || '%'))
+              ORDER BY w.local_date DESC, w.started_at DESC LIMIT :limit""")
+    suspend fun historySearchPage(raw: String, key: String, beforeDay: Int, beforeStart: Long, limit: Int): List<WorkoutEntity>
+
+    /** Meses con entrenos y cuántos (para saltar a un mes en el Historial). */
+    @Query("""SELECT strftime('%Y-%m', local_date * 86400, 'unixepoch') AS ym, COUNT(*) AS n FROM workouts
+              WHERE deleted = 0 AND ended_at IS NOT NULL GROUP BY ym ORDER BY ym DESC""")
+    suspend fun months(): List<MonthCount>
+
     @Query("SELECT * FROM workouts WHERE deleted = 0 AND ended_at IS NOT NULL ORDER BY local_date DESC, started_at DESC LIMIT :limit")
     fun observeRecent(limit: Int): Flow<List<WorkoutEntity>>
 
@@ -202,9 +215,12 @@ interface WorkoutDao {
     @Query("SELECT id FROM workouts WHERE id IN (:ids)") suspend fun existingWorkoutIds(ids: List<String>): List<String>
     @Query("SELECT id FROM workout_exercises WHERE dirty = 1 AND id IN (:ids)") suspend fun dirtyExerciseIds(ids: List<String>): List<String>
     @Query("SELECT id FROM workout_sets WHERE dirty = 1 AND id IN (:ids)") suspend fun dirtySetIds(ids: List<String>): List<String>
+    /** Cambios por subir que la persona reconoce (entrenos, rutinas, récords, pesos y ejercicios propios; no cada serie). */
     @Query("""SELECT (SELECT COUNT(*) FROM workouts WHERE dirty = 1 AND ended_at IS NOT NULL)
                    + (SELECT COUNT(*) FROM routines WHERE dirty = 1)
-                   + (SELECT COUNT(*) FROM personal_records WHERE dirty = 1)""")
+                   + (SELECT COUNT(*) FROM personal_records WHERE dirty = 1)
+                   + (SELECT COUNT(*) FROM body_weights WHERE dirty = 1)
+                   + (SELECT COUNT(*) FROM exercises WHERE is_custom = 1 AND dirty = 1)""")
     fun observePending(): Flow<Int>
 }
 
@@ -414,7 +430,7 @@ interface StatsDao {
     @Query("SELECT DISTINCT (local_date + :shift) / 7 FROM workouts WHERE deleted = 0 AND ended_at IS NOT NULL")
     suspend fun trainingWeeks(shift: Int): List<Int>
 
-    @Query("""SELECT COUNT(*) AS n, COALESCE(SUM(total_volume_kg), 0) AS vol, COALESCE(SUM(total_sets), 0) AS sets, MIN(local_date) AS first
+    @Query("""SELECT COUNT(*) AS n, COALESCE(SUM(total_volume_kg), 0) AS vol, COALESCE(SUM(total_sets), 0) AS sets, MIN(local_date) AS `first`
               FROM workouts WHERE deleted = 0 AND ended_at IS NOT NULL AND local_date BETWEEN :from AND :to""")
     suspend fun workoutTotals(from: Int, to: Int): Totals2
 
@@ -435,5 +451,54 @@ interface AdminDao {
     @Query("DELETE FROM personal_records") suspend fun clearRecords()
     @Query("DELETE FROM exercises WHERE is_custom = 1") suspend fun clearCustomExercises()
     @Query("DELETE FROM body_weights") suspend fun clearBodyWeights()
+
+    /** Todo lo que falta subir (lo mismo que sube la sincronización; un entreno en curso no cuenta). Para "Cerrar sesión". */
+    @Query("""SELECT (SELECT COUNT(*) FROM exercises WHERE is_custom = 1 AND dirty = 1)
+                   + (SELECT COUNT(*) FROM routines WHERE dirty = 1)
+                   + (SELECT COUNT(*) FROM routine_exercises WHERE dirty = 1)
+                   + (SELECT COUNT(*) FROM workouts WHERE dirty = 1 AND ended_at IS NOT NULL)
+                   + (SELECT COUNT(*) FROM workout_exercises we JOIN workouts w ON w.id = we.workout_id WHERE we.dirty = 1 AND w.ended_at IS NOT NULL)
+                   + (SELECT COUNT(*) FROM workout_sets s JOIN workouts w ON w.id = s.workout_id WHERE s.dirty = 1 AND w.ended_at IS NOT NULL)
+                   + (SELECT COUNT(*) FROM personal_records WHERE dirty = 1)
+                   + (SELECT COUNT(*) FROM body_weights WHERE dirty = 1)""")
+    suspend fun countDirty(): Int
+
+    /** Total levantado en toda la historia (para el mensaje de apoyo). */
+    @Query("SELECT COALESCE(SUM(total_volume_kg), 0) FROM workouts WHERE deleted = 0 AND ended_at IS NOT NULL")
+    suspend fun totalVolumeKg(): Double
+
+    @Query("SELECT COUNT(*) FROM workouts WHERE deleted = 0 AND ended_at IS NOT NULL")
+    suspend fun finishedCount(): Int
+
+    // ---- "Descartar" un cambio que el servidor rechazó: deja de estar pendiente; el contenido no se toca.
+    @Query("UPDATE exercises SET dirty = 0 WHERE id = :id") suspend fun cleanExerciseRow(id: String)
+    @Query("UPDATE routines SET dirty = 0 WHERE id = :id") suspend fun cleanRoutineRow(id: String)
+    @Query("UPDATE routine_exercises SET dirty = 0 WHERE id = :id") suspend fun cleanRoutineExerciseRow(id: String)
+    @Query("UPDATE workouts SET dirty = 0 WHERE id = :id") suspend fun cleanWorkoutRow(id: String)
+    @Query("UPDATE workout_exercises SET dirty = 0 WHERE id = :id") suspend fun cleanWorkoutExerciseRow(id: String)
+    @Query("UPDATE workout_sets SET dirty = 0 WHERE id = :id") suspend fun cleanSetRow(id: String)
+    @Query("UPDATE personal_records SET dirty = 0 WHERE exercise_id = :ex AND kind = :kind") suspend fun cleanRecordRow(ex: String, kind: Int)
+    @Query("UPDATE body_weights SET dirty = 0 WHERE user_id = :uid AND measured_on = :day") suspend fun cleanBodyWeightRow(uid: String, day: Int)
+
+    // ---- Nombres para explicar cada cambio rechazado.
+    @Query("SELECT name, local_date AS day FROM workouts WHERE id = :id") suspend fun workoutLabel(id: String): RowLabel?
+    @Query("SELECT w.name AS name, w.local_date AS day FROM workout_exercises we JOIN workouts w ON w.id = we.workout_id WHERE we.id = :id")
+    suspend fun workoutExerciseLabel(id: String): RowLabel?
+    @Query("SELECT w.name AS name, w.local_date AS day FROM workout_sets s JOIN workouts w ON w.id = s.workout_id WHERE s.id = :id")
+    suspend fun setLabel(id: String): RowLabel?
+    @Query("SELECT name, NULL AS day FROM routines WHERE id = :id") suspend fun routineLabel(id: String): RowLabel?
+    @Query("SELECT r.name AS name, NULL AS day FROM routine_exercises re JOIN routines r ON r.id = re.routine_id WHERE re.id = :id")
+    suspend fun routineExerciseLabel(id: String): RowLabel?
+    @Query("SELECT name, NULL AS day FROM exercises WHERE id = :id") suspend fun exerciseLabel(id: String): RowLabel?
+
+    // ---- Modo sin cuenta → cuenta: todo lo del teléfono pasa a la cuenta y queda pendiente de subir.
+    @Query("UPDATE routines SET user_id = :uid, updated_at = :t, dirty = CASE WHEN deleted = 0 THEN 1 ELSE 0 END") suspend fun adoptRoutines(uid: String, t: Long)
+    @Query("UPDATE routine_exercises SET user_id = :uid, updated_at = :t, dirty = CASE WHEN deleted = 0 THEN 1 ELSE 0 END") suspend fun adoptRoutineExercises(uid: String, t: Long)
+    @Query("UPDATE workouts SET user_id = :uid, updated_at = :t, dirty = CASE WHEN deleted = 0 THEN 1 ELSE 0 END") suspend fun adoptWorkouts(uid: String, t: Long)
+    @Query("UPDATE workout_exercises SET user_id = :uid, updated_at = :t, dirty = CASE WHEN deleted = 0 THEN 1 ELSE 0 END") suspend fun adoptWorkoutExercises(uid: String, t: Long)
+    @Query("UPDATE workout_sets SET user_id = :uid, updated_at = :t, dirty = CASE WHEN deleted = 0 THEN 1 ELSE 0 END") suspend fun adoptSets(uid: String, t: Long)
+    @Query("UPDATE personal_records SET user_id = :uid, updated_at = :t, dirty = 1") suspend fun adoptRecords(uid: String, t: Long)
+    @Query("UPDATE body_weights SET user_id = :uid, updated_at = :t, dirty = CASE WHEN deleted = 0 THEN 1 ELSE 0 END") suspend fun adoptBodyWeights(uid: String, t: Long)
+    @Query("UPDATE exercises SET owner_id = :uid, updated_at = :t, dirty = CASE WHEN deleted = 0 THEN 1 ELSE 0 END WHERE is_custom = 1") suspend fun adoptCustomExercises(uid: String, t: Long)
 
 }

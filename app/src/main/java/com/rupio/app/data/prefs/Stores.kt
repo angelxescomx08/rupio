@@ -25,26 +25,45 @@ private val Context.dataStore by preferencesDataStore("rupio_settings")
 
 data class Settings(
     val unit: WeightUnit = WeightUnit.LB,
+    /** Unidad del PESO CORPORAL, aparte de la de las pesas: casi todos se pesan en kilos aunque carguen en libras. */
+    val bodyUnit: WeightUnit = WeightUnit.KG,
     val defaultRestSec: Int = 90,
     val weekStart: Int = 1,
     val onboardingDone: Boolean = false,
     val tutorialHome: Boolean = false,
     val tutorialWorkout: Boolean = false,
-    val keepSignedIn: Boolean = true,
+    /** Pantalla encendida mientras entrenas (se puede apagar en Perfil). */
+    val keepScreenOn: Boolean = true,
+    /** Cómo avisa el fin del descanso: sonido de notificación, solo vibración o con el volumen de la música. */
+    val restAlert: RestAlertMode = RestAlertMode.SOUND,
+    /** Ya se explicó y pidió el permiso de notificaciones (no se vuelve a interrumpir al empezar cada entreno). */
+    val notifAsked: Boolean = false,
     val authUrl: String = "",
     val dataApiUrl: String = "",
 )
+
+/** Cómo suena el fin del descanso. */
+enum class RestAlertMode(val code: String, val label: String, val detail: String) {
+    SOUND("sound", "Sonido y vibración", "Usa el volumen de notificaciones"),
+    MEDIA("media", "Con el volumen de la música", "Se oye en tus audífonos y baja la música un momento"),
+    VIBRATE("vibrate", "Solo vibración", "Sin sonido");
+
+    companion object { fun of(code: String?) = entries.firstOrNull { it.code == code } ?: SOUND }
+}
 
 /** Preferencias del usuario (unidad lb/kg, descanso por defecto, inicio de semana, tutorial). */
 class SettingsStore(private val context: Context, private val defaultAuth: String, private val defaultData: String) {
     private object K {
         val unit = stringPreferencesKey("unit")
+        val bodyUnit = stringPreferencesKey("body_unit")
         val rest = intPreferencesKey("default_rest")
         val week = intPreferencesKey("week_start")
         val onboarding = booleanPreferencesKey("onboarding_done")
         val tHome = booleanPreferencesKey("tutorial_home")
         val tWorkout = booleanPreferencesKey("tutorial_workout")
-        val keep = booleanPreferencesKey("keep_signed_in")
+        val screenOn = booleanPreferencesKey("keep_screen_on")
+        val restAlert = stringPreferencesKey("rest_alert")
+        val notifAsked = booleanPreferencesKey("notif_asked")
         val authUrl = stringPreferencesKey("auth_url")
         val dataUrl = stringPreferencesKey("data_api_url")
     }
@@ -53,24 +72,30 @@ class SettingsStore(private val context: Context, private val defaultAuth: Strin
 
     private fun Preferences.toSettings() = Settings(
         unit = WeightUnit.of(this[K.unit]),
+        bodyUnit = this[K.bodyUnit]?.let { WeightUnit.of(it) } ?: WeightUnit.KG,
         defaultRestSec = this[K.rest] ?: 90,
         weekStart = this[K.week] ?: 1,
         onboardingDone = this[K.onboarding] ?: false,
         tutorialHome = this[K.tHome] ?: false,
         tutorialWorkout = this[K.tWorkout] ?: false,
-        keepSignedIn = this[K.keep] ?: true,
+        keepScreenOn = this[K.screenOn] ?: true,
+        restAlert = RestAlertMode.of(this[K.restAlert]),
+        notifAsked = this[K.notifAsked] ?: false,
         authUrl = (this[K.authUrl] ?: defaultAuth).trim().trimEnd('/'),
         dataApiUrl = (this[K.dataUrl] ?: defaultData).trim().trimEnd('/'),
     )
 
     suspend fun current(): Settings = settings.first()
     suspend fun setUnit(u: WeightUnit) = context.dataStore.edit { it[K.unit] = u.code }
+    suspend fun setBodyUnit(u: WeightUnit) = context.dataStore.edit { it[K.bodyUnit] = u.code }
     suspend fun setDefaultRest(sec: Int) = context.dataStore.edit { it[K.rest] = sec }
     suspend fun setWeekStart(iso: Int) = context.dataStore.edit { it[K.week] = iso }
     suspend fun setOnboardingDone(v: Boolean) = context.dataStore.edit { it[K.onboarding] = v }
     suspend fun setTutorialHome(v: Boolean) = context.dataStore.edit { it[K.tHome] = v }
     suspend fun setTutorialWorkout(v: Boolean) = context.dataStore.edit { it[K.tWorkout] = v }
-    suspend fun setKeepSignedIn(v: Boolean) = context.dataStore.edit { it[K.keep] = v }
+    suspend fun setKeepScreenOn(v: Boolean) = context.dataStore.edit { it[K.screenOn] = v }
+    suspend fun setRestAlert(m: RestAlertMode) = context.dataStore.edit { it[K.restAlert] = m.code }
+    suspend fun setNotifAsked(v: Boolean) = context.dataStore.edit { it[K.notifAsked] = v }
     suspend fun setServer(auth: String, data: String) = context.dataStore.edit { it[K.authUrl] = auth.trim(); it[K.dataUrl] = data.trim() }
     /** Repite solo el recorrido guiado de botones (sin la bienvenida). */
     suspend fun resetCoach() = context.dataStore.edit { it[K.tHome] = false; it[K.tWorkout] = false }
@@ -79,8 +104,11 @@ class SettingsStore(private val context: Context, private val defaultAuth: Strin
 
 /**
  * Almacén cifrado con una llave AES-256-GCM del Android Keystore (no extraíble del dispositivo).
- * Guarda la cookie de sesión de Neon Auth, el JWT y —si el usuario lo permite— las credenciales
- * para re-autenticar en silencio: así la sesión dura "toda la vida" hasta que cierres sesión.
+ * Guarda la cookie de sesión de Neon Auth y el JWT. NUNCA la contraseña (OWASP MASWE-0036): si la sesión del
+ * servidor vence, la app pide entrar de nuevo (AuthState.SignedIn.sessionExpired).
+ *
+ * La llave se abre una sola vez y los valores descifrados se guardan en memoria: antes cada lectura volvía a abrir
+ * el Keystore y al arrancar se hacían 6 lecturas en el hilo principal.
  */
 class SecureStore(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("rupio_secure", Context.MODE_PRIVATE)
@@ -91,8 +119,13 @@ class SecureStore(context: Context) {
      */
     private val memory = java.util.concurrent.ConcurrentHashMap<String, String>()
     private val keystoreOk: Boolean by lazy { runCatching { key(); true }.getOrDefault(false) }
+    /** Valores ya descifrados (o null si no existen), para no volver a descifrar en cada lectura. */
+    private val cache = java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<String>>()
+    @Volatile private var cachedKey: SecretKey? = null
 
-    private fun key(): SecretKey {
+    private fun key(): SecretKey = cachedKey ?: synchronized(this) { cachedKey ?: openKey().also { cachedKey = it } }
+
+    private fun openKey(): SecretKey {
         val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         (ks.getEntry(alias, null) as? KeyStore.SecretKeyEntry)?.let { return it.secretKey }
         val gen = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
@@ -107,7 +140,8 @@ class SecureStore(context: Context) {
     }
 
     fun put(name: String, value: String?) {
-        if (value == null) { memory.remove(name); prefs.edit().remove(name).apply(); return }
+        if (value == null) { memory.remove(name); cache[name] = java.util.Optional.empty(); prefs.edit().remove(name).apply(); return }
+        cache[name] = java.util.Optional.of(value)
         if (!keystoreOk) { memory[name] = value; return }
         val c = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
         val enc = c.doFinal(value.toByteArray(Charsets.UTF_8))
@@ -115,7 +149,9 @@ class SecureStore(context: Context) {
         prefs.edit().putString(name, packed).apply()
     }
 
-    fun get(name: String): String? = memory[name] ?: runCatching {
+    fun get(name: String): String? = memory[name] ?: cache[name]?.orElse(null) ?: if (cache[name] != null) null else decrypt(name).also { cache[name] = java.util.Optional.ofNullable(it) }
+
+    private fun decrypt(name: String): String? = runCatching {
         if (!keystoreOk) return null
         val packed = prefs.getString(name, null) ?: return null
         val (iv, data) = packed.split(":", limit = 2)
@@ -124,5 +160,5 @@ class SecureStore(context: Context) {
         String(c.doFinal(Base64.decode(data, Base64.NO_WRAP)), Charsets.UTF_8)
     }.getOrNull()
 
-    fun clear() { memory.clear(); prefs.edit().clear().apply() }
+    fun clear() { memory.clear(); cache.clear(); prefs.edit().clear().apply() }
 }

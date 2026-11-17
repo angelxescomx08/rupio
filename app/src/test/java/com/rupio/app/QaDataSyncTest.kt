@@ -61,6 +61,9 @@ class QaDataSyncTest {
         var failNext = 0                    // próximas N peticiones → 500
         var ioFailNext = 0                  // próximas N → sin red
         var garbageGet = false              // GET responde JSON roto
+        var failWhen: ((Request) -> Boolean)? = null   // peticiones que cumplen esto → sin red
+        var unauthorizedNext = 0            // próximas N → 401 (JWT vencido)
+        val tokens = mutableListOf<String>()
         var requests = 0
         var serverNanos = 0L                // tiempo gastado DENTRO del servidor falso (no cuenta como tiempo de la app)
         private val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx").withZone(ZoneOffset.UTC)
@@ -92,7 +95,10 @@ class QaDataSyncTest {
 
         val interceptor = Interceptor { chain ->
             val req = chain.request(); requests++
+            tokens += req.header("Authorization").orEmpty()
             if (ioFailNext > 0) { ioFailNext--; throw IOException("sin red") }
+            if (failWhen?.invoke(req) == true) throw IOException("sin red")
+            if (unauthorizedNext > 0) { unauthorizedNext--; return@Interceptor resp(req, 401, "{\"message\":\"JWT expired\"}") }
             if (failNext > 0) { failNext--; return@Interceptor resp(req, 500, "{\"message\":\"caído\"}") }
             val table = req.url.pathSegments.last()
             val t0 = System.nanoTime()
@@ -265,7 +271,49 @@ class QaDataSyncTest {
         assertTrue("la sync termina aunque una fila sea rechazada", e.sync())
         assertEquals(20 * 6 * 4, server.rows("workout_sets").size)
         assertEquals("solo la fila mala queda pendiente", listOf(bad.id), c.db.workouts().dirtyExercises(100).map { it.id })
-        assertTrue(e.status.value.lastError!!.contains("no se pudieron subir"))
+        assertEquals(com.rupio.app.data.remote.SyncProblem.REJECTED, e.status.value.problem)
+        assertTrue(e.status.value.lastError!!.contains("no se pudo subir"))
+        // v1.6: lo rechazado ya no se reintenta en cada sincronización (antes "para siempre")…
+        var before = server.requests
+        assertTrue(e.sync())
+        val withRejected = server.requests - before
+        // …hasta que la persona elige "Descartar": deja de estar pendiente.
+        val r = e.describeRejected().single()
+        assertTrue(r.title, r.title.startsWith("Ejercicio en «Con fila mala»"))
+        e.discardRejected(r.table, r.key)
+        assertTrue(c.db.workouts().dirtyExercises(100).isEmpty())
+        assertEquals(null, e.status.value.problem)
+        before = server.requests
+        assertTrue(e.sync())
+        assertEquals("la fila rechazada no se volvió a mandar (misma cantidad de peticiones que sin ella)", server.requests - before, withRejected)
+    }
+
+    /**
+     * v1.6 (R1): la primera descarga guarda su avance en CADA página (si la señal se corta a media tabla, no empieza de
+     * cero) y, si el JWT vence a media descarga (401), pide otro y repite esa petición una vez.
+     */
+    @Test fun primeraDescargaGuardaAvanceYRenuevaElJwt() = runBlocking {
+        val sets = seed(100)                                   // 2 400 series = 2 páginas de 2 000
+        val server = FakeServer()
+        assertTrue(engine(server).sync())
+        wipeLocal()
+        var refreshed = 0
+        val e2 = SyncEngine(app, c.db, DataApiClient(OkHttpClient.Builder().addInterceptor(server.interceptor).build()), c.auth, c.settings, PendingDeletes(app),
+            jwtProvider = { "jwt-viejo" }, uidProvider = { uid }, localOnly = { false }, jwtRefresher = { refreshed++; "jwt-nuevo" }).also { it.resetCursors() }
+        // La señal se corta al pedir la 2.ª página de series (la que lleva el filtro por llave "or").
+        server.failWhen = { it.url.pathSegments.last() == "workout_sets" && it.method == "GET" && it.url.queryParameter("or") != null }
+        assertFalse(e2.sync())
+        assertEquals(com.rupio.app.data.remote.SyncProblem.OFFLINE, e2.status.value.problem)
+        val prefs = app.getSharedPreferences("rupio_sync", android.content.Context.MODE_PRIVATE)
+        assertTrue("el avance de la tabla a medias quedó guardado", prefs.getString("cursor_workout_sets", null) != null)
+        assertEquals("la 1.ª página ya está en el teléfono", 2_000, server.rows("workout_sets").count { r -> c.db.workouts().getSet(r["id"]!!.jsonPrimitive.content) != null })
+        // Vuelve la señal, pero el JWT ya venció: el servidor responde 401 una vez.
+        server.failWhen = null; server.unauthorizedNext = 1
+        assertTrue(e2.sync())
+        assertEquals("se pidió un JWT nuevo una sola vez", 1, refreshed)
+        assertEquals("Bearer jwt-nuevo", server.tokens.last())
+        assertEquals(sets, server.rows("workout_sets").count { r -> c.db.workouts().getSet(r["id"]!!.jsonPrimitive.content) != null })
+        assertEquals(null, e2.status.value.problem)
     }
 
     /** Tamaño de la cuenta demo (8 años): primera sincronización en un teléfono vacío. */

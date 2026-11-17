@@ -17,6 +17,8 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -78,15 +80,21 @@ fun HomeScreen(nav: NavHostController) {
     LaunchedEffect(Unit) { com.rupio.app.ui.learn.LearnProgress.load(context) }
     val learned by com.rupio.app.ui.learn.LearnProgress.done.collectAsStateWithLifecycle()
 
-    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
-    fun start(routineId: String?) {
-        if (Build.VERSION.SDK_INT >= 33 &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    // Permiso de notificaciones EN CONTEXTO: al empezar el primer entreno, después de explicar para qué sirve.
+    // Se pregunta una sola vez; si dice que no, el entreno muestra una tarjeta para activarlas cuando quiera.
+    var pendingStart by remember { mutableStateOf<String?>(null) }
+    var askNotif by remember { mutableStateOf(false) }
+    fun go(routineId: String?) {
         scope.launch {
             if (active == null) { if (routineId == null) c.workouts.startEmpty() else c.workouts.startFromRoutine(routineId) }
             nav.navigate(Routes.WORKOUT)
         }
+    }
+    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { go(pendingStart?.takeIf { it.isNotEmpty() }) }
+    fun start(routineId: String?) {
+        val needs = Build.VERSION.SDK_INT >= 33 && active == null && settings?.notifAsked != true &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        if (needs) { pendingStart = routineId ?: ""; askNotif = true } else go(routineId)
     }
 
     // Tutorial interactivo la primera vez: resalta los botones reales.
@@ -125,13 +133,15 @@ fun HomeScreen(nav: NavHostController) {
                     Text(when { h < 12 -> "Buenos días"; h < 19 -> "Buenas tardes"; else -> "Buenas noches" }, style = MaterialTheme.typography.labelLarge, color = RupioColors.TextDim)
                     Text(name.substringBefore(' ').ifBlank { "Atleta" }, style = MaterialTheme.typography.headlineMedium)
                 }
-                Box(Modifier.clip(CircleShape).clickable { nav.goToTab(Routes.PROFILE) }) { InitialsAvatar(name, 44.dp) }
+                SyncStatusIcon()
+                Box(Modifier.clip(CircleShape).clickable(onClickLabel = "Abrir perfil") { nav.goToTab(Routes.PROFILE) }) { InitialsAvatar(name, 44.dp) }
             }
         }
+        item { SyncAlertCard() }
         if (firstDownload) item {
             SectionCard(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (syncSt.lastError == null) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.5.dp, color = RupioColors.Primary)
+                    if (syncSt.lastError == null) RupioSpinner(size = 24.dp, label = "Bajando tus datos")
                     else Icon(Icons.Rounded.CloudOff, null, tint = RupioColors.Warning)
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
@@ -164,9 +174,12 @@ fun HomeScreen(nav: NavHostController) {
                     val letters = if ((settings?.weekStart ?: 1) == 7) listOf("D", "L", "M", "M", "J", "V", "S") else listOf("L", "M", "M", "J", "V", "S", "D")
                     val today = Dates.today(zone).toEpochDay().toInt()
                     letters.forEachIndexed { i, l ->
-                        val day = ws.plusDays(i.toLong()).toEpochDay().toInt()
+                        val date = ws.plusDays(i.toLong())
+                        val day = date.toEpochDay().toInt()
                         val done = day in days
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        // El lector de pantalla dice el día completo ("martes 11 de noviembre, entrenaste"): "M" no distingue martes de miércoles.
+                        val spoken = Dates.spokenDay(date).replaceFirstChar { it.uppercase() } + (if (day == today) ", hoy" else "") + if (done) ", entrenaste" else ", sin entreno"
+                        Column(Modifier.clearAndSetSemantics { contentDescription = spoken }, horizontalAlignment = Alignment.CenterHorizontally) {
                             Box(
                                 Modifier.size(34.dp).clip(CircleShape)
                                     .background(if (done) RupioColors.Success else if (day == today) RupioColors.Surface3 else RupioColors.Surface2),
@@ -238,6 +251,18 @@ fun HomeScreen(nav: NavHostController) {
             )
         }
     }
+
+    if (askNotif) AlertDialog(
+        onDismissRequest = { askNotif = false; scope.launch { c.settings.setNotifAsked(true) }; go(pendingStart?.takeIf { it.isNotEmpty() }) },
+        icon = { Icon(Icons.Rounded.NotificationsActive, null, tint = RupioColors.Rest) },
+        title = { Text("¿Te avisamos al terminar el descanso?") },
+        text = { Text("Para avisarte cuando termine tu descanso, aunque tengas la pantalla apagada, Rupio necesita mostrar notificaciones. Solo suena al final de cada descanso.", color = RupioColors.TextDim) },
+        confirmButton = { TextButton(onClick = {
+            askNotif = false; scope.launch { c.settings.setNotifAsked(true) }
+            notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }) { Text("Permitir") } },
+        dismissButton = { TextButton(onClick = { askNotif = false; scope.launch { c.settings.setNotifAsked(true) }; go(pendingStart?.takeIf { it.isNotEmpty() }) }) { Text("Ahora no") } },
+    )
 
     toDelete?.let { r ->
         ConfirmDialog("¿Eliminar rutina?", "\"${r.name}\" se eliminará. Tu historial de entrenamientos no se toca.", "Eliminar", { toDelete = null }, danger = true) {

@@ -24,7 +24,7 @@ import kotlin.random.Random
 class NavTabsTest {
     @get:Rule val rule = createComposeRule()
 
-    private val tabs = listOf(Routes.HOME, Routes.HISTORY, Routes.STATS, Routes.LEARN, Routes.PROFILE)
+    private val tabs = listOf(Routes.HOME, Routes.HISTORY, Routes.STATS, Routes.BODY_WEIGHT, Routes.PROFILE)
 
     private fun host(): NavHostController {
         lateinit var nav: NavHostController
@@ -32,7 +32,7 @@ class NavTabsTest {
             nav = rememberNavController()
             NavHost(nav, startDestination = Routes.HOME) {
                 tabs.forEach { r -> composable(r) { Text(r) } }
-                composable(Routes.BODY_WEIGHT) { Text("peso") }
+                composable(Routes.LEARN) { Text("aprende") }
                 composable(Routes.GLOSSARY) { Text("glosario") }
             }
         }
@@ -48,10 +48,10 @@ class NavTabsTest {
     private fun run(nav: NavHostController, go: NavHostController.(String) -> Unit, seed: Int, steps: Int): String? {
         val rnd = Random(seed)
         repeat(steps) { i ->
-            // A veces entra a una pantalla interna (peso corporal desde Perfil, glosario desde Aprende) antes de cambiar de pestaña.
+            // A veces entra a una pantalla interna (Aprende desde Perfil, glosario desde Aprende) antes de cambiar de pestaña.
             val cur = nav.currentDestination?.route
             if (rnd.nextInt(4) == 0 && (cur == Routes.PROFILE || cur == Routes.LEARN)) {
-                rule.runOnUiThread { nav.navigate(if (cur == Routes.PROFILE) Routes.BODY_WEIGHT else Routes.GLOSSARY) }
+                rule.runOnUiThread { nav.navigate(if (cur == Routes.PROFILE) Routes.LEARN else Routes.GLOSSARY) }
                 rule.waitForIdle()
                 if (rnd.nextBoolean()) { rule.runOnUiThread { nav.popBackStack() }; rule.waitForIdle() }
             }

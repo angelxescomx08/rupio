@@ -3,6 +3,7 @@ package com.rupio.app.data.repo
 import androidx.room.withTransaction
 import com.rupio.app.core.Dates
 import com.rupio.app.core.Ids
+import com.rupio.app.core.searchKey
 import com.rupio.app.data.local.*
 import com.rupio.app.data.prefs.SettingsStore
 import com.rupio.app.domain.*
@@ -26,6 +27,9 @@ object SupersetOps {
 
 data class ToggleResult(val completed: Boolean, val newRecords: Set<RecordKind>)
 
+/** Cómo estaban los ejercicios y las series antes de quitar algo, para "Deshacer". */
+data class WorkoutSnapshot(val exercises: List<WorkoutExerciseEntity>, val sets: List<WorkoutSetEntity>)
+
 class WorkoutRepository(
     private val db: RupioDatabase,
     private val settings: SettingsStore,
@@ -42,6 +46,9 @@ class WorkoutRepository(
     fun observeSets(id: String) = dao.observeSets(id)
     fun observeRecent(limit: Int) = dao.observeRecent(limit)
     suspend fun historyPage(beforeDay: Int, beforeStart: Long, limit: Int) = dao.historyPage(beforeDay, beforeStart, limit)
+    suspend fun historySearch(query: String, beforeDay: Int, beforeStart: Long, limit: Int) =
+        dao.historySearchPage(query, query.searchKey(), beforeDay, beforeStart, limit)
+    suspend fun months() = dao.months()
     fun observeCount() = dao.observeCount()
     suspend fun exerciseSummaries(ids: List<String>) = if (ids.isEmpty()) emptyList() else dao.exerciseSummaries(ids)
     suspend fun get(id: String) = dao.get(id)
@@ -110,6 +117,19 @@ class WorkoutRepository(
             dao.upsertExercise(target.copy(deleted = true, dirty = true, updatedAt = t))
             dao.sets(workoutId).filter { it.workoutExerciseId == workoutExerciseId }.forEach { dao.upsertSet(it.copy(deleted = true, dirty = true, updatedAt = t)) }
             target.supersetId?.let { ss -> dissolveIfSingle(list.filter { it.id != workoutExerciseId }, ss, t) }
+        }
+    }
+
+    /** Foto de los ejercicios (con sus superseries) y de las series de [workoutExerciseId] antes de quitarlo. */
+    suspend fun snapshot(workoutId: String, workoutExerciseId: String?): WorkoutSnapshot =
+        WorkoutSnapshot(dao.exercises(workoutId), dao.sets(workoutId).filter { workoutExerciseId == null || it.workoutExerciseId == workoutExerciseId })
+
+    /** "Deshacer": vuelve a dejar todo como en la foto (el borrado era suave, deleted = 1). */
+    suspend fun restore(s: WorkoutSnapshot) {
+        val t = now()
+        db.withTransaction {
+            dao.upsertExercises(s.exercises.map { it.copy(deleted = false, updatedAt = t, dirty = true) })
+            dao.upsertSets(s.sets.map { it.copy(deleted = false, updatedAt = t, dirty = true) })
         }
     }
 
@@ -302,15 +322,28 @@ class WorkoutRepository(
     /** Un entrenamiento activo nunca se subió → se borra de verdad. */
     suspend fun discard(workoutId: String) = dao.hardDelete(workoutId)
 
-    suspend fun deleteWorkout(workoutId: String) {
+    /** Borra (suave) un entreno terminado y recalcula los récords. Devuelve la acción para "Deshacer". */
+    suspend fun deleteWorkout(workoutId: String): suspend () -> Unit {
         val t = now()
-        val exerciseIds = dao.sets(workoutId).map { it.exerciseId }.toSet()
+        val w = dao.get(workoutId)
+        val exercises = dao.exercises(workoutId)
+        val sets = dao.sets(workoutId)
+        val exerciseIds = sets.map { it.exerciseId }.toSet()
         db.withTransaction {
             dao.softDelete(workoutId, t)
-            dao.exercises(workoutId).forEach { dao.upsertExercise(it.copy(deleted = true, dirty = true, updatedAt = t)) }
-            dao.sets(workoutId).forEach { dao.upsertSet(it.copy(deleted = true, dirty = true, updatedAt = t)) }
+            exercises.forEach { dao.upsertExercise(it.copy(deleted = true, dirty = true, updatedAt = t)) }
+            sets.forEach { dao.upsertSet(it.copy(deleted = true, dirty = true, updatedAt = t)) }
         }
         rebuildRecords(exerciseIds)
+        return {
+            val t2 = now()
+            db.withTransaction {
+                w?.let { dao.upsertWorkout(it.copy(deleted = false, dirty = true, updatedAt = t2)) }
+                dao.upsertExercises(exercises.map { it.copy(deleted = false, dirty = true, updatedAt = t2) })
+                dao.upsertSets(sets.map { it.copy(deleted = false, dirty = true, updatedAt = t2) })
+            }
+            rebuildRecords(exerciseIds)
+        }
     }
 
     /**

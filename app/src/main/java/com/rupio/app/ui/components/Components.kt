@@ -37,6 +37,12 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import coil.compose.AsyncImage
 import com.rupio.app.core.Fmt
 import com.rupio.app.core.WeightUnit
@@ -82,44 +88,50 @@ fun StatTile(label: String, value: String, modifier: Modifier = Modifier, sub: S
         Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
             FitText(label, MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
             Spacer(Modifier.height(2.dp))
-            // Si el número no cabe (p. ej. "156.5 mil lb" en tres columnas), se achica en vez de cortarse.
-            val base = MaterialTheme.typography.titleLarge.merge(Tabular)
-            var scale by remember(value) { mutableFloatStateOf(1f) }
-            Text(value, style = base.copy(fontSize = base.fontSize * scale), maxLines = 1, softWrap = false,
-                onTextLayout = { if (it.hasVisualOverflow && scale > 0.55f) scale -= 0.08f })
+            // Si el número no cabe (p. ej. "156.5 mil lb" en tres columnas) usa 2 líneas y, solo si aún no cabe, se achica
+            // sin bajar nunca del tamaño normal de letra.
+            FitText(value, MaterialTheme.typography.titleLarge.merge(Tabular))
             if (sub != null) FitText(sub, MaterialTheme.typography.labelSmall, color = subColor)
         }
     }
 }
 
 /**
- * Texto de una línea que se ACHICA para caber (hasta 60 %) en vez de cortarse o partirse letra por letra.
- * Pensado para letra grande del sistema (accesibilidad) y pantallas angostas.
+ * Texto que respeta el tamaño de letra que pidió la persona (accesibilidad, WCAG 1.4.4):
+ *  1. Primero se acomoda en hasta [maxLines] líneas, con guiones en español si una palabra se parte.
+ *  2. Solo si aun así no cabe, se achica, pero con letra agrandada NUNCA por debajo del tamaño normal (escala 100 %).
+ *     Con letra normal, una palabra sola se achica hasta 75 % antes que partirse.
+ * Antes se achicaba hasta 35–60 % del tamaño pedido: con letra al 200 % las pestañas quedaban más chicas que lo normal.
+ * Usa el autoSize de Compose (una sola pasada de medición, sin recomponer ni esconder el texto mientras tanto).
  */
 @Composable
 fun FitText(
     text: String, style: TextStyle, modifier: Modifier = Modifier, color: Color = Color.Unspecified,
-    fontWeight: FontWeight? = null, textAlign: TextAlign? = null, minScale: Float = 0.6f, group: FitGroup? = null,
+    fontWeight: FontWeight? = null, textAlign: TextAlign? = null, maxLines: Int = 2,
 ) {
-    var scale by remember(text, style) { mutableFloatStateOf(1f) }
-    var ready by remember(text, style) { mutableStateOf(false) }
-    val eff = if (group != null) minOf(scale, group.scale) else scale
-    Text(
-        text, modifier.drawWithContent { if (ready) drawContent() },
-        color = color, fontWeight = fontWeight, textAlign = textAlign,
-        style = if (style.fontSize.isSpecified) style.copy(fontSize = style.fontSize * eff) else style,
-        maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
-        onTextLayout = { r ->
-            if (r.hasVisualOverflow && eff > minScale) {
-                scale = (eff - 0.07f).coerceAtLeast(minScale)
-                if (group != null && scale < group.scale) group.scale = scale
-            } else ready = true
-        },
-    )
+    val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+    val base = if (style.fontSize.isSpecified) style.fontSize else MaterialTheme.typography.bodyMedium.fontSize
+    val tint = color.takeOrElse { style.color.takeOrElse { androidx.compose.material3.LocalContentColor.current } }
+    // Con letra normal se parte solo entre palabras (sin guiones en títulos); con letra agrandada, si una palabra no cabe,
+    // mejor partirla con guion en español que cortarla.
+    val big = fontScale > 1f
+    val st = style.merge(TextStyle(color = tint, fontWeight = fontWeight, textAlign = textAlign ?: TextAlign.Unspecified,
+        hyphens = if (big) androidx.compose.ui.text.style.Hyphens.Auto else androidx.compose.ui.text.style.Hyphens.None,
+        lineBreak = if (big) androidx.compose.ui.text.style.LineBreak.Paragraph else androidx.compose.ui.text.style.LineBreak.Simple,
+        localeList = androidx.compose.ui.text.intl.LocaleList("es-MX")))
+    if (fontScale <= 1f) {
+        // Letra normal o chica: una palabra sola (p. ej. "Repeticiones" en una tarjeta angosta) se achica un poco en una
+        // línea en vez de partirse con guion; varias palabras usan hasta [maxLines] líneas.
+        val single = !text.trim().contains(' ')
+        androidx.compose.foundation.text.BasicText(text, modifier, style = st, maxLines = if (single) 1 else maxLines, overflow = TextOverflow.Ellipsis,
+            autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = base * 0.75f, maxFontSize = base, stepSize = 0.5.sp))
+    } else {
+        // Letra agrandada por la persona: nunca más chica que el tamaño normal. En sp el tamaño "normal" es
+        // base / fontScale (el sistema lo vuelve a multiplicar al dibujar).
+        androidx.compose.foundation.text.BasicText(text, modifier, style = st, maxLines = maxLines, overflow = TextOverflow.Ellipsis,
+            autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = base / fontScale, maxFontSize = base, stepSize = 0.5.sp))
+    }
 }
-
-/** Textos que deben verse del mismo tamaño (p. ej. las pestañas): todos usan la escala del que menos cabe. */
-class FitGroup { var scale by mutableFloatStateOf(1f) }
 
 /**
  * Tarjetas lado a lado con la misma altura. Si no caben (letra muy grande o pantalla angosta),
@@ -161,7 +173,7 @@ fun Pill(text: String, color: Color, modifier: Modifier = Modifier, filled: Bool
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier, action: (@Composable () -> Unit)? = null) {
     Row(modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        FitText(text, MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), minScale = 0.5f)
+        FitText(text, MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
         action?.invoke()
     }
 }
@@ -205,6 +217,8 @@ fun NumberCell(
     modifier: Modifier = Modifier,
     decimal: Boolean = true,
     done: Boolean = false,
+    /** Qué es la celda, para TalkBack: "Peso en libras, serie 2, Press de banca, sugerido 135". */
+    label: String? = null,
 ) {
     var text by remember { mutableStateOf(value) }
     // Solo se reemplaza el texto si el valor guardado es OTRO número (así no se pierde "13." mientras escribes).
@@ -220,7 +234,8 @@ fun NumberCell(
         keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number),
         textStyle = MaterialTheme.typography.titleMedium.merge(Tabular).copy(color = RupioColors.Text, textAlign = TextAlign.Center),
         cursorBrush = SolidColor(RupioColors.Primary),
-        modifier = modifier.height(40.dp).clip(RoundedCornerShape(10.dp)).background(bg),
+        modifier = modifier.heightIn(min = 40.dp).clip(RoundedCornerShape(10.dp)).background(bg)
+            .then(if (label != null) Modifier.semantics { contentDescription = label } else Modifier),
         decorationBox = { inner ->
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 if (text.isEmpty()) Text(placeholder, style = MaterialTheme.typography.titleMedium.merge(Tabular), color = RupioColors.TextFaint, textAlign = TextAlign.Center)
@@ -242,7 +257,7 @@ fun RestPickerDialog(title: String, current: Int, onDismiss: () -> Unit, onPick:
                 androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
                     columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(3),
                     verticalArrangement = Arrangement.spacedBy(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.heightIn(max = 320.dp),
+                    modifier = Modifier.heightIn(max = 320.dp).selectableGroup(),
                 ) {
                     items(restOptions.size) { i ->
                         val sec = restOptions[i]
@@ -251,7 +266,8 @@ fun RestPickerDialog(title: String, current: Int, onDismiss: () -> Unit, onPick:
                             Modifier.clip(RoundedCornerShape(12.dp))
                                 .background(if (sel) RupioColors.Rest.copy(alpha = 0.25f) else RupioColors.Surface2)
                                 .border(1.dp, if (sel) RupioColors.Rest else Color.Transparent, RoundedCornerShape(12.dp))
-                                .clickable { onPick(sec) }.padding(vertical = 12.dp),
+                                // Opción de una lista: TalkBack dice "botón de opción, seleccionado".
+                                .selectable(selected = sel, role = Role.RadioButton, onClick = { onPick(sec) }).padding(vertical = 12.dp),
                             contentAlignment = Alignment.Center,
                         ) { Text(if (sec == 0) "Sin" else Fmt.restLabel(sec), style = MaterialTheme.typography.labelLarge) }
                     }

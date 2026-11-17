@@ -1,5 +1,6 @@
 package com.rupio.app.ui.stats
 
+import com.rupio.app.goToTab
 import com.rupio.app.safePop
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -137,7 +138,7 @@ fun ProgressStoryScreen(nav: NavHostController) {
     val s = vm.story
     Column(Modifier.fillMaxSize()) {
         RupioTopBar("Tu progreso", onBack = { nav.safePop() })
-        if (s == null) { Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }; return }
+        if (s == null) { LoadingBlock("Calculando tu progreso…"); return }
         LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 Text(ProgressStoryBuilder.headline(s), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
@@ -183,11 +184,12 @@ fun ProgressStoryScreen(nav: NavHostController) {
                 }
             }
             if (s.bodyFirstKg != null && s.bodyNowKg != null) item {
-                SectionCard(Modifier.clickable { nav.navigate(Routes.BODY_WEIGHT) }) {
+                SectionCard(Modifier.clickable { nav.goToTab(Routes.BODY_WEIGHT) }) {
                     Text("Peso corporal (tendencia)", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(4.dp))
                     val d = s.bodyNowKg - s.bodyFirstKg
-                    Text("${Fmt.weight(s.bodyFirstKg, unit)} → ${Fmt.weight(s.bodyNowKg, unit)}  (${if (d >= 0) "+" else "−"}${Fmt.weight(abs(d), unit)})",
+                    val bu = com.rupio.app.ui.body.rememberBodyUnit()
+                    Text("${Fmt.weight(s.bodyFirstKg, bu)} → ${Fmt.weight(s.bodyNowKg, bu)}  (${if (d >= 0) "+" else "−"}${Fmt.weight(abs(d), bu)})",
                         style = MaterialTheme.typography.titleMedium.merge(Tabular))
                 }
             }
