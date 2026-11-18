@@ -1,0 +1,489 @@
+{
+ "meta": {
+  "semana": "2026-11-16",
+  "participantes_semana": 60114,
+  "profiles": 200000,
+  "wall_entries": 100000,
+  "league_members": 100000,
+  "league_groups": 52020,
+  "league_scores": 1558402,
+  "version": "PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit",
+  "sizes": [
+   [
+    "league_scores",
+    "460 MB",
+    482361344
+   ],
+   [
+    "league_scores_group_idx",
+    "133 MB",
+    139837440
+   ],
+   [
+    "league_scores_week_idx",
+    "113 MB",
+    118030336
+   ],
+   [
+    "wall_entries",
+    "44 MB",
+    45801472
+   ],
+   [
+    "wall_entries_rank_idx",
+    "17 MB",
+    17580032
+   ],
+   [
+    "league_members",
+    "12 MB",
+    12533760
+   ],
+   [
+    "league_groups",
+    "3864 kB",
+    3956736
+   ],
+   [
+    "league_groups_open_idx",
+    "16 kB",
+    16384
+   ]
+  ]
+ },
+ "results": [
+  {
+   "id": "M1A",
+   "group": "Muro hoy (007) · 100,000 visibles",
+   "label": "Lista del muro (300) + tu lugar, siendo el último",
+   "median_ms": 67.478,
+   "max_ms": 110.229,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M2Ap",
+   "group": "Muro hoy (007) · 100,000 visibles",
+   "label": "Tu lugar y lo que te falta · primero",
+   "median_ms": 60.451,
+   "max_ms": 69.284,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M2Am",
+   "group": "Muro hoy (007) · 100,000 visibles",
+   "label": "Tu lugar y lo que te falta · mitad",
+   "median_ms": 73.386,
+   "max_ms": 88.641,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M2Aú",
+   "group": "Muro hoy (007) · 100,000 visibles",
+   "label": "Tu lugar y lo que te falta · último",
+   "median_ms": 75.249,
+   "max_ms": 80.554,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M1Ar",
+   "group": "Muro hoy (007) · 1,000 visibles",
+   "label": "Lista del muro (300) + tu lugar, siendo el último",
+   "median_ms": 7.213,
+   "max_ms": 10.914,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M2Arp",
+   "group": "Muro hoy (007) · 1,000 visibles",
+   "label": "Tu lugar y lo que te falta · primero",
+   "median_ms": 5.717,
+   "max_ms": 5.889,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M2Arm",
+   "group": "Muro hoy (007) · 1,000 visibles",
+   "label": "Tu lugar y lo que te falta · mitad",
+   "median_ms": 5.706,
+   "max_ms": 6.294,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M2Arú",
+   "group": "Muro hoy (007) · 1,000 visibles",
+   "label": "Tu lugar y lo que te falta · último",
+   "median_ms": 5.683,
+   "max_ms": 5.915,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M1B",
+   "group": "Muro con 008 · 100,000 visibles",
+   "label": "Lista del muro (300) + tu lugar, siendo el último",
+   "median_ms": 7.625,
+   "max_ms": 9.02,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M2Bp",
+   "group": "Muro con 008 · 100,000 visibles",
+   "label": "Tu lugar y lo que te falta · primero",
+   "median_ms": 0.165,
+   "max_ms": 0.213,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M2Bm",
+   "group": "Muro con 008 · 100,000 visibles",
+   "label": "Tu lugar y lo que te falta · mitad",
+   "median_ms": 3.509,
+   "max_ms": 4.327,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M2Bú",
+   "group": "Muro con 008 · 100,000 visibles",
+   "label": "Tu lugar y lo que te falta · último",
+   "median_ms": 7.454,
+   "max_ms": 8.074,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M1Br",
+   "group": "Muro con 008 · 1,000 visibles",
+   "label": "Lista del muro (300) + tu lugar, siendo el último",
+   "median_ms": 1.463,
+   "max_ms": 1.561,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M2Brp",
+   "group": "Muro con 008 · 1,000 visibles",
+   "label": "Tu lugar y lo que te falta · primero",
+   "median_ms": 0.25,
+   "max_ms": 0.315,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M2Brm",
+   "group": "Muro con 008 · 1,000 visibles",
+   "label": "Tu lugar y lo que te falta · mitad",
+   "median_ms": 0.232,
+   "max_ms": 0.304,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "M2Brú",
+   "group": "Muro con 008 · 1,000 visibles",
+   "label": "Tu lugar y lo que te falta · último",
+   "median_ms": 0.289,
+   "max_ms": 0.402,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "L1",
+   "group": "Ligas · lectura",
+   "label": "Tu liga completa (rupio_league: grupo de 30, zonas, apodos e insignias)",
+   "median_ms": 0.495,
+   "max_ms": 0.567,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "L2",
+   "group": "Ligas · lectura",
+   "label": "Solo la tabla del grupo (30 filas en orden)",
+   "median_ms": 0.031,
+   "max_ms": 0.062,
+   "nodes": [
+    "Index Only Scan"
+   ],
+   "indexes": [
+    "league_scores_group_idx"
+   ],
+   "trigger_ms": 0
+  },
+  {
+   "id": "L2x",
+   "group": "Ligas · lectura",
+   "label": "L2 sin league_scores_group_idx (anti-patrón)",
+   "median_ms": 51.694,
+   "max_ms": 54.725,
+   "nodes": [
+    "Gather Merge",
+    "Seq Scan",
+    "Sort"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "L3",
+   "group": "Ligas · lectura",
+   "label": "Top global de la semana · primera página (50 de 60,114)",
+   "median_ms": 0.667,
+   "max_ms": 0.858,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "L4",
+   "group": "Ligas · lectura",
+   "label": "Top global · página después del lugar 5,000 (keyset)",
+   "median_ms": 0.778,
+   "max_ms": 1.012,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "L4x",
+   "group": "Ligas · lectura",
+   "label": "La misma página con OFFSET 5000 (anti-patrón)",
+   "median_ms": 0.92,
+   "max_ms": 1.029,
+   "nodes": [
+    "Index Only Scan",
+    "Limit"
+   ],
+   "indexes": [
+    "league_scores_week_idx"
+   ],
+   "trigger_ms": 0
+  },
+  {
+   "id": "L5",
+   "group": "Ligas · lectura",
+   "label": "Tu lugar global y tu porcentaje · siendo el último",
+   "median_ms": 4.78,
+   "max_ms": 8.066,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "L5x",
+   "group": "Ligas · lectura",
+   "label": "L5 sin league_scores_week_idx (anti-patrón)",
+   "median_ms": 182.049,
+   "max_ms": 210.208,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "E1",
+   "group": "Ligas · escritura",
+   "label": "Primer entreno de la semana: calcula liga y entra a un grupo",
+   "median_ms": 0.42,
+   "max_ms": 0.507,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "E2",
+   "group": "Ligas · escritura",
+   "label": "Otro entreno en la misma semana (actualiza tu puntaje)",
+   "median_ms": 0.035,
+   "max_ms": 0.052,
+   "nodes": [
+    "Result"
+   ],
+   "indexes": [],
+   "trigger_ms": 0
+  },
+  {
+   "id": "T0",
+   "group": "Ligas · escritura",
+   "label": "Subir 400 entrenos (un lote de sync) sin triggers de ligas",
+   "median_ms": 2.834,
+   "max_ms": 3.292,
+   "nodes": [
+    "Function Scan",
+    "ModifyTable",
+    "Subquery Scan"
+   ],
+   "indexes": [],
+   "trigger_ms": 0.392
+  },
+  {
+   "id": "T1f",
+   "group": "Ligas · escritura",
+   "label": "400 entrenos · no participa · trigger por fila",
+   "median_ms": 4.971,
+   "max_ms": 7.682,
+   "nodes": [
+    "Function Scan",
+    "ModifyTable",
+    "Subquery Scan"
+   ],
+   "indexes": [],
+   "trigger_ms": 2.179
+  },
+  {
+   "id": "T1",
+   "group": "Ligas · escritura",
+   "label": "400 entrenos · no participa · trigger por sentencia (008)",
+   "median_ms": 4.061,
+   "max_ms": 5.879,
+   "nodes": [
+    "Function Scan",
+    "ModifyTable",
+    "Subquery Scan"
+   ],
+   "indexes": [],
+   "trigger_ms": 0.625
+  },
+  {
+   "id": "T2f",
+   "group": "Ligas · escritura",
+   "label": "400 entrenos · participante, historial de 8 años · por fila",
+   "median_ms": 11.295,
+   "max_ms": 12.17,
+   "nodes": [
+    "Function Scan",
+    "ModifyTable",
+    "Subquery Scan"
+   ],
+   "indexes": [],
+   "trigger_ms": 6.692
+  },
+  {
+   "id": "T2",
+   "group": "Ligas · escritura",
+   "label": "400 entrenos · participante, historial de 8 años · por sentencia (008)",
+   "median_ms": 4.795,
+   "max_ms": 7.578,
+   "nodes": [
+    "Function Scan",
+    "ModifyTable",
+    "Subquery Scan"
+   ],
+   "indexes": [],
+   "trigger_ms": 0.595
+  },
+  {
+   "id": "T3f",
+   "group": "Ligas · escritura",
+   "label": "400 entrenos · participante, todos en esta semana (peor caso) · por fila",
+   "median_ms": 35.89,
+   "max_ms": 50.733,
+   "nodes": [
+    "Function Scan",
+    "ModifyTable",
+    "Subquery Scan"
+   ],
+   "indexes": [],
+   "trigger_ms": 30.595
+  },
+  {
+   "id": "T3",
+   "group": "Ligas · escritura",
+   "label": "400 entrenos · participante, todos en esta semana (peor caso) · por sentencia (008)",
+   "median_ms": 4.185,
+   "max_ms": 4.844,
+   "nodes": [
+    "Function Scan",
+    "ModifyTable",
+    "Subquery Scan"
+   ],
+   "indexes": [],
+   "trigger_ms": 1.246
+  },
+  {
+   "id": "T4",
+   "group": "Ligas · escritura",
+   "label": "Editar 400 entrenos de esta semana en un UPDATE · por sentencia (008)",
+   "median_ms": 6.628,
+   "max_ms": 7.09,
+   "nodes": [
+    "Bitmap Heap Scan",
+    "Bitmap Index Scan",
+    "ModifyTable"
+   ],
+   "indexes": [
+    "workouts_user_sync_idx"
+   ],
+   "trigger_ms": 1.614
+  }
+ ]
+}

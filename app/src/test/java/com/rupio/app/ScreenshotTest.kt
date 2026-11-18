@@ -177,6 +177,7 @@ class ScreenshotTest {
 
     /** 120 días de peso: bajando ~0.4 kg/semana con el ruido normal del agua. */
     private suspend fun seedBodyWeight() {
+        c.settings.setHealthConsent(System.currentTimeMillis())                    // v1.7: ya dio su permiso
         val zone = ZoneId.of("America/Mexico_City")
         val today = Dates.today(zone)
         for (i in 0 until 120) {

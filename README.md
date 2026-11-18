@@ -34,6 +34,8 @@ App tipo Hevy, 100 % en español y con tema negro, que **te dice cuándo subir e
 - **Apoya Rupio** (v1.4): todo sigue gratis; quien quiera apoya con un **pago único** de Google Play en 3 niveles (☕ $49 · 💪 $99 · 🏆 $199 MXN) que quitan el mensaje y dan adornos: insignia, colores de la app, ícono dorado y pantalla de gracias con confeti. El mensaje sale al terminar un entreno (desde el 3.º), se cierra con un toque y está escrito con base en estudios de psicología: [docs/APOYO_CIENCIA.md](docs/APOYO_CIENCIA.md). Activar los pagos en Play Console: [docs/PAGOS_PLAY.md](docs/PAGOS_PLAY.md).
 - **Cerrar sesión por pasos**: pantalla que explica qué pasa y por qué tarda (sube lo pendiente → borra el teléfono → cierra la sesión); si no hay internet, pregunta antes de perder cambios.
 - **Auditoría QA v1.5 → arreglos v1.6**: [docs/QA_V16.md](docs/QA_V16.md).
+- **Segunda revisión QA → v1.7**: editar un entreno terminado (y "Corregir" en Revisar), permiso expreso para el peso corporal (se retira en Perfil y borra el historial), código de 6 dígitos al crear la cuenta, exportar tus datos en CSV, récords que no se pisan al juntar cuentas: [docs/QA_V17.md](docs/QA_V17.md).
+- **v1.8**: nivel **Mecenas** ($499) con **muro de agradecimientos** (nombre, lugar y fecha; aportes extra de $99/$249/$499 suben de lugar; cada compra se verifica en el servidor con la firma de Google Play, en SQL: `db/migrations/007_supporters_wall.sql`); **gráfica del ejercicio dentro del entreno** (peso máx., 1RM, volumen); **kilos dentro de la cajita** del peso (filas alineadas, también en el editor de rutina y al editar un entreno); más aire en la serie completada; **calorías estimadas** (MET del Compendio 2024) y **reparto de músculos** al terminar y en el detalle; el **aviso de descanso** ahora suena en modo vibración y sobre un video (por defecto con el volumen de la música) y avisa si el volumen está en 0: [docs/QA_V18.md](docs/QA_V18.md).
 - **QA en casos extremos** (pruebas automáticas, auditoría de 95 consultas, carga y seguridad en el servidor real, cuenta demo de 8 años): [docs/QA_RENDIMIENTO.md](docs/QA_RENDIMIENTO.md).
 
 ## Backend: Neon (equivalente a Supabase)
@@ -45,7 +47,7 @@ La URL que se usó es de **Neon**. Rupio usa **Neon Auth** (correo/contraseña, 
 1. **Esquema y catálogo**: ya están aplicados en tu base (`001_schema.sql`, `002_seed_exercises.sql`).
 2. En la consola de Neon → tu proyecto → **Auth** → *Enable Neon Auth*.
 3. **Postgres database → Data API** → marca *Use Neon Auth* → *Enable Data API*.
-4. En el **SQL Editor** corre `db/migrations/003_security.sql` (RLS, permisos y funciones de estadísticas) y `004_plans_body_weight.sql` (series por serie y peso corporal). Ambos ya están aplicados en tu base.
+4. En el **SQL Editor** corre `db/migrations/003_security.sql` (RLS, permisos y funciones de estadísticas), `004_plans_body_weight.sql` (series por serie y peso corporal), `005_delete_account.sql` (eliminar la cuenta) y `006_health_consent.sql` (fecha del permiso del peso corporal). Todos ya están aplicados en tu base.
 5. Las URLs ya vienen dentro de la app (no hay nada que configurar en el teléfono). Para otro proyecto, ponlas en `local.properties`:
    ```properties
    NEON_AUTH_URL=https://ep-xxxx.neonauth.us-east-2.aws.neon.tech/neondb/auth

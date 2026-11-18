@@ -96,6 +96,8 @@ class MainActivity : ComponentActivity() {
                         is AuthState.SignedIn -> {
                             val st = settings
                             if (st == null) Box(Modifier.fillMaxSize())
+                            // v1.7 (N6): la cuenta recién creada no está lista hasta escribir el código del correo.
+                            else if (s.needsVerification) com.rupio.app.ui.auth.VerifyEmailScreen(s.email, s.newAccount)
                             else if (!st.onboardingDone) OnboardingScreen(s.name) { scope.launch { container.settings.setOnboardingDone(true) } }
                             else MainShell()
                         }
@@ -145,9 +147,13 @@ object Routes {
     const val TUTORIAL = "tutorial/{id}"; fun tutorial(id: String) = "tutorial/$id"
     const val BODY_WEIGHT = "body_weight"; const val PROGRESS = "progress"; const val GUIDE = "guide"
     const val SUPPORT = "support"
+    /** v1.8: muro de agradecimientos (nivel Mecenas). */
+    const val WALL = "wall"
     /** Modo sin cuenta → crear cuenta (o entrar) conservando los datos del teléfono. */
     const val ACCOUNT = "account"
     const val DELETE_ACCOUNT = "delete_account"
+    /** v1.7 (N1): editar un entreno terminado; [set] = serie rechazada a corregir (desde "Revisar"). */
+    const val EDIT = "edit/{id}?set={set}"; fun edit(id: String, set: String? = null) = "edit/$id" + (set?.let { "?set=$it" } ?: "")
 }
 
 /**
@@ -188,6 +194,8 @@ fun MainShell() {
     val active by c.workouts.active.collectAsStateWithLifecycle(initialValue = null)
     val context = LocalContext.current
     LaunchedEffect(active?.id) { if (active != null) WorkoutService.start(context) }
+    // Pedidos de navegación desde fuera del NavHost (p. ej. "Ver el muro" en la pantalla de gracias).
+    LaunchedEffect(Unit) { c.navRequests.collect { r -> runCatching { nav.navigate(r) { launchSingleTop = true } } } }
     // El permiso de notificaciones ya NO se pide al abrir la app: se pide al empezar el primer entreno, después de
     // explicar para qué sirve (ver HomeScreen · NotificationRationaleDialog).
     val syncUi = remember { com.rupio.app.ui.components.SyncUiController() }
@@ -247,7 +255,14 @@ fun MainShell() {
             // Respeta barra de estado, barra de navegación, recortes de cámara y teclado en TODAS las pantallas.
             NavGraph(nav, Modifier.padding(pad).consumeWindowInsets(pad).imePadding())
         }
-        com.rupio.app.ui.components.SyncUiHost(syncUi, onCreateAccount = { nav.navigate(Routes.ACCOUNT) })
+        com.rupio.app.ui.components.SyncUiHost(syncUi, onCreateAccount = { nav.navigate(Routes.ACCOUNT) }, onFixSet = { setId ->
+            // "Revisar" → "Corregir": abre el editor del entreno de esa serie.
+            c.scope.launch {
+                val wid = c.db.workouts().getSet(setId)?.workoutId
+                if (wid != null) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) { nav.navigate(Routes.edit(wid, setId)) }
+                else c.notices.emit(Notice("Esa serie ya no existe en este teléfono. Puedes descartarla."))
+            }
+        })
     }
     }
 }
@@ -272,8 +287,12 @@ private fun NavGraph(nav: NavHostController, modifier: Modifier) {
         composable(Routes.PROGRESS) { ProgressStoryScreen(nav) }
         composable(Routes.GUIDE) { RoutineGuideScreen(nav) }
         composable(Routes.SUPPORT) { SupportScreen(nav) }
+        composable(Routes.WALL) { com.rupio.app.ui.support.WallScreen(nav) }
         composable(Routes.ACCOUNT) { AuthScreen(upgrade = true, onBack = { nav.safePop() }, onDone = { nav.safePop() }) }
         composable(Routes.DELETE_ACCOUNT) { com.rupio.app.ui.legal.DeleteAccountScreen(nav) }
+        composable(Routes.EDIT, arguments = listOf(navArgument("set") { type = NavType.StringType; nullable = true; defaultValue = null })) { e ->
+            com.rupio.app.ui.history.EditWorkoutScreen(nav, e.arguments?.getString("id") ?: "", e.arguments?.getString("set"))
+        }
         composable(Routes.DETAIL, arguments = listOf(navArgument("c") { type = NavType.IntType; defaultValue = 0 })) { e ->
             WorkoutDetailScreen(nav, e.arguments?.getString("id") ?: "", e.arguments?.getInt("c") ?: 0)
         }
@@ -304,9 +323,27 @@ private fun ActiveWorkoutBanner(name: String, startedAt: Long, restDone: Boolean
 private fun SupportThanksHost() {
     val c = container()
     val state by c.support.state.collectAsStateWithLifecycle()
-    var thanks by remember { mutableStateOf<SupportTier?>(null) }
-    LaunchedEffect(Unit) { c.support.events.collect { e -> if (e is SupportEvent.Thanks) thanks = e.tier } }
-    thanks?.let { t ->
-        ThanksDialog(t, state, onAccent = { c.support.setAccent(it) }, onGoldIcon = { c.support.setGoldIcon(it) }, onClose = { thanks = null })
+    val wall by c.wall.state.collectAsStateWithLifecycle()
+    val auth by c.auth.state.collectAsStateWithLifecycle()
+    var thanks by remember { mutableStateOf<SupportEvent.Thanks?>(null) }
+    var raised by remember { mutableStateOf<SupportEvent.WallRaised?>(null) }
+    LaunchedEffect(Unit) {
+        c.support.events.collect { e ->
+            when (e) { is SupportEvent.Thanks -> thanks = e; is SupportEvent.WallRaised -> raised = e }
+        }
     }
+    thanks?.let { t ->
+        ThanksDialog(t.tier, state, onAccent = { c.support.setAccent(it) }, onGoldIcon = { c.support.setGoldIcon(it) }, onClose = { thanks = null },
+            wallRank = t.wallRank, onSeeWall = { thanks = null; c.navRequests.tryEmit(Routes.WALL) })
+    }
+    raised?.let { r ->
+        com.rupio.app.ui.support.WallRaisedDialog(r.rank, r.previousRank, onSeeWall = { raised = null; c.navRequests.tryEmit(Routes.WALL) }) { raised = null }
+    }
+    // Llegó una compra del muro sin nombre (p. ej. se pagó y se cerró la app antes): se pide aquí, con el permiso.
+    if (state.wallNeedsName) com.rupio.app.ui.support.WallNameDialog(
+        title = "¡Gracias! ¿Cómo quieres aparecer?",
+        intro = "Tu aporte llegó. Escribe el nombre que verán en el muro de agradecimientos.",
+        initial = wall.me?.name ?: (auth as? com.rupio.app.data.auth.AuthState.SignedIn)?.name.orEmpty(),
+        confirm = "Aparecer en el muro", askConsent = true, onDismiss = { c.support.dismissWallName() },
+    ) { name -> c.support.completeWallName(name) }
 }

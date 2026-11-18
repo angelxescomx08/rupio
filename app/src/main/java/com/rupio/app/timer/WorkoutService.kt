@@ -40,7 +40,7 @@ import kotlinx.coroutines.launch
 class WorkoutService : LifecycleService() {
     private val container by lazy { (application as RupioApp).container }
     private var wakeLock: PowerManager.WakeLock? = null
-    @Volatile private var alertMode = com.rupio.app.data.prefs.RestAlertMode.SOUND
+    @Volatile private var alertMode = com.rupio.app.data.prefs.RestAlertMode.MEDIA
 
     override fun onCreate() {
         super.onCreate()
@@ -191,26 +191,51 @@ object RestAlert {
                 .setContentIntent(WorkoutService.openApp(ctx))
                 .build()
             NotificationManagerCompat.from(ctx).notify(NOTIF_ID, n)
-            if (mode == com.rupio.app.data.prefs.RestAlertMode.MEDIA) RestSound.play(ctx, media = true)
+            // La notificación de MEDIA no trae sonido (canal silencioso): el sonido lo pone la app, con la misma regla.
+            if (mode == com.rupio.app.data.prefs.RestAlertMode.MEDIA) {
+                val d = decision(ctx, mode, force = false)
+                if (d.sound) RestSound.play(ctx, media = true)
+            }
         } else {
             // Notificaciones apagadas: al menos el sonido y la vibración.
             feedback(ctx, mode)
         }
     }
 
+    /**
+     * v1.8: por qué el aviso NO se va a oír con los ajustes de ahora (o null si sí se oye). La pantalla del entreno lo
+     * muestra con un botón "Probar sonido": la causa más común del "no suena" es el volumen en 0 o el modo vibración.
+     */
+    fun inaudibleReason(ctx: Context, mode: com.rupio.app.data.prefs.RestAlertMode): String? = runCatching {
+        val am = ctx.getSystemService(android.media.AudioManager::class.java) ?: return null
+        when (mode) {
+            com.rupio.app.data.prefs.RestAlertMode.MEDIA ->
+                if (decision(ctx, mode, force = false).sound && am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) == 0)
+                    "El volumen multimedia está en 0. Súbelo con los botones del teléfono (el aviso usa el volumen de la música)." else null
+            com.rupio.app.data.prefs.RestAlertMode.SOUND -> when {
+                am.ringerMode != android.media.AudioManager.RINGER_MODE_NORMAL ->
+                    "Tu teléfono está en vibración o silencio y el aviso está «Como notificación». En Perfil → Aviso de fin de descanso elige «Con el volumen de la música»."
+                am.getStreamVolume(android.media.AudioManager.STREAM_NOTIFICATION) == 0 -> "El volumen de notificaciones está en 0."
+                else -> null
+            }
+            com.rupio.app.data.prefs.RestAlertMode.VIBRATE -> null
+        }
+    }.getOrNull()
+
     /** "Probar" en Perfil: exactamente lo que se oirá y sentirá, sin notificación. */
     fun preview(ctx: Context, mode: com.rupio.app.data.prefs.RestAlertMode) = feedback(ctx, mode, force = true)
 
-    private fun feedback(ctx: Context, mode: com.rupio.app.data.prefs.RestAlertMode, force: Boolean = false) {
+    private fun decision(ctx: Context, mode: com.rupio.app.data.prefs.RestAlertMode, force: Boolean): RestAlertPolicy.Decision {
         val am = ctx.getSystemService(android.media.AudioManager::class.java)
         val ringer = am?.ringerMode ?: android.media.AudioManager.RINGER_MODE_NORMAL
-        // Respeta el modo silencio y vibración del teléfono (salvo "Probar", que la persona pidió).
-        when (mode) {
-            com.rupio.app.data.prefs.RestAlertMode.SOUND -> if (force || ringer == android.media.AudioManager.RINGER_MODE_NORMAL) RestSound.play(ctx, media = false)
-            com.rupio.app.data.prefs.RestAlertMode.MEDIA -> RestSound.play(ctx, media = true)
-            com.rupio.app.data.prefs.RestAlertMode.VIBRATE -> {}
-        }
-        if (force || ringer != android.media.AudioManager.RINGER_MODE_SILENT) vibrate(ctx)
+        val playing = runCatching { am?.isMusicActive == true }.getOrDefault(false)
+        return RestAlertPolicy.decide(mode, ringer, RestAlertPolicy.hasPrivateOutput(am), force, mediaPlaying = playing)
+    }
+
+    private fun feedback(ctx: Context, mode: com.rupio.app.data.prefs.RestAlertMode, force: Boolean = false) {
+        val d = decision(ctx, mode, force)
+        if (d.sound) RestSound.play(ctx, media = d.media)
+        if (d.vibrate) vibrate(ctx)
     }
 
     private fun vibrate(ctx: Context) = runCatching {
@@ -221,10 +246,58 @@ object RestAlert {
 }
 
 /**
+ * Qué hace el aviso de fin de descanso según el modo elegido, el modo del timbre y si hay audífonos o Bluetooth.
+ * Respeta el modo silencio y vibración del teléfono (salvo "Probar", que la persona pidió).
+ */
+object RestAlertPolicy {
+    data class Decision(val sound: Boolean, val media: Boolean, val vibrate: Boolean)
+
+    fun decide(mode: com.rupio.app.data.prefs.RestAlertMode, ringer: Int, privateOutput: Boolean, force: Boolean, mediaPlaying: Boolean = false): Decision {
+        val normal = ringer == android.media.AudioManager.RINGER_MODE_NORMAL
+        val silent = ringer == android.media.AudioManager.RINGER_MODE_SILENT
+        val vib = force || !silent
+        return when (mode) {
+            com.rupio.app.data.prefs.RestAlertMode.SOUND -> Decision(sound = force || normal, media = false, vibrate = vib)
+            // v1.7 (N8): en silencio y sin audífonos ni Bluetooth, el sonido saldría por la bocina (en la junta): solo vibra.
+            // v1.8: eso aplicaba también al modo VIBRACIÓN, y en el gimnasio casi todos lo traen así: "no suena nunca".
+            // Ahora en vibración suena (con el volumen de la música, que la persona controla) y, aun en silencio total,
+            // suena si ya hay algo sonando (un video, música): no es la app la que rompe el silencio.
+            com.rupio.app.data.prefs.RestAlertMode.MEDIA ->
+                if (force || !silent || privateOutput || mediaPlaying) Decision(sound = true, media = true, vibrate = true)
+                else Decision(sound = false, media = true, vibrate = true)
+            com.rupio.app.data.prefs.RestAlertMode.VIBRATE -> Decision(sound = false, media = false, vibrate = vib)
+        }
+    }
+
+    /** Tipos de salida "privada": el sonido no sale por la bocina del teléfono. */
+    val PRIVATE_TYPES: Set<Int> = buildSet {
+        add(android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES); add(android.media.AudioDeviceInfo.TYPE_WIRED_HEADSET)
+        add(android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP); add(android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO)
+        add(android.media.AudioDeviceInfo.TYPE_USB_HEADSET)
+        if (Build.VERSION.SDK_INT >= 28) add(android.media.AudioDeviceInfo.TYPE_HEARING_AID)
+        if (Build.VERSION.SDK_INT >= 31) { add(android.media.AudioDeviceInfo.TYPE_BLE_HEADSET); add(android.media.AudioDeviceInfo.TYPE_BLE_SPEAKER) }
+        if (Build.VERSION.SDK_INT >= 33) add(android.media.AudioDeviceInfo.TYPE_BLE_BROADCAST)
+    }
+
+    /** ¿Hay audífonos o Bluetooth conectados? (AudioManager.getDevices, salidas). */
+    fun hasPrivateOutput(am: android.media.AudioManager?): Boolean =
+        runCatching { am?.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)?.any { it.type in PRIVATE_TYPES } == true }.getOrDefault(false)
+}
+
+/**
  * Reproduce rest_done.wav una vez. [media] = por el volumen de la música y con foco de audio "transitorio, puede
  * bajar a los demás": la música se baja un momento y el aviso se oye en los audífonos.
  */
 object RestSound {
+    /**
+     * v1.8: referencias fuertes hasta que termine. Antes el MediaPlayer era una variable local: el recolector de basura
+     * podía liberarlo a media reproducción (la pantalla del entreno genera mucha basura) y el aviso no se oía.
+     */
+    private val playing = java.util.Collections.synchronizedSet(mutableSetOf<android.media.MediaPlayer>())
+
+    /** Cuántos reproductores siguen vivos (pruebas). */
+    @VisibleForTesting fun active(): Int = playing.size
+
     fun play(ctx: Context, media: Boolean) {
         runCatching {
             val attrs = AudioAttributes.Builder()
@@ -234,13 +307,17 @@ object RestSound {
             val focus = if (media && am != null) android.media.AudioFocusRequest.Builder(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
                 .setAudioAttributes(attrs).build().also { am.requestAudioFocus(it) } else null
             val afd = ctx.resources.openRawResourceFd(R.raw.rest_done)
-            android.media.MediaPlayer().apply {
-                setAudioAttributes(attrs)
-                setDataSource(afd.fileDescriptor, afd.startOffset, afd.length); afd.close()
-                setOnCompletionListener { mp -> mp.release(); focus?.let { am?.abandonAudioFocusRequest(it) } }
-                setOnErrorListener { mp, _, _ -> mp.release(); focus?.let { am?.abandonAudioFocusRequest(it) }; true }
-                prepare(); start()
-            }
+            val mp = android.media.MediaPlayer()
+            playing += mp
+            fun done(p: android.media.MediaPlayer) { playing -= p; runCatching { p.release() }; focus?.let { am?.abandonAudioFocusRequest(it) } }
+            try {
+                mp.setAudioAttributes(attrs)
+                mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length); afd.close()
+                mp.setVolume(1f, 1f)
+                mp.setOnCompletionListener { done(it) }
+                mp.setOnErrorListener { p, _, _ -> done(p); true }
+                mp.prepare(); mp.start()
+            } catch (e: Exception) { done(mp); throw e }
         }
     }
 }

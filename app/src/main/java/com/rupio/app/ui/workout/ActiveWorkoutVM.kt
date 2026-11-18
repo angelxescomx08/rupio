@@ -1,5 +1,7 @@
 package com.rupio.app.ui.workout
 
+import kotlinx.coroutines.flow.first
+
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -44,6 +46,12 @@ sealed interface WorkoutEvent {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
+
+    /** v1.8: lo mejor de cada sesión del ejercicio (gráfica dentro del entreno). Incluye lo ya marcado hoy. */
+    suspend fun progress(exerciseId: String) = c.stats.sessionProgress(exerciseId)
+
+    /** v1.8: último peso corporal registrado (para las calorías estimadas), o null. */
+    suspend fun latestBodyKg(): Double? = c.bodyWeight.recent(1).first().firstOrNull()?.weightKg
 
     /** null = cargando; WorkoutUi(workout = null) = no hay entrenamiento activo. */
     val ui: StateFlow<WorkoutUi?> = c.workouts.active.flatMapLatest { w ->

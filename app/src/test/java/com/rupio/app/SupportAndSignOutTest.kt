@@ -42,7 +42,8 @@ class SupportAndSignOutTest {
         assertEquals(SupportTier.FAN, SupportTier.best(setOf(SupportTier.CAFE, SupportTier.FAN)))
         assertNull(SupportTier.best(emptySet()))
         assertEquals(SupportTier.LICUADO, SupportTier.RECOMMENDED)
-        assertEquals(3, SupportTier.entries.map { it.productId }.toSet().size)
+        // v1.8: 4 niveles (Mecenas es el cuarto, con el muro de agradecimientos).
+        assertEquals(4, SupportTier.entries.map { it.productId }.toSet().size)
         // Sin culpa, sin "el más elegido" inventado, y la libertad explícita.
         val all = listOf(SupportCopy.TITLE, SupportCopy.story(5, "1,000 lb"), SupportCopy.ASK, SupportCopy.FREEDOM).joinToString(" ").lowercase()
         listOf("culpa", "más elegido", "más popular", "no quiero", "egoísta").forEach { assertFalse(it, it in all) }

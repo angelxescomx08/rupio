@@ -360,6 +360,23 @@ interface StatsDao {
               GROUP BY performed_on HAVING best IS NOT NULL ORDER BY performed_on""")
     suspend fun e1rmCurve(exerciseId: String, from: Int): List<E1rmPoint>
 
+    /*
+     * v1.8: gráfica dentro del entreno. Una fila por sesión (las últimas :limit, de la más nueva a la más vieja), con
+     * peso tope, 1RM estimado (misma fórmula que e1rmCurve), volumen, reps y tiempo máximos. Usa el mismo índice
+     * (exercise_id, performed_on) que la curva de 1RM. Incluye las series ya marcadas del entreno en curso.
+     */
+    @Query("""SELECT performed_on,
+                     MAX(CASE WHEN weight_kg > 0 AND reps = 1 THEN weight_kg
+                              WHEN weight_kg > 0 AND reps BETWEEN 2 AND 10 THEN (weight_kg * (1 + reps / 30.0) + weight_kg * 36.0 / (37 - reps)) / 2
+                              WHEN weight_kg > 0 AND reps BETWEEN 11 AND 12 THEN weight_kg * (1 + reps / 30.0) END) AS e1rm,
+                     MAX(weight_kg) AS top_weight,
+                     COALESCE(SUM(MAX(COALESCE(weight_kg, 0), 0) * COALESCE(reps, 0)), 0) AS volume,
+                     MAX(reps) AS max_reps, MAX(duration_sec) AS max_duration
+              FROM workout_sets
+              WHERE exercise_id = :exerciseId AND completed = 1 AND deleted = 0 AND set_type != 1
+              GROUP BY performed_on ORDER BY performed_on DESC LIMIT :limit""")
+    suspend fun sessionProgress(exerciseId: String, limit: Int): List<SessionProgressRow>
+
     @Query("""SELECT performed_on, MAX(reps) AS best, 0.0 AS top_weight FROM workout_sets
               WHERE exercise_id = :exerciseId AND completed = 1 AND deleted = 0 AND set_type != 1 AND reps > 0
               GROUP BY performed_on ORDER BY performed_on""")
@@ -446,6 +463,13 @@ interface StatsDao {
 
 @Dao
 interface AdminDao {
+    // v1.7 (N9): "Exportar mis datos" (CSV). Solo entrenos terminados y series hechas, en orden.
+    @Query("SELECT * FROM workouts WHERE deleted = 0 AND ended_at IS NOT NULL ORDER BY started_at") suspend fun exportWorkouts(): List<WorkoutEntity>
+    @Query("""SELECT s.* FROM workout_sets s JOIN workouts w ON w.id = s.workout_id JOIN workout_exercises we ON we.id = s.workout_exercise_id
+              WHERE s.deleted = 0 AND s.completed = 1 AND w.deleted = 0 AND w.ended_at IS NOT NULL
+              ORDER BY w.started_at, we.position, s.position""") suspend fun exportSets(): List<WorkoutSetEntity>
+    @Query("SELECT * FROM body_weights WHERE deleted = 0 ORDER BY measured_on") suspend fun exportBodyWeights(): List<BodyWeightEntity>
+
     @Query("DELETE FROM workouts") suspend fun clearWorkouts()
     @Query("DELETE FROM routines") suspend fun clearRoutines()
     @Query("DELETE FROM personal_records") suspend fun clearRecords()
@@ -497,7 +521,6 @@ interface AdminDao {
     @Query("UPDATE workouts SET user_id = :uid, updated_at = :t, dirty = CASE WHEN deleted = 0 THEN 1 ELSE 0 END") suspend fun adoptWorkouts(uid: String, t: Long)
     @Query("UPDATE workout_exercises SET user_id = :uid, updated_at = :t, dirty = CASE WHEN deleted = 0 THEN 1 ELSE 0 END") suspend fun adoptWorkoutExercises(uid: String, t: Long)
     @Query("UPDATE workout_sets SET user_id = :uid, updated_at = :t, dirty = CASE WHEN deleted = 0 THEN 1 ELSE 0 END") suspend fun adoptSets(uid: String, t: Long)
-    @Query("UPDATE personal_records SET user_id = :uid, updated_at = :t, dirty = 1") suspend fun adoptRecords(uid: String, t: Long)
     @Query("UPDATE body_weights SET user_id = :uid, updated_at = :t, dirty = CASE WHEN deleted = 0 THEN 1 ELSE 0 END") suspend fun adoptBodyWeights(uid: String, t: Long)
     @Query("UPDATE exercises SET owner_id = :uid, updated_at = :t, dirty = CASE WHEN deleted = 0 THEN 1 ELSE 0 END WHERE is_custom = 1") suspend fun adoptCustomExercises(uid: String, t: Long)
 

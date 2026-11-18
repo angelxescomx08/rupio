@@ -56,6 +56,9 @@ fun ProfileScreen(nav: NavHostController) {
     var logout by remember { mutableStateOf(false) }
     var restAlert by remember { mutableStateOf(false) }
     var privacy by remember { mutableStateOf(false) }
+    var changeEmail by remember { mutableStateOf(false) }
+    var withdraw by remember { mutableStateOf(false) }
+    var exporting by remember { mutableStateOf(false) }
     val syncUi = LocalSyncUi.current
     val summary = rememberSyncSummary()
 
@@ -80,8 +83,11 @@ fun ProfileScreen(nav: NavHostController) {
             // Apoyo: una fila amable y siempre a la mano (para quien quiera apoyar sin esperar al mensaje).
             if (support.isSupporter) {
                 SectionCard(padding = 4.dp) {
-                    SettingRow(Icons.Rounded.Favorite, "Tus recompensas", "Color de la app" + (if (support.best == com.rupio.app.domain.SupportTier.FAN) ", ícono dorado" else "") + " y tu insignia",
+                    SettingRow(Icons.Rounded.Favorite, "Tus recompensas", "Color de la app" + (if (support.best?.hasGoldPerks == true) ", ícono dorado" else "") + " y tu insignia",
                         onClick = { nav.navigate(Routes.SUPPORT) })
+                    HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
+                    SettingRow(Icons.Rounded.AutoAwesome, "Muro de agradecimientos", if (support.isPatron) "Tu lugar y aportes para subir" else "Quienes hacen posible Rupio",
+                        onClick = { nav.navigate(Routes.WALL) })
                 }
             } else {
                 Surface(onClick = { nav.navigate(Routes.SUPPORT) }, shape = RoundedCornerShape(20.dp), color = RupioColors.Primary.copy(alpha = 0.10f),
@@ -101,6 +107,10 @@ fun ProfileScreen(nav: NavHostController) {
 
             // Aprende (antes era una pestaña; ahora Peso ocupa su lugar en la barra) y compartir, arriba y a un toque.
             SectionCard(padding = 4.dp) {
+                if (!support.isSupporter) {
+                    SettingRow(Icons.Rounded.AutoAwesome, "Muro de agradecimientos", "Quienes hacen posible Rupio", onClick = { nav.navigate(Routes.WALL) })
+                    HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
+                }
                 SettingRow(Icons.Rounded.School, "Aprende", "Tutoriales, glosario con estudios y beneficios del ejercicio", onClick = { nav.navigate(Routes.LEARN) })
                 HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
                 SettingRow(Icons.Rounded.Share, "Compartir Rupio", "Mándasela a tus amigos del gym", onClick = { ShareApp.share(context) })
@@ -163,6 +173,29 @@ fun ProfileScreen(nav: NavHostController) {
                     Button(onClick = { nav.navigate(Routes.ACCOUNT) }, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 12.dp).heightIn(min = 48.dp),
                         shape = RoundedCornerShape(14.dp)) { Icon(Icons.Rounded.CloudUpload, null); Spacer(Modifier.width(8.dp)); Text("Crear cuenta y conservar mis datos") }
                 }
+                if (!me.localOnly) {
+                    HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
+                    SettingRow(Icons.Rounded.AlternateEmail, "Cambiar correo", me.email, onClick = { changeEmail = true })
+                }
+                HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
+                // v1.7 (N2): el consentimiento del peso corporal (dato de salud) se puede retirar; se borra el historial.
+                val consentAt = s.healthConsentAt
+                SettingRow(Icons.Rounded.MonitorHeart, "Permiso de peso corporal",
+                    if (consentAt != null) "Lo diste el ${Dates.formatDay(Instant.ofEpochMilli(consentAt).atZone(zone).toLocalDate().toEpochDay().toInt()).replaceFirstChar { it.lowercase() }} · toca para retirarlo"
+                    else "No lo has dado. Se pide la primera vez que registras tu peso.",
+                    onClick = if (consentAt != null) ({ withdraw = true }) else null)
+                HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
+                // v1.7 (N9): una copia de tus datos en CSV, para guardarla o abrirla en Excel / Google Sheets.
+                SettingRow(Icons.Rounded.Download, "Exportar mis datos",
+                    if (exporting) "Preparando los archivos…" else "Entrenamientos, series y peso corporal en archivos CSV",
+                    onClick = {
+                        if (!exporting) scope.launch {
+                            exporting = true
+                            try { com.rupio.app.data.export.DataExport.share(context, com.rupio.app.data.export.DataExport.write(context, c.db)) }
+                            catch (e: Exception) { c.notices.emit(com.rupio.app.Notice("No se pudieron exportar tus datos (código E1). Inténtalo de nuevo.")) }
+                            exporting = false
+                        }
+                    })
                 HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
                 SettingRow(Icons.Rounded.PrivacyTip, "Aviso de privacidad", "Qué datos guarda Rupio y para qué", onClick = { privacy = true })
                 if (!me.localOnly) {
@@ -189,6 +222,14 @@ fun ProfileScreen(nav: NavHostController) {
     }
     if (restAlert) RestAlertDialog(s.restAlert, onPick = { scope.launch { c.settings.setRestAlert(it) } }, onClose = { restAlert = false })
     if (privacy) com.rupio.app.ui.legal.PrivacyPolicyDialog { privacy = false }
+    if (changeEmail) ChangeEmailDialog(me.email) { changeEmail = false }
+    if (withdraw) ConfirmDialog("¿Retirar tu permiso?",
+        "Se borra todo tu historial de peso corporal de este teléfono" + (if (me.localOnly) "" else " y de tu cuenta") +
+            ". Si después quieres volver a registrar tu peso, te pediremos el permiso otra vez. No se puede deshacer.",
+        "Retirar y borrar", { withdraw = false }, danger = true) {
+        withdraw = false
+        scope.launch { c.withdrawHealthConsent(); c.notices.emit(com.rupio.app.Notice("Listo. Se borró tu historial de peso corporal.")) }
+    }
     if (restPick) RestPickerDialog("Descanso por defecto", s.defaultRestSec, { restPick = false }, { scope.launch { c.settings.setDefaultRest(it) }; restPick = false })
     if (logout) ConfirmDialog("¿Cerrar sesión?",
         (if (me.localOnly) "Estás en modo local: tus datos solo viven en este teléfono y se borrarán al salir. Si quieres conservarlos, mejor usa «Crear cuenta y conservar mis datos»."
@@ -200,6 +241,42 @@ fun ProfileScreen(nav: NavHostController) {
         // Pasos visibles (subir → cerrar → borrar) en una pantalla que explica qué pasa: ver SignOutOverlay.
         c.signOut.start(me.localOnly)
     }
+}
+
+/**
+ * v1.7 (N6): cambiar el correo. El servicio de cuentas (Neon Auth) tiene apagado el cambio de correo y no hay forma
+ * de encenderlo, así que se pide por correo al responsable: escribir DESDE el correo actual prueba que la cuenta es
+ * tuya. El cambio se hace en el servidor (ver docs/QA_V17.md) y, al volver a entrar, la app pide el código que llega
+ * al correo nuevo.
+ */
+@Composable
+private fun ChangeEmailDialog(current: String, onClose: () -> Unit) {
+    val ctx = LocalContext.current
+    val to = com.rupio.app.ui.legal.PrivacyPolicy.CONTACT_EMAIL
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("Cambiar correo") },
+        text = {
+            Column {
+                Text("Por ahora el correo no se puede cambiar desde la app. Escríbenos desde tu correo actual ($current) con el correo nuevo y lo cambiamos por ti; tus datos se conservan.",
+                    style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(8.dp))
+                Text("Después cierra sesión y entra con el correo nuevo: te mandaremos un código para confirmarlo.",
+                    style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                Spacer(Modifier.height(8.dp))
+                androidx.compose.foundation.text.selection.SelectionContainer { Text(to, style = MaterialTheme.typography.titleSmall, color = RupioColors.Primary) }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val uri = android.net.Uri.parse("mailto:$to?subject=" + android.net.Uri.encode("Rupio: cambiar mi correo") +
+                    "&body=" + android.net.Uri.encode("Correo actual de mi cuenta: $current\nCorreo nuevo: \n"))
+                runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_SENDTO, uri).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                onClose()
+            }) { Text("Escribir correo") }
+        },
+        dismissButton = { TextButton(onClick = onClose) { Text("Cerrar") } },
+    )
 }
 
 /** Cómo suena el fin del descanso, con "Probar" para oírlo en el momento (antes no había ningún control). */

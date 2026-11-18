@@ -398,7 +398,7 @@ private fun PlanRows(item: EditItem, tracking: Tracking, vm: RoutineEditorVM) {
         val label = if (type == SetType.NORMAL) "${++normalIndex}" else type.short
         Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // Toca para cambiar el tipo: normal → calentamiento → drop set → al fallo.
-            Box(Modifier.width(P_TYPE).height(40.dp).clip(RoundedCornerShape(10.dp))
+            Box(Modifier.width(P_TYPE).height(50.dp).clip(RoundedCornerShape(10.dp))
                 .background(if (type == SetType.NORMAL) RupioColors.Surface2 else RupioColors.Warning.copy(alpha = 0.18f))
                 .clickable { vm.updatePlan(item.key) { l -> l.mapIndexed { k, x -> if (k == i) x.copy(t = type.next().code) else x } } },
                 contentAlignment = Alignment.Center) {
@@ -406,17 +406,18 @@ private fun PlanRows(item: EditItem, tracking: Tracking, vm: RoutineEditorVM) {
             }
             if (tracking.usesWeight) {
                 val shown = p.w?.let { Fmt.num(unit.fromKg(if (assisted) -it else it), 1).replace(",", ".") } ?: ""
+                // v1.8: la otra unidad dentro de la misma cajita ("135" y "61.2 kg"), sin descuadrar la fila.
                 NumberCell(shown, "—", { v ->
                     val num = v.toDoubleOrNull()
                     vm.updatePlan(item.key) { l -> l.mapIndexed { k, x -> if (k == i) x.copy(w = num?.let { n -> unit.toKg(kotlin.math.abs(n)).coerceAtMost(Fmt.MAX_KG).let { kg -> if (assisted) -kg else kg } }) else x } }
-                }, Modifier.width(P_VAL))
+                }, Modifier.width(P_VAL), sub = p.w?.takeIf { it != 0.0 }?.let { Fmt.weight(kotlin.math.abs(it), unit.other) }, minHeight = 50.dp)
             }
             if (tracking == Tracking.DURATION) {
                 NumberCell(p.d?.toString() ?: "", "—", { v -> vm.updatePlan(item.key) { l -> l.mapIndexed { k, x -> if (k == i) x.copy(d = v.toIntOrNull()?.coerceIn(0, 86_400)) else x } } },
-                    Modifier.width(P_VAL), decimal = false)
+                    Modifier.width(P_VAL), decimal = false, minHeight = 50.dp)
             } else {
                 NumberCell(p.r?.toString() ?: "", "${item.repMin}–${item.repMax}", { v -> vm.updatePlan(item.key) { l -> l.mapIndexed { k, x -> if (k == i) x.copy(r = v.toIntOrNull()?.coerceIn(0, 1000)) else x } } },
-                    Modifier.width(P_VAL), decimal = false)
+                    Modifier.width(P_VAL), decimal = false, minHeight = 50.dp)
             }
             Spacer(Modifier.weight(1f))
             IconButton(onClick = { vm.updatePlan(item.key) { l -> l.filterIndexed { k, _ -> k != i } } }, enabled = item.plan.size > 1, modifier = Modifier.size(P_DEL)) {

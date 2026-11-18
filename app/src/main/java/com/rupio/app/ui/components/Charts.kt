@@ -134,9 +134,11 @@ fun ProgressLineChart(
     deltaLabel: (Double) -> String = { "${Fmt.num(it)} ${unit.label}" },
     /** Qué mide la gráfica, para el resumen que lee TalkBack ("1RM estimado"). */
     title: String = "Progreso",
+    chartHeight: androidx.compose.ui.unit.Dp = 160.dp,
+    emptyText: String = "Registra al menos dos sesiones para ver tu curva de progreso.",
 ) {
     if (points.size < 2) {
-        Text("Registra al menos dos sesiones para ver tu curva de progreso.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = modifier.padding(vertical = 24.dp))
+        Text(emptyText, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = modifier.padding(vertical = 16.dp))
         return
     }
     var selected by remember(points) { mutableIntStateOf(points.lastIndex) }
@@ -162,7 +164,7 @@ fun ProgressLineChart(
         Text(Dates.formatDayShort(sel.first) + " " + sel.first.year, style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim)
         Spacer(Modifier.height(8.dp))
         Canvas(
-            Modifier.fillMaxWidth().height(160.dp).pointerInput(points) {
+            Modifier.fillMaxWidth().height(chartHeight).pointerInput(points) {
                 detectTapGestures { o -> selected = ((o.x / size.width) * (points.size - 1)).roundToInt().coerceIn(0, points.lastIndex) }
             }.pointerInput(points) {
                 detectDragGestures { c, _ -> selected = ((c.position.x / size.width) * (points.size - 1)).roundToInt().coerceIn(0, points.lastIndex) }
@@ -245,5 +247,37 @@ fun TrainingHeatmap(days: Map<Int, Int>, from: LocalDate, to: LocalDate, modifie
             }
             Text(" Más", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
         }
+    }
+}
+
+/**
+ * v1.8 · Reparto de músculos de UN entreno: barras horizontales con series y porcentaje (método fraccional: el
+ * músculo principal cuenta 1 por serie y cada secundario 0.5). El porcentaje va en texto, no solo en la barra.
+ */
+@Composable
+fun MuscleSplitBars(shares: List<com.rupio.app.domain.MuscleShare>, modifier: Modifier = Modifier) {
+    if (shares.isEmpty()) return
+    val top = shares.maxOf { it.share }.coerceAtLeast(0.01)
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        shares.forEach { s ->
+            val name = if (s.muscle.isBlank()) "Otros" else Muscles.label(s.muscle)
+            val pct = (s.share * 100).roundToInt()
+            Column(Modifier.semantics(mergeDescendants = true) { contentDescription = "$name: ${Fmt.num(s.sets, 1)} series, $pct por ciento" }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 1)
+                    Text("${Fmt.num(s.sets, 1)} ${if (s.sets == 1.0) "serie" else "series"}", style = MaterialTheme.typography.labelMedium.merge(Tabular), color = RupioColors.TextDim)
+                    Text("$pct %", style = MaterialTheme.typography.labelLarge.merge(Tabular), modifier = Modifier.widthIn(min = 48.dp), textAlign = TextAlign.End)
+                }
+                Spacer(Modifier.height(4.dp))
+                Canvas(Modifier.fillMaxWidth().height(8.dp)) {
+                    val r = CornerRadius(size.height / 2, size.height / 2)
+                    drawRoundRect(RupioColors.Surface3, size = size, cornerRadius = r)
+                    drawRoundRect(if (s.muscle.isBlank()) RupioColors.TextFaint else RupioColors.Chart,
+                        size = Size((s.share / top * size.width).toFloat().coerceAtLeast(size.height), size.height), cornerRadius = r)
+                }
+            }
+        }
+        Text("Cada serie cuenta 1 para el músculo principal y media para los que ayudan. Los calentamientos no cuentan.",
+            style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
     }
 }

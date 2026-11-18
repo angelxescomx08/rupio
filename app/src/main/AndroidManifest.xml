@@ -67,5 +67,16 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Cronómetro de entrenamiento y temporizador de descanso entre series iniciados por el usuario" />
         </service>
+
+        <!-- Comparte los CSV de "Exportar mis datos" con la app que elijas (permiso de lectura temporal). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

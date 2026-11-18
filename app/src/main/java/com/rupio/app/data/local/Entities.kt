@@ -244,6 +244,16 @@ data class WorkoutExerciseSummary(
 )
 data class ExerciseSetCount(@ColumnInfo(name = "exercise_id") val exerciseId: String, val sets: Int, val volume: Double)
 
+/** v1.8: lo mejor de cada sesión de un ejercicio, para la gráfica dentro del entreno. */
+data class SessionProgressRow(
+    @ColumnInfo(name = "performed_on") val performedOn: Int,
+    val e1rm: Double?,
+    @ColumnInfo(name = "top_weight") val topWeight: Double?,
+    val volume: Double,
+    @ColumnInfo(name = "max_reps") val maxReps: Int?,
+    @ColumnInfo(name = "max_duration") val maxDuration: Int?,
+)
+
 /** Nombre y día de una fila, para decir qué cambio rechazó el servidor. */
 data class RowLabel(val name: String?, val day: Int?)
 

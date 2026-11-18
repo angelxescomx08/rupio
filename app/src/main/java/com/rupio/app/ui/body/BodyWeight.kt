@@ -1,5 +1,7 @@
 package com.rupio.app.ui.body
 
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import com.rupio.app.safePop
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -197,6 +199,8 @@ fun BodyWeightScreen(nav: NavHostController) {
     var logging by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<BodyWeightEntity?>(null) }
     var deleting by remember { mutableStateOf<BodyWeightEntity?>(null) }
+    val st by c.settings.settings.collectAsStateWithLifecycle(initialValue = null)
+    val consentLoaded = st != null; val consentAt = st?.healthConsentAt
     val list = rememberLazyListState()
     val nearEnd by remember { derivedStateOf { list.layoutInfo.visibleItemsInfo.lastOrNull()?.index?.let { it >= list.layoutInfo.totalItemsCount - 8 } ?: false } }
     LaunchedEffect(nearEnd) { if (nearEnd) vm.loadMore() }
@@ -218,6 +222,7 @@ fun BodyWeightScreen(nav: NavHostController) {
         LazyColumn(Modifier.fillMaxSize().padding(pad), state = list, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { WeightHero(latest, v, unit, today) { if (latest?.measuredOn == today) editing = latest else logging = true } }
+            if (latest != null && consentLoaded && consentAt == null) item { HealthConsentCard() }
             item {
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     WeightRange.entries.forEachIndexed { i, r ->
@@ -358,6 +363,10 @@ fun LogWeightDialog(
     val start = lastKg?.let { unit.fromKg(it) } ?: if (unit == WeightUnit.LB) 160.0 else 72.0
     var text by remember { mutableStateOf(Fmt.num(start, 1).replace(",", ".")) }
     var picking by remember { mutableStateOf(false) }
+    // v1.7 (N2): el peso corporal es un dato de salud; la primera vez se pide permiso expreso con una casilla.
+    val st by c.settings.settings.collectAsStateWithLifecycle(initialValue = null)
+    val needConsent = st != null && st?.healthConsentAt == null
+    var consent by remember { mutableStateOf(false) }
     val value = text.replace(',', '.').toDoubleOrNull()
     val kg = value?.let { unit.toKg(it) }
     val valid = kg != null && kg in 20.0..400.0
@@ -411,9 +420,15 @@ fun LogWeightDialog(
                 } else {
                     Text(Dates.formatDay(day.toEpochDay().toInt()), style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim, modifier = Modifier.padding(top = 8.dp))
                 }
+                if (needConsent) HealthConsentCheckbox(consent) { consent = it }
             }
         },
-        confirmButton = { TextButton(enabled = valid, onClick = { onSave(day, kg!!) }) { Text("Guardar") } },
+        confirmButton = {
+            TextButton(enabled = valid && st != null && (!needConsent || consent), onClick = {
+                if (needConsent) c.scope.launch { c.giveHealthConsent() }
+                onSave(day, kg!!)
+            }) { Text("Guardar") }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
     )
     if (picking) {
@@ -435,6 +450,54 @@ fun LogWeightDialog(
             dismissButton = { TextButton(onClick = { picking = false }) { Text("Cancelar") } },
         ) { DatePicker(state) }
     }
+}
+
+/** Texto exacto de la casilla de consentimiento (también lo usa la prueba). */
+const val HEALTH_CONSENT_TEXT = "Acepto que Rupio guarde mi peso corporal (dato de salud) para mostrarme mi tendencia"
+
+/** Casilla de consentimiento expreso del peso corporal. Toda la fila se puede tocar. */
+@Composable
+fun HealthConsentCheckbox(checked: Boolean, onChange: (Boolean) -> Unit) {
+    Spacer(Modifier.height(12.dp))
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+            .toggleable(checked, role = Role.Checkbox, onValueChange = onChange).padding(vertical = 4.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Checkbox(checked, onCheckedChange = null, modifier = Modifier.padding(top = 2.dp))
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text(HEALTH_CONSENT_TEXT, style = MaterialTheme.typography.bodyMedium)
+            Text("Puedes retirar tu permiso cuando quieras en Perfil; se borra tu historial de peso.",
+                style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+        }
+    }
+}
+
+/**
+ * Pesos guardados con una versión anterior (antes de pedir permiso): se pide el permiso una vez, o se borran.
+ */
+@Composable
+private fun HealthConsentCard() {
+    val c = container()
+    val scope = rememberCoroutineScope()
+    var checked by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
+    SectionCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Rounded.PrivacyTip, null, tint = RupioColors.Warning); Spacer(Modifier.width(8.dp))
+            Text("Tu permiso para guardar tu peso", style = MaterialTheme.typography.titleSmall)
+        }
+        Text("Tu peso corporal es un dato de salud. Para seguir guardándolo necesitamos que lo aceptes.",
+            style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim, modifier = Modifier.padding(top = 4.dp))
+        HealthConsentCheckbox(checked) { checked = it }
+        FlowRow(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+            TextButton(onClick = { deleting = true }, colors = ButtonDefaults.textButtonColors(contentColor = RupioColors.Danger)) { Text("Borrar mi peso") }
+            Button(enabled = checked, onClick = { scope.launch { c.giveHealthConsent() } }) { Text("Aceptar") }
+        }
+    }
+    if (deleting) ConfirmDialog("¿Borrar tu peso corporal?", "Se borra todo tu historial de peso de este teléfono y de tu cuenta. No se puede deshacer.",
+        "Borrar", { deleting = false }, danger = true) { deleting = false; scope.launch { c.withdrawHealthConsent() } }
 }
 
 // ------------------------------------------------------------------ gráfica

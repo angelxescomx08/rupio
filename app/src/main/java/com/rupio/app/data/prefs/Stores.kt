@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.rupio.app.core.WeightUnit
@@ -34,21 +35,37 @@ data class Settings(
     val tutorialWorkout: Boolean = false,
     /** Pantalla encendida mientras entrenas (se puede apagar en Perfil). */
     val keepScreenOn: Boolean = true,
-    /** Cómo avisa el fin del descanso: sonido de notificación, solo vibración o con el volumen de la música. */
-    val restAlert: RestAlertMode = RestAlertMode.SOUND,
+    /** Cómo avisa el fin del descanso. v1.8: por defecto con el volumen de la música (se oye en vibración y sobre un video). */
+    val restAlert: RestAlertMode = RestAlertMode.MEDIA,
     /** Ya se explicó y pidió el permiso de notificaciones (no se vuelve a interrumpir al empezar cada entreno). */
     val notifAsked: Boolean = false,
+    /**
+     * Consentimiento expreso para guardar el peso corporal (dato de salud, LFPDPPP art. 8): cuándo lo dio, o null.
+     * Sin él, al registrar el primer peso se pide con una casilla.
+     */
+    val healthConsentAt: Long? = null,
+    /** El consentimiento cambió en este teléfono y falta avisarle al servidor (columna profiles.health_consent_at). */
+    val healthConsentDirty: Boolean = false,
+    /** Sube con cada cambio del consentimiento (para no marcar como enviado un cambio hecho a media sincronización). */
+    val healthConsentRev: Int = 0,
+    /** Se retiró el consentimiento y falta borrar el peso corporal de la cuenta (aunque luego se vuelva a dar). */
+    val healthPurgePending: Boolean = false,
     val authUrl: String = "",
     val dataApiUrl: String = "",
 )
 
 /** Cómo suena el fin del descanso. */
 enum class RestAlertMode(val code: String, val label: String, val detail: String) {
-    SOUND("sound", "Sonido y vibración", "Usa el volumen de notificaciones"),
-    MEDIA("media", "Con el volumen de la música", "Se oye en tus audífonos y baja la música un momento"),
+    MEDIA("media", "Con el volumen de la música (recomendado)",
+        "Se oye aunque el teléfono esté en vibración, por la bocina o tus audífonos, y baja un momento la música o el video. En silencio total, solo vibra (salvo con audífonos o si algo está sonando)"),
+    SOUND("sound", "Como notificación", "Usa el volumen de notificaciones: en vibración o silencio no suena"),
     VIBRATE("vibrate", "Solo vibración", "Sin sonido");
 
-    companion object { fun of(code: String?) = entries.firstOrNull { it.code == code } ?: SOUND }
+    /**
+     * v1.8: si nunca elegiste, ahora es MEDIA. Antes era SOUND, que en vibración no suena: así llegó el reporte de que
+     * "no suena la notificación ni dentro ni fuera de la app, ni viendo un video".
+     */
+    companion object { fun of(code: String?) = entries.firstOrNull { it.code == code } ?: MEDIA }
 }
 
 /** Preferencias del usuario (unidad lb/kg, descanso por defecto, inicio de semana, tutorial). */
@@ -64,6 +81,10 @@ class SettingsStore(private val context: Context, private val defaultAuth: Strin
         val screenOn = booleanPreferencesKey("keep_screen_on")
         val restAlert = stringPreferencesKey("rest_alert")
         val notifAsked = booleanPreferencesKey("notif_asked")
+        val consentAt = longPreferencesKey("health_consent_at")
+        val consentDirty = booleanPreferencesKey("health_consent_dirty")
+        val consentRev = intPreferencesKey("health_consent_rev")
+        val purge = booleanPreferencesKey("health_purge_pending")
         val authUrl = stringPreferencesKey("auth_url")
         val dataUrl = stringPreferencesKey("data_api_url")
     }
@@ -81,6 +102,10 @@ class SettingsStore(private val context: Context, private val defaultAuth: Strin
         keepScreenOn = this[K.screenOn] ?: true,
         restAlert = RestAlertMode.of(this[K.restAlert]),
         notifAsked = this[K.notifAsked] ?: false,
+        healthConsentAt = this[K.consentAt],
+        healthConsentDirty = this[K.consentDirty] ?: false,
+        healthConsentRev = this[K.consentRev] ?: 0,
+        healthPurgePending = this[K.purge] ?: false,
         authUrl = (this[K.authUrl] ?: defaultAuth).trim().trimEnd('/'),
         dataApiUrl = (this[K.dataUrl] ?: defaultData).trim().trimEnd('/'),
     )
@@ -96,6 +121,30 @@ class SettingsStore(private val context: Context, private val defaultAuth: Strin
     suspend fun setKeepScreenOn(v: Boolean) = context.dataStore.edit { it[K.screenOn] = v }
     suspend fun setRestAlert(m: RestAlertMode) = context.dataStore.edit { it[K.restAlert] = m.code }
     suspend fun setNotifAsked(v: Boolean) = context.dataStore.edit { it[K.notifAsked] = v }
+    /** La persona marcó la casilla (o la retiró en Perfil, con null). Queda pendiente de avisar al servidor. */
+    suspend fun setHealthConsent(at: Long?) = context.dataStore.edit {
+        if (at == null) { it.remove(K.consentAt); it[K.purge] = true } else it[K.consentAt] = at
+        it[K.consentDirty] = true; it[K.consentRev] = (it[K.consentRev] ?: 0) + 1
+    }
+    /**
+     * Al pasar los datos del modo sin cuenta a una cuenta: un consentimiento dado en este teléfono se sube; si no hay,
+     * manda lo que diga la cuenta. Un retiro hecho sin cuenta nunca borra el peso de la cuenta.
+     */
+    suspend fun adoptHealthConsent() = context.dataStore.edit {
+        it.remove(K.purge)
+        if (it[K.consentAt] == null) it.remove(K.consentDirty) else { it[K.consentDirty] = true; it[K.consentRev] = (it[K.consentRev] ?: 0) + 1 }
+    }
+    /** La cuenta ya no tiene peso corporal (se borró tras retirar el consentimiento). */
+    suspend fun markHealthPurged() = context.dataStore.edit { it.remove(K.purge) }
+    /** Lo que dice la cuenta (otro teléfono pudo darlo o retirarlo). Nunca pisa un cambio local pendiente. */
+    suspend fun setHealthConsentFromServer(at: Long?) = context.dataStore.edit {
+        if (it[K.consentDirty] == true) return@edit
+        if (at == null) it.remove(K.consentAt) else it[K.consentAt] = at
+    }
+    /** El servidor ya tiene el cambio [rev]; si hubo otro cambio mientras tanto, sigue pendiente. */
+    suspend fun markHealthConsentSynced(rev: Int) = context.dataStore.edit { if ((it[K.consentRev] ?: 0) == rev) it[K.consentDirty] = false }
+    /** Al borrar los datos del teléfono (otra cuenta, cuenta eliminada): el consentimiento era de esa cuenta. */
+    suspend fun clearHealthConsent() = context.dataStore.edit { it.remove(K.consentAt); it.remove(K.consentDirty); it.remove(K.consentRev); it.remove(K.purge) }
     suspend fun setServer(auth: String, data: String) = context.dataStore.edit { it[K.authUrl] = auth.trim(); it[K.dataUrl] = data.trim() }
     /** Repite solo el recorrido guiado de botones (sin la bienvenida). */
     suspend fun resetCoach() = context.dataStore.edit { it[K.tHome] = false; it[K.tWorkout] = false }

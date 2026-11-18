@@ -64,6 +64,16 @@ Para comparar una sesión con otra, el ejercicio debe ser el mismo (misma máqui
 - Proteína: ~1.6 g/kg/día es suficiente para la mayoría (Morton 2018).
 - La gráfica de peso usa una tendencia (media móvil exponencial de 10 % por día, ajustada a los días sin registro) porque el peso diario varía 1–2 kg por agua y comida.
 
+## 9b. Calorías estimadas de un entreno (v1.8)
+
+| Evidencia | Uso |
+|---|---|
+| **2024 Adult Compendium of Physical Activities** (Herrmann et al., J Sport Health Sci 13(1):6-12, [pacompendium.com](https://pacompendium.com/conditioning-exercise)) | Código **02054**: pesas, varios ejercicios, 8–15 reps con carga variada = **3.5 MET**. (02052 sentadilla/peso muerto lento o explosivo = 5.0; 02050 powerlifting/fisicoculturismo vigoroso = 6.0.) | kcal = 3.5 × kg × horas. Es la descripción más parecida a una sesión típica de Rupio. Incluye el gasto en reposo (MET brutos). Peso: el último registrado; si no hay, 70 kg (y se dice). Si el entreno quedó abierto, máximo 5 min por serie efectiva y 3 h. Se redondea a 5 kcal y se avisa que puede variar ±20–30 %. |
+
+## 9c. Reparto de músculos de un entreno (v1.8)
+
+Mismo método fraccional que "Series por músculo" (Pelland et al. 2026): cada serie efectiva cuenta 1 para el músculo principal y 0.5 para cada secundario; los calentamientos no cuentan. Se muestran los 6 músculos con más series y el resto como "Otros", con series y porcentaje en texto.
+
 ## 10. Beneficios del ejercicio de fuerza
 
 OMS 2020 (2+ días por semana); Momma 2022 (10–17 % menos mortalidad, enfermedad cardiovascular, cáncer y diabetes; máximo beneficio con ~30–60 min/semana); Gordon 2018 (depresión) y 2017 (ansiedad); Watson 2018 (densidad ósea); Westcott 2012 (metabolismo, presión, músculo).

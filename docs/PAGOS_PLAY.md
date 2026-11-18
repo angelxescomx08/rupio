@@ -34,7 +34,7 @@ Después genera el paquete para Play:
 
 **Prueba y lanzamiento → Pruebas → Prueba interna → Crear versión** y sube el `.aab`. Google solo deja crear productos cuando ya subiste una versión que incluye la biblioteca de pagos.
 
-## 4. Crea los 3 productos
+## 4. Crea los productos
 
 **Monetizar → Productos → Productos únicos → Crear producto**. Los IDs deben ser **exactamente** estos (la app los busca así):
 
@@ -47,6 +47,26 @@ Después genera el paquete para Play:
 - Descripción sugerida: «Apoyo voluntario a Rupio. Quita el mensaje de apoyo y agrega adornos. No desbloquea funciones.»
 - Deja que Google convierta el precio a otros países (puedes ajustar después).
 - **Actívalos** (si quedan como borrador, la app no los ve).
+
+### 4b. Nivel Mecenas y muro de agradecimientos (v1.8)
+
+Estos tres son **consumibles** (se pueden comprar varias veces): en Play Console, al crearlos, en «Opciones de compra» deja que se puedan volver a comprar. La app los consume cuando el servidor ya los registró.
+
+| ID del producto | Nombre | Precio (MXN) | Puntos en el muro |
+|---|---|---|---|
+| `rupio_mecenas` | Mecenas 🌟 | 499 | 499 |
+| `rupio_muro_99` | Aporte al muro | 99 | 99 |
+| `rupio_muro_249` | Aporte al muro | 249 | 249 |
+
+- Descripción sugerida: «Apoyo voluntario a Rupio. Mecenas pone tu nombre en el muro de agradecimientos (con todo lo de Fan). Los aportes extra suman puntos y te suben de lugar. No desbloquea funciones.»
+- Los **puntos** los decide el servidor (tabla `wall_products`), no el teléfono ni el precio en otra moneda. Si cambias un precio, cambia también los puntos ahí.
+- **Antes de activar estos productos**, carga la llave pública de licencias en el servidor (sin ella el muro no acepta compras y la app las deja pendientes):
+  1. Play Console → Monetizar con Play → Configuración de monetización → **Licencias** → copia la llave (empieza con `MIIBIjANBgkq…`). No es secreta.
+  2. `python3 db/wall/llave_play.py "MIIBIjANBgkq…"` → imprime un `update public.wall_config …`.
+  3. Pégalo en Neon → SQL Editor (rol `neondb_owner`) y córrelo.
+- El servidor verifica **cada compra** con esa llave (firma RSA-SHA1 de Google, en SQL puro: `rupio_play_signature_ok`), que el paquete sea `com.rupio.app`, que el pago esté completo, que el token no se haya usado y que la compra sea de **esa cuenta de Rupio** (la app manda `obfuscatedAccountId` = sha256 del id de la cuenta). Pruebas: `db/wall/prueba_muro.py` (24 casos contra un Postgres local).
+- **Reembolsos**: el muro no se entera solo. Si reembolsas un aporte, corre `select public.rupio_wall_admin_revoke('<purchaseToken>');` (lo ves en la orden de Play Console o en `wall_payments`). Nombre ofensivo: `update public.wall_entries set blocked = true where display_name ilike '%…%';` (la persona ve que fue ocultado y puede cambiarlo).
+- Para el muro hace falta **cuenta de Rupio** (la Data API pide JWT): en modo sin cuenta la app ofrece «Crear cuenta y conservar mis datos».
 
 ## 5. Prueba sin que te cobren
 
@@ -63,7 +83,8 @@ Después genera el paquete para Play:
 - **Reconoce** cada compra al momento; si no, Google la reembolsaría a los 3 días.
 - Al abrir la app o volver a ella, **confirma con Google Play**: respeta reembolsos (se quitan los adornos y el color vuelve a azul) y recupera las compras al reinstalar o cambiar de teléfono («Restaurar compras»).
 - Las compras pertenecen a la **cuenta de Google**, no a la cuenta de Rupio: cerrar sesión no las quita.
-- Sin servidor propio, la verificación es en el teléfono. Para un apoyo voluntario que solo da adornos es suficiente. Si algún día vendes funciones de pago, conviene verificar los recibos en un servidor (Google Play Developer API).
+- Café, licuado y Fan: sin servidor propio, la verificación es en el teléfono. Para un apoyo voluntario que solo da adornos es suficiente. Si algún día vendes funciones de pago, conviene verificar los recibos en un servidor (Google Play Developer API).
+- Mecenas y aportes del muro: **sí se verifican en el servidor** (ver 4b), porque el lugar en el muro lo ven todos. La compra se reconoce enseguida, se registra en el servidor y solo entonces se consume; si falla (sin internet, servidor sin llave), queda pendiente y se reintenta al abrir la app, sin sumar dos veces.
 
 ## 7. Dinero e impuestos (México, noviembre 2026)
 

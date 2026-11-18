@@ -46,6 +46,8 @@ import com.rupio.app.data.billing.SupportState
 import com.rupio.app.domain.Accent
 import com.rupio.app.domain.SupportCopy
 import com.rupio.app.domain.SupportTier
+import com.rupio.app.domain.WallBoost
+import com.rupio.app.Routes
 import com.rupio.app.safePop
 import com.rupio.app.ui.components.*
 import com.rupio.app.ui.theme.RupioColors
@@ -172,7 +174,8 @@ private fun TierCard(t: SupportTier, price: String, selected: Boolean, recommend
 
 /** Pantalla de gracias con confeti, la insignia ganada y (si aplica) los colores para elegir de una vez. */
 @Composable
-fun ThanksDialog(tier: SupportTier, state: SupportState, onAccent: (Accent) -> Unit, onGoldIcon: (Boolean) -> Unit, onClose: () -> Unit) {
+fun ThanksDialog(tier: SupportTier, state: SupportState, onAccent: (Accent) -> Unit, onGoldIcon: (Boolean) -> Unit, onClose: () -> Unit,
+                 wallRank: Int? = null, onSeeWall: (() -> Unit)? = null) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = RupioColors.Black) {
             Box(Modifier.fillMaxSize()) {
@@ -189,13 +192,26 @@ fun ThanksDialog(tier: SupportTier, state: SupportState, onAccent: (Accent) -> U
                     SupporterBadge(tier)
                     Text("Ya está en tu perfil. El mensaje de apoyo no volverá a salir.", style = MaterialTheme.typography.bodySmall,
                         color = RupioColors.TextFaint, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp))
+                    if (tier == SupportTier.MECENAS) {
+                        Spacer(Modifier.height(18.dp))
+                        Surface(shape = RoundedCornerShape(18.dp), color = Color(0xFFF2C14E).copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, Color(0xFFF2C14E).copy(alpha = 0.6f)), modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(if (wallRank != null) "¡Ya estás en el muro! Lugar #$wallRank" else "¡Ya estás en el muro!",
+                                    style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                                Text("Todas las personas que usan Rupio verán tu nombre. Puedes cambiarlo o quitarlo cuando quieras.",
+                                    style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+                                if (onSeeWall != null) FilledTonalButton(onClick = onSeeWall, modifier = Modifier.padding(top = 10.dp)) { Text("Ver el muro") }
+                            }
+                        }
+                    }
                     if (Accent.entries.count { it.unlockedBy(state.best) } > 1) {
                         Spacer(Modifier.height(24.dp))
                         SectionCard {
                             Text("Elige el color de tu Rupio", style = MaterialTheme.typography.titleMedium)
                             Spacer(Modifier.height(10.dp))
                             AccentPicker(state, onAccent)
-                            if (state.best == SupportTier.FAN) {
+                            if (state.best?.hasGoldPerks == true) {
                                 Spacer(Modifier.height(10.dp)); HorizontalDivider(color = RupioColors.Outline)
                                 GoldIconRow(state.goldIcon, onGoldIcon)
                             }
@@ -227,6 +243,7 @@ private fun tierBrush(t: SupportTier): Brush = when (t) {
     SupportTier.CAFE -> Brush.linearGradient(listOf(Color(0xFF6B4A33), Color(0xFF3A2719)))
     SupportTier.LICUADO -> Brush.linearGradient(listOf(Color(0xFF2E5BD8), Color(0xFF7A4DE0)))
     SupportTier.FAN -> Brush.linearGradient(listOf(Color(0xFFF7D774), Color(0xFFB8860B)))
+    SupportTier.MECENAS -> MecenasBrush
 }
 
 /** Confeti que cae una vez (unos 3 s) y desaparece. Solo decoración: no bloquea los toques. */
@@ -264,7 +281,7 @@ private data class Piece(val x0: Float, val y0: Float, val drift: Float, val spe
 @Composable
 fun SupporterBadge(tier: SupportTier, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(50)
-    if (tier == SupportTier.FAN) {
+    if (tier.hasGoldPerks) {
         val inf = rememberInfiniteTransition(label = "fan")
         val x by inf.animateFloat(-1f, 2f, infiniteRepeatable(tween(2600, easing = LinearEasing)), label = "shine")
         val wobble by inf.animateFloat(-8f, 8f, infiniteRepeatable(tween(700, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "wobble")
@@ -338,10 +355,29 @@ private fun GoldIconRow(on: Boolean, onChange: (Boolean) -> Unit) {
 fun SupportScreen(nav: NavHostController) {
     val c = container()
     val state by c.support.state.collectAsStateWithLifecycle()
+    val wall by c.wall.state.collectAsStateWithLifecycle()
+    val auth by c.auth.state.collectAsStateWithLifecycle()
     val activity = LocalContext.current.findActivity()
     LaunchedEffect(Unit) { c.support.refresh() }
     DisposableEffect(Unit) { onDispose { c.support.clearMessage() } }
     val best = state.best
+    val signed = auth as? com.rupio.app.data.auth.AuthState.SignedIn
+    val wallReady = signed != null && !signed.localOnly && !signed.needsVerification
+    var askName by remember { mutableStateOf(false) }
+    var askAccount by remember { mutableStateOf(false) }
+    // Mecenas: primero el nombre y el permiso para publicarlo; luego Google Play.
+    val onBuy: (SupportTier) -> Unit = { t ->
+        if (t != SupportTier.MECENAS) activity?.let { c.support.buy(it, t) }
+        else if (!wallReady) askAccount = true
+        else askName = true
+    }
+    if (askName) WallNameDialog(
+        title = "Ser Mecenas · ${state.price(SupportTier.MECENAS)}",
+        intro = "Escribe cómo quieres aparecer. Después de pagar entras al muro con este nombre.",
+        initial = wall.me?.name ?: signed?.name.orEmpty(), confirm = "Continuar al pago", askConsent = true,
+        onDismiss = { askName = false },
+    ) { name -> askName = false; activity?.let { c.support.buyWall(it, WallBoost.BIG, name) } }
+    if (askAccount) WallAccountDialog(signed?.localOnly == true, onCreate = { askAccount = false; nav.navigate(Routes.ACCOUNT) }, onDismiss = { askAccount = false })
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         RupioTopBar(if (best == null) "Apoya Rupio" else "Tus recompensas", onBack = { nav.safePop() })
@@ -367,13 +403,18 @@ fun SupportScreen(nav: NavHostController) {
                     if (state.owned.size > 1) Text("Niveles: " + state.owned.sortedBy { it.rank }.joinToString(" · ") { it.emoji + " " + it.title },
                         style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim, modifier = Modifier.padding(top = 8.dp))
                 }
+                if (best == SupportTier.MECENAS) WallSummaryCard(wall.me) { nav.navigate(Routes.WALL) }
                 SectionCard {
                     Text("Color de la app", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(10.dp))
                     AccentPicker(state) { c.support.setAccent(it) }
-                    if (best == SupportTier.FAN) { Spacer(Modifier.height(6.dp)); HorizontalDivider(color = RupioColors.Outline); GoldIconRow(state.goldIcon) { c.support.setGoldIcon(it) } }
+                    if (best.hasGoldPerks) { Spacer(Modifier.height(6.dp)); HorizontalDivider(color = RupioColors.Outline); GoldIconRow(state.goldIcon) { c.support.setGoldIcon(it) } }
                 }
-                if (best != SupportTier.FAN) Text("¿Quieres más adornos? Puedes subir de nivel:", style = MaterialTheme.typography.titleSmall)
+                when (best) {
+                    SupportTier.MECENAS -> {}
+                    SupportTier.FAN -> Text("¿Quieres aparecer en el muro de agradecimientos? Hazte Mecenas:", style = MaterialTheme.typography.titleSmall)
+                    else -> Text("¿Quieres más adornos? Puedes subir de nivel:", style = MaterialTheme.typography.titleSmall)
+                }
             }
             if (state.pending.isNotEmpty()) Surface(color = RupioColors.Warning.copy(alpha = 0.12f), shape = RoundedCornerShape(12.dp)) {
                 Text("Tienes un pago pendiente (${state.pending.joinToString { it.title }}). Cuando lo completes se activa solo.",
@@ -381,7 +422,10 @@ fun SupportScreen(nav: NavHostController) {
             }
             var selected by rememberSaveable(state.best) { mutableStateOf(defaultTier(state)) }
             SupportTiers(state, selected) { selected = it }
-            SupportBuyButton(state, selected, onBuy = { t -> activity?.let { c.support.buy(it, t) } }, onDebugGrant = { c.support.debugGrant(it) })
+            SupportBuyButton(state, selected, onBuy = onBuy, onDebugGrant = { c.support.debugGrant(it) })
+            TextButton(onClick = { nav.navigate(Routes.WALL) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Text("🌟"); Spacer(Modifier.width(6.dp)); Text("Ver el muro de agradecimientos")
+            }
             TextButton(onClick = { c.support.refresh() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 Icon(Icons.Rounded.Restore, null); Spacer(Modifier.width(6.dp)); Text("Restaurar compras")
             }
@@ -398,6 +442,31 @@ fun SupportScreen(nav: NavHostController) {
                 Text("Quitar compras simuladas (solo pruebas)", color = RupioColors.TextFaint)
             }
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+/** En "Tus recompensas" de un Mecenas: su lugar y un atajo al muro. */
+@Composable
+fun WallSummaryCard(me: com.rupio.app.data.billing.WallMe?, onOpen: () -> Unit) {
+    Surface(onClick = onOpen, shape = RoundedCornerShape(18.dp), color = Color(0xFFF2C14E).copy(alpha = 0.10f),
+        border = BorderStroke(1.dp, Color(0xFFF2C14E).copy(alpha = 0.6f)), modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(44.dp).clip(CircleShape).background(MecenasBrush), contentAlignment = Alignment.Center) {
+                Text(me?.rank?.takeIf { me.hidden.not() }?.let { "#$it" } ?: "🌟", color = Color(0xFF1B1300), fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Muro de agradecimientos", style = MaterialTheme.typography.titleMedium)
+                Text(when {
+                    me == null -> "Toca para ver tu lugar"
+                    me.hidden -> "Tu nombre está oculto"
+                    me.rank != null && me.toNext != null && me.rank > 1 -> "Lugar #${me.rank} · te faltan ${me.toNext} puntos para subir"
+                    me.rank != null -> "Lugar #${me.rank}"
+                    else -> "${me.points} puntos"
+                }, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+            }
+            Icon(Icons.Rounded.ChevronRight, null, tint = RupioColors.TextFaint)
         }
     }
 }

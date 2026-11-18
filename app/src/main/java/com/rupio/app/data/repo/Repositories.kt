@@ -292,6 +292,10 @@ class StatsRepository(private val db: RupioDatabase, private val settings: Setti
         return E1rmSeries(exerciseId, name, pts, pts.maxOfOrNull { it.second })
     }
 
+    /** v1.8: lo mejor de las últimas [limit] sesiones de un ejercicio, de la más vieja a la más nueva. */
+    suspend fun sessionProgress(exerciseId: String, limit: Int = 30): List<com.rupio.app.data.local.SessionProgressRow> =
+        dao.sessionProgress(exerciseId, limit).reversed()
+
     /** Series recientes de un ejercicio (las últimas [limit]; suficiente para ~15 sesiones). */
     suspend fun exerciseHistory(exerciseId: String, limit: Int = 300): List<SessionSetRow> = db.workouts().previousSets(exerciseId, "-", limit)
 }

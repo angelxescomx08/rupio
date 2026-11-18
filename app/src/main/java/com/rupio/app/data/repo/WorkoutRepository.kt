@@ -27,6 +27,13 @@ object SupersetOps {
 
 data class ToggleResult(val completed: Boolean, val newRecords: Set<RecordKind>)
 
+/** Una serie del editor de un entreno terminado ([id] null = serie nueva). Pesos en kg (la ayuda va en negativo). */
+data class EditedSet(val id: String?, val workoutExerciseId: String, val exerciseId: String, val setType: Int,
+                     val weightKg: Double?, val reps: Int?, val durationSec: Int?, val rpe: Double? = null)
+
+/** Qué cambió al guardar el editor: series cambiadas o nuevas y series quitadas. */
+data class EditResult(val touched: Set<String>, val removed: Set<String>)
+
 /** Cómo estaban los ejercicios y las series antes de quitar algo, para "Deshacer". */
 data class WorkoutSnapshot(val exercises: List<WorkoutExerciseEntity>, val sets: List<WorkoutSetEntity>)
 
@@ -218,9 +225,59 @@ class WorkoutRepository(
         dao.upsertSet(s.copy(deleted = true, dirty = true, updatedAt = now()))
     }
 
-    suspend fun updateSet(setId: String, weightKg: Double?, reps: Int?, durationSec: Int?, rpe: Double?) {
+    suspend fun updateSet(setId: String, weightKg: Double?, reps: Int?, durationSec: Int?, rpe: Double?, setType: Int? = null) {
         val s = dao.getSet(setId) ?: return
-        dao.upsertSet(s.copy(weightKg = weightKg, reps = reps, durationSec = durationSec, rpe = rpe, updatedAt = now(), dirty = true))
+        dao.upsertSet(s.copy(weightKg = weightKg, reps = reps, durationSec = durationSec, rpe = rpe, setType = setType ?: s.setType,
+            updatedAt = now(), dirty = true))
+    }
+
+    /**
+     * v1.7 (N1): guarda lo que cambiaste en un entreno YA terminado, en una sola transacción:
+     * series cambiadas (updateSet), quitadas (borrado suave) y nuevas; los ejercicios que se quedan sin series se
+     * quitan (como al terminar). Recalcula volumen, series y repeticiones del entreno, lo marca para subir y recalcula
+     * los récords de los ejercicios afectados. Devuelve las series cambiadas o nuevas y las quitadas.
+     */
+    suspend fun saveEdits(workoutId: String, edited: List<EditedSet>): EditResult {
+        val w = dao.get(workoutId) ?: return EditResult(emptySet(), emptySet())
+        val t = now(); val user = uid()
+        val before = dao.sets(workoutId).filter { it.completed }
+        val byId = before.associateBy { it.id }
+        val keep = edited.mapNotNull { it.id }.toSet()
+        val touched = mutableSetOf<String>(); val removed = mutableSetOf<String>(); val affected = mutableSetOf<String>()
+        db.withTransaction {
+            before.filter { it.id !in keep }.forEach {
+                dao.upsertSet(it.copy(deleted = true, dirty = true, updatedAt = t)); removed += it.id; affected += it.exerciseId
+            }
+            val nextPos = before.groupBy { it.workoutExerciseId }.mapValues { (_, l) -> l.maxOf { it.position } + 1 }.toMutableMap()
+            for (e in edited) {
+                val kg = e.weightKg?.takeIf { it.isFinite() }?.coerceIn(-com.rupio.app.core.Fmt.MAX_KG, com.rupio.app.core.Fmt.MAX_KG)
+                val reps = e.reps?.coerceIn(0, 1000); val dur = e.durationSec?.coerceIn(0, 86_400)
+                val old = e.id?.let { byId[it] }
+                if (old == null) {
+                    val pos = nextPos[e.workoutExerciseId] ?: 0; nextPos[e.workoutExerciseId] = pos + 1
+                    val id = Ids.uuidV7()
+                    dao.upsertSet(WorkoutSetEntity(id, e.workoutExerciseId, workoutId, user, e.exerciseId, pos, setType = e.setType, weightKg = kg, reps = reps,
+                        durationSec = dur, rpe = e.rpe, completed = true, completedAt = w.endedAt ?: t, performedOn = w.localDate, updatedAt = t))
+                    touched += id; affected += e.exerciseId
+                } else if (old.weightKg != kg || old.reps != reps || old.durationSec != dur || old.rpe != e.rpe || old.setType != e.setType) {
+                    updateSet(old.id, kg, reps, dur, e.rpe, e.setType)
+                    touched += old.id; affected += old.exerciseId
+                }
+            }
+            if (touched.isEmpty() && removed.isEmpty()) return@withTransaction
+            val withSets = edited.map { it.workoutExerciseId }.toSet()
+            dao.exercises(workoutId).filter { it.id !in withSets }.forEach { dao.upsertExercise(it.copy(deleted = true, dirty = true, updatedAt = t)) }
+            // Mismas cuentas que al terminar: sin calentamientos; el volumen nunca suma pesos negativos (ayuda).
+            val working = dao.sets(workoutId).filter { it.completed && it.setType != SetType.WARMUP.code }
+            dao.upsertWorkout(w.copy(totalVolumeKg = working.sumOf { (it.weightKg ?: 0.0).coerceAtLeast(0.0) * (it.reps ?: 0) },
+                totalSets = working.size, totalReps = working.sumOf { it.reps ?: 0 }, updatedAt = t, dirty = true))
+        }
+        if (affected.isEmpty()) return EditResult(touched, removed)
+        rebuildRecords(affected)
+        // Trofeo de las series que cambiaste: lo tienen si ahora sostienen un récord (las demás conservan el suyo).
+        val holders = affected.flatMap { db.records().forExercise(it) }.mapNotNull { it.setId }.toSet()
+        touched.forEach { id -> dao.getSet(id)?.let { s -> (id in holders).let { pr -> if (s.isPr != pr) dao.upsertSet(s.copy(isPr = pr)) } } }
+        return EditResult(touched, removed)
     }
 
     /** Edición puntual de una serie (peso, reps, tiempo, RPE, tipo). */
@@ -372,6 +429,9 @@ class WorkoutRepository(
                     PersonalRecordEntity(ex, k.code, uid, v, holder?.id, holder?.completedAt ?: t, t, dirty = true)
                 }
             })
+            // v1.7 (N4): si el récord vuelve a existir (p. ej. "Deshacer" tras borrar el entreno), ya no se borra en el
+            // servidor. Antes quedaba el borrado pendiente y la sincronización subía el récord y luego lo eliminaba.
+            best.keys.forEach { k -> pendingDeletes?.done(ex, k.code) }
             (existing.keys - best.keys).forEach { k -> db.records().delete(ex, k.code); pendingDeletes?.add(ex, k.code) }
         }
     }

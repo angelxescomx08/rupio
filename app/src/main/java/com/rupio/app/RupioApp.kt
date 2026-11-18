@@ -1,5 +1,7 @@
 package com.rupio.app
 
+import kotlinx.coroutines.flow.map
+
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -57,13 +59,33 @@ class AppContainer(val app: Application) {
     val stats = StatsRepository(db, settings)
     val bodyWeight = BodyWeightRepository(db, uid)
     private val dataApi = DataApiClient(http)
-    val sync = SyncEngine(app, db, dataApi, auth, settings, pendingDeletes, onRemoteSetDeletes = { workouts.rebuildRecords(it) })
+    val sync = SyncEngine(app, db, dataApi, auth, settings, pendingDeletes, onRemoteSetDeletes = { workouts.rebuildRecords(it) },
+        onRebuildRecords = { workouts.rebuildAllRecords() },
+        onConsentWithdrawnElsewhere = { db.admin().clearBodyWeights() })
     val restTimer = RestTimerController { SystemClock.elapsedRealtime() }.also {
         // Si Android cerró la app a media pausa, el descanso sigue y suena a su hora.
         it.store = com.rupio.app.timer.RestTimerPrefsStore(app) { SystemClock.elapsedRealtime() }
     }
-    val support = SupportRepository(app, scope)
+    /** v1.8: cuenta lista para el muro de agradecimientos (no el modo sin cuenta ni una cuenta sin confirmar). */
+    private fun wallAccount(): String? = (auth.state.value as? com.rupio.app.data.auth.AuthState.SignedIn)
+        ?.takeIf { !it.localOnly && !it.needsVerification }?.userId
+    val wall = com.rupio.app.data.billing.WallRepository(app, dataApi, { settings.current().dataApiUrl },
+        jwt = { if (wallAccount() == null) null else auth.validJwt() }, userId = ::wallAccount)
+    val support = SupportRepository(app, scope, wall, ::wallAccount)
     val signOut = SignOutController(this)
+
+    /** Pedidos de navegación desde fuera del NavHost (p. ej. "Ver el muro" en la pantalla de gracias). */
+    val navRequests = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 2)
+
+    init {
+        // Al entrar, salir o confirmar el correo: se muestra el lugar en el muro de ESA cuenta y se actualiza.
+        scope.launch {
+            auth.state.map { wallAccount() }.distinctUntilChanged().collect { uid ->
+                wall.onAccountChanged()
+                if (uid != null) runCatching { wall.load() }
+            }
+        }
+    }
 
     /** La cuenta se acaba de eliminar: MainActivity muestra la confirmación encima de la pantalla de inicio de sesión. */
     val accountDeleted = MutableStateFlow(false)
@@ -87,6 +109,7 @@ class AppContainer(val app: Application) {
     suspend fun wipeLocalData() {
         db.admin().clearWorkouts(); db.admin().clearRoutines(); db.admin().clearRecords(); db.admin().clearCustomExercises()
         db.admin().clearBodyWeights()
+        settings.clearHealthConsent()
         sync.resetCursors()
     }
 
@@ -118,11 +141,88 @@ class AppContainer(val app: Application) {
         db.withTransaction {
             a.adoptCustomExercises(uid, t); a.adoptRoutines(uid, t); a.adoptRoutineExercises(uid, t)
             a.adoptWorkouts(uid, t); a.adoptWorkoutExercises(uid, t); a.adoptSets(uid, t)
-            a.adoptRecords(uid, t); a.adoptBodyWeights(uid, t)
+            a.adoptBodyWeights(uid, t)
+            // v1.7 (N3): los récords del teléfono NO se suben: si la cuenta ya existía con un récord mayor (100 kg contra
+            // 80 kg), el del teléfono lo pisaba. Se borran aquí y se recalculan con TODO el historial (el del teléfono y
+            // el de la cuenta) después de la primera sincronización completa.
+            a.clearRecords()
         }
         // Una cuenta que ya existía puede traer datos de otro teléfono: se bajan completos.
         sync.resetCursors()
-        app.getSharedPreferences("rupio_owner", Context.MODE_PRIVATE).edit().putString("uid", uid).putBoolean("local", false).commit()
+        sync.requestRecordRebuild()
+        settings.adoptHealthConsent()
+        app.getSharedPreferences("rupio_owner", Context.MODE_PRIVATE).edit().putString("uid", uid).putBoolean("local", false)
+            .putBoolean("adopted", true).commit()
+    }
+
+    /**
+     * Correo confirmado: la cuenta queda lista y empieza a respaldarse (antes de esto no se sube nada).
+     */
+    suspend fun verifyEmail(code: String) {
+        auth.verifyEmail(code)
+        app.getSharedPreferences("rupio_owner", Context.MODE_PRIVATE).edit().remove("adopted").commit()
+        SyncEngine.schedule(app); SyncEngine.now(app)
+    }
+
+    /**
+     * Pantalla del código → "Usar otro correo" o "Salir". Si la cuenta se acaba de crear aquí (está vacía), se elimina en
+     * el servidor para que el correo mal escrito no quede ocupado. Si los datos venían del modo sin cuenta, regresan a
+     * él tal cual (nada se pierde); si no, se cierra la sesión.
+     */
+    suspend fun leaveUnverifiedAccount() {
+        val s = auth.state.value as? AuthState.SignedIn ?: return
+        if (s.newAccount) {
+            val jwt = auth.validJwt(force = true) ?: throw com.rupio.app.data.auth.AuthException("Sin conexión. Revisa tu internet e inténtalo de nuevo.")
+            try { rpcRetryingFreshSession(jwt, "rupio_delete_my_account") }
+            catch (e: java.io.IOException) { throw com.rupio.app.data.auth.AuthException("Sin conexión. Revisa tu internet e inténtalo de nuevo.") }
+            catch (e: com.rupio.app.data.remote.DataApiException) { throw com.rupio.app.data.auth.AuthException("No se pudo cancelar la cuenta (código ${e.code}). Inténtalo de nuevo.") }
+        }
+        val owner = app.getSharedPreferences("rupio_owner", Context.MODE_PRIVATE)
+        if (owner.getBoolean("adopted", false)) {
+            // De vuelta al modo sin cuenta con el MISMO id: claimLocalData ve al mismo dueño y no borra nada.
+            auth.signOut(scope)
+            auth.keepLocalId(s.userId)
+            owner.edit().remove("adopted").putString("uid", s.userId).putBoolean("local", true).commit()
+            auth.useLocalMode(s.name)
+            sync.resetCursors()
+            workouts.rebuildAllRecords()                    // los récords se habían quitado para recalcularse con la cuenta
+        } else {
+            wipeLocalData()
+            owner.edit().clear().commit()
+            auth.signOut(scope)
+        }
+    }
+
+    /**
+     * La Data API a veces responde 403 «Se necesita una sesión válida» a la PRIMERA llamada justo después de entrar
+     * (se vio dos veces con la función de eliminar la cuenta; la segunda llamada funciona). Se reintenta hasta 2 veces.
+     */
+    private suspend fun rpcRetryingFreshSession(jwt: String, function: String) {
+        val base = settings.current().dataApiUrl
+        var attempt = 0
+        while (true) {
+            try { dataApi.rpc(base, jwt, function); return }
+            catch (e: com.rupio.app.data.remote.DataApiException) {
+                if (e.code != 403 || !e.message.orEmpty().contains("28000") || attempt >= 2) throw e
+                attempt++; kotlinx.coroutines.delay(1_500L * attempt)
+            }
+        }
+    }
+
+    /** La persona marcó la casilla al registrar su peso: se guarda la fecha y se avisa a la cuenta. */
+    suspend fun giveHealthConsent() {
+        settings.setHealthConsent(System.currentTimeMillis())
+        if (!auth.isLocalOnly) SyncEngine.now(app)
+    }
+
+    /**
+     * Perfil → retirar el consentimiento: se borra TODO el peso corporal de este teléfono y, en la siguiente
+     * sincronización, también de la cuenta (y de tus otros teléfonos).
+     */
+    suspend fun withdrawHealthConsent() {
+        db.admin().clearBodyWeights()
+        settings.setHealthConsent(null)
+        if (!auth.isLocalOnly) SyncEngine.now(app)
     }
 
     /**
@@ -132,18 +232,23 @@ class AppContainer(val app: Application) {
     suspend fun deleteAccount(password: String) {
         auth.reauthenticate(password)
         val jwt = auth.validJwt(force = true) ?: throw com.rupio.app.data.auth.AuthException("No se pudo confirmar tu sesión. Revisa tu internet e inténtalo de nuevo.")
-        val base = settings.current().dataApiUrl
-        try {
-            dataApi.rpc(base, jwt, "rupio_delete_my_account")
-        } catch (e: java.io.IOException) {
-            throw com.rupio.app.data.auth.AuthException("Sin conexión. Revisa tu internet e inténtalo de nuevo.")
-        } catch (e: com.rupio.app.data.remote.DataApiException) {
-            throw com.rupio.app.data.auth.AuthException("No se pudo eliminar la cuenta (código ${e.code}). No se borró nada; inténtalo más tarde.")
-        }
+        // v1.7 (N5): ninguna sincronización a la vez. Se cancelan las programadas y se espera la que esté en curso;
+        // si no, una subida a medias podía volver a crear filas mientras el servidor borraba la cuenta.
         SyncEngine.cancel(app)
-        restTimer.cancel(); runCatching { com.rupio.app.timer.WorkoutService.stop(app) }
-        wipeLocalData()
-        app.getSharedPreferences("rupio_owner", Context.MODE_PRIVATE).edit().clear().commit()
+        sync.exclusive {
+            try {
+                rpcRetryingFreshSession(jwt, "rupio_delete_my_account")
+            } catch (e: java.io.IOException) {
+                SyncEngine.schedule(app)
+                throw com.rupio.app.data.auth.AuthException("Sin conexión. Revisa tu internet e inténtalo de nuevo.")
+            } catch (e: com.rupio.app.data.remote.DataApiException) {
+                SyncEngine.schedule(app)
+                throw com.rupio.app.data.auth.AuthException("No se pudo eliminar la cuenta (código ${e.code}). No se borró nada; inténtalo más tarde.")
+            }
+            restTimer.cancel(); runCatching { com.rupio.app.timer.WorkoutService.stop(app) }
+            wipeLocalData()
+            app.getSharedPreferences("rupio_owner", Context.MODE_PRIVATE).edit().clear().commit()
+        }
         auth.signOut()
     }
 }

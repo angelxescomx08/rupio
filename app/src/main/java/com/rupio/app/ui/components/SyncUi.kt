@@ -111,16 +111,17 @@ fun SyncAlertCard(modifier: Modifier = Modifier) {
 
 /** Pinta el detalle del respaldo y "Entrar de nuevo" (una sola vez, en MainShell). */
 @Composable
-fun SyncUiHost(controller: SyncUiController, onCreateAccount: () -> Unit) {
+fun SyncUiHost(controller: SyncUiController, onCreateAccount: () -> Unit, onFixSet: (String) -> Unit = {}) {
     if (controller.sheet) SyncSheet(onDismiss = { controller.sheet = false },
         onSignInAgain = { controller.sheet = false; controller.reauth = true },
-        onCreateAccount = { controller.sheet = false; onCreateAccount() })
+        onCreateAccount = { controller.sheet = false; onCreateAccount() },
+        onFixSet = { controller.sheet = false; onFixSet(it) })
     if (controller.reauth) ReauthDialog { controller.reauth = false }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SyncSheet(onDismiss: () -> Unit, onSignInAgain: () -> Unit, onCreateAccount: () -> Unit) {
+private fun SyncSheet(onDismiss: () -> Unit, onSignInAgain: () -> Unit, onCreateAccount: () -> Unit, onFixSet: (String) -> Unit) {
     val c = container()
     val s = rememberSyncSummary()
     val scope = rememberCoroutineScope()
@@ -155,6 +156,8 @@ private fun SyncSheet(onDismiss: () -> Unit, onSignInAgain: () -> Unit, onCreate
                             TextButton(onClick = { scope.launch { c.sync.discardRejected(r.table, r.key); rejected = c.sync.describeRejected() } },
                                 colors = ButtonDefaults.textButtonColors(contentColor = RupioColors.Danger)) { Text("Descartar") }
                             TextButton(onClick = { c.sync.retryRejected(r.table, r.key); rejected = rejected - r; syncNow() }) { Text("Reintentar") }
+                            // v1.7 (N1): una serie rechazada se corrige en el editor del entreno (peso, reps, tiempo o tipo).
+                            if (r.table == "workout_sets") TextButton(onClick = { onFixSet(r.key) }) { Text("Corregir") }
                         }
                     }
                 }

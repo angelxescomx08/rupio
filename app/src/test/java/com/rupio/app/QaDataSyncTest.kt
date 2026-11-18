@@ -112,8 +112,16 @@ class QaDataSyncTest {
                         clock = clock.plusMillis(1)                // Postgres: now() es el mismo para todo el lote
                         val ts = fmt.format(clock)
                         val t = tables.getOrPut(table) { LinkedHashMap() }
-                        batch.forEach { r -> t[keys.joinToString("|") { k -> r[k]!!.jsonPrimitive.content }] = JsonObject(r + ("updated_at" to JsonPrimitive(ts))) }
+                        // Como Postgres (merge-duplicates): solo cambian las columnas que vienen; las demás se conservan.
+                        batch.forEach { r -> val k = keys.joinToString("|") { k -> r[k]!!.jsonPrimitive.content }
+                            t[k] = JsonObject((t[k] ?: JsonObject(emptyMap())) + r + ("updated_at" to JsonPrimitive(ts))) }
                         resp(req, 201, "")
+                    }
+                    "PATCH" -> {
+                        val f = req.url.queryParameterNames.associateWith { req.url.queryParameter(it)!!.removePrefix("eq.") }
+                        val body = Json.parseToJsonElement(Buffer().also { req.body!!.writeTo(it) }.readUtf8()).jsonObject
+                        tables[table]?.entries?.forEach { e -> if (f.all { (k, v) -> e.value[k]?.jsonPrimitive?.content == v }) e.setValue(JsonObject(e.value + body)) }
+                        resp(req, 204, "")
                     }
                     "DELETE" -> {
                         val f = req.url.queryParameterNames.associateWith { req.url.queryParameter(it)!!.removePrefix("eq.") }
@@ -133,9 +141,9 @@ class QaDataSyncTest {
                                 else -> list
                             }
                         }
-                        val order = req.url.queryParameter("order")!!.split(",").map { it.removeSuffix(".asc") }
+                        val order = req.url.queryParameter("order")?.split(",")?.map { it.removeSuffix(".asc") }.orEmpty()
                         list = list.sortedWith { a, b -> order.asSequence().map { k -> cmp(a[k]!!.jsonPrimitive.content, b[k]!!.jsonPrimitive.content, k) }.firstOrNull { it != 0 } ?: 0 }
-                        val limit = req.url.queryParameter("limit")!!.toInt()
+                        val limit = req.url.queryParameter("limit")?.toInt() ?: Int.MAX_VALUE
                         resp(req, 200, JsonArray(list.take(limit)).toString())
                     }
                 }

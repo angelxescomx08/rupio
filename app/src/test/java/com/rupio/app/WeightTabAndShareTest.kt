@@ -55,6 +55,7 @@ class WeightTabAndShareTest {
         c.settings.setOnboardingDone(true); c.settings.setTutorialHome(true); c.settings.setTutorialWorkout(true)
         c.auth.useLocalMode("José Ángel Hernández")
         c.settings.setBodyUnit(WeightUnit.KG); c.settings.setUnit(WeightUnit.LB)   // DataStore vive entre pruebas
+        c.settings.setHealthConsent(System.currentTimeMillis())                    // v1.7: ya dio su permiso (ver V17UiTest)
         if (withWeights) {
             val today = Dates.today(ZoneId.of("America/Mexico_City"))
             for (i in 1 until 90) {      // hasta ayer: "Registrar peso de hoy" sigue pendiente

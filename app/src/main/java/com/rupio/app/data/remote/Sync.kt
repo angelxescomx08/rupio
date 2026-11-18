@@ -148,11 +148,31 @@ class DataApiClient(private val http: OkHttpClient) {
         http.newCall(req).execute().use { r -> if (!r.isSuccessful) throw DataApiException(r.code, r.body?.string().orEmpty().take(300)) }
     }
 
+    /** Cambia solo las columnas de [body] en las filas que cumplen [filters] (PATCH de PostgREST). */
+    suspend fun patch(base: String, jwt: String, table: String, filters: List<Pair<String, String>>, body: JsonObject) = withContext(Dispatchers.IO) {
+        val b = "$base/$table".toHttpUrl().newBuilder()
+        filters.forEach { (k, v) -> b.addQueryParameter(k, v) }
+        val req = Request.Builder().url(b.build()).patch(body.toString().toRequestBody(media))
+            .header("Authorization", "Bearer $jwt").header("Prefer", "return=minimal").build()
+        http.newCall(req).execute().use { r -> if (!r.isSuccessful) throw DataApiException(r.code, r.body?.string().orEmpty().take(300)) }
+    }
+
     /** Llama una función SQL expuesta por la Data API (POST /rpc/nombre). */
     suspend fun rpc(base: String, jwt: String, function: String, body: JsonObject = JsonObject(emptyMap())) = withContext(Dispatchers.IO) {
         val req = Request.Builder().url("$base/rpc/$function").post(body.toString().toRequestBody(media))
             .header("Authorization", "Bearer $jwt").header("Accept", "application/json").build()
         http.newCall(req).execute().use { r -> if (!r.isSuccessful) throw DataApiException(r.code, r.body?.string().orEmpty().take(300)) }
+    }
+
+    /** Como [rpc], pero devuelve la respuesta (JSON). v1.8: muro de agradecimientos. */
+    suspend fun rpcJson(base: String, jwt: String, function: String, body: JsonObject = JsonObject(emptyMap())): kotlinx.serialization.json.JsonElement = withContext(Dispatchers.IO) {
+        val req = Request.Builder().url("$base/rpc/$function").post(body.toString().toRequestBody(media))
+            .header("Authorization", "Bearer $jwt").header("Accept", "application/json").build()
+        http.newCall(req).execute().use { r ->
+            val text = r.body?.string().orEmpty()
+            if (!r.isSuccessful) throw DataApiException(r.code, text.take(300))
+            json.parseToJsonElement(text.ifBlank { "null" })
+        }
     }
 
     suspend fun select(base: String, jwt: String, table: String, params: List<Pair<String, String>>): JsonArray = withContext(Dispatchers.IO) {
@@ -224,11 +244,16 @@ class SyncEngine(
     // Inyectables para probar la sincronización contra un servidor falso.
     private val jwtProvider: suspend () -> String? = { auth.validJwt() },
     private val uidProvider: () -> String? = { auth.currentUserId },
-    private val localOnly: () -> Boolean = { auth.isLocalOnly },
+    /** Sin cuenta, o con la cuenta recién creada sin verificar el correo: nada se sube todavía. */
+    private val localOnly: () -> Boolean = { auth.isLocalOnly || auth.needsVerification },
     /** JWT nuevo cuando el servidor responde 401 a media sincronización (el JWT dura 15 min). */
     private val jwtRefresher: suspend () -> String? = { auth.validJwt(force = true) },
     /** Por qué [jwtProvider] no dio JWT. */
     private val jwtFailure: () -> JwtFailure = { auth.lastFailure },
+    /** Recalcula todos los récords con el historial completo (tras entrar a una cuenta desde el modo sin cuenta). */
+    private val onRebuildRecords: suspend () -> Unit = {},
+    /** Borra el peso corporal del teléfono (el consentimiento se retiró desde otro teléfono). */
+    private val onConsentWithdrawnElsewhere: suspend () -> Unit = {},
 ) {
     private val mutex = Mutex()
     private val prefs = context.getSharedPreferences("rupio_sync", Context.MODE_PRIVATE)
@@ -261,6 +286,12 @@ class SyncEngine(
         return try {
             push(base, uid)
             pull(base, uid)
+            if (prefs.getBoolean("rebuild_records", false)) {
+                // Ya bajó todo lo de la cuenta: récords con el historial completo y se suben de una vez.
+                onRebuildRecords()
+                prefs.edit().putBoolean("rebuild_records", false).apply()
+                push(base, uid)
+            }
             val now = System.currentTimeMillis()
             prefs.edit().putLong("last_ok", now).apply()
             val rej = rejectedStore.size
@@ -276,6 +307,18 @@ class SyncEngine(
             _status.value = _status.value.copy(running = false, problem = SyncProblem.SERVER); false
         }
     }
+
+    /**
+     * Corre [block] sin ninguna sincronización a la vez (espera a la que esté en curso). Para eliminar la cuenta: antes
+     * una sincronización a medias podía volver a subir filas mientras el servidor las borraba.
+     */
+    suspend fun <T> exclusive(block: suspend () -> T): T = mutex.withLock { block() }
+
+    /**
+     * Tras entrar a una cuenta desde el modo sin cuenta: los récords del teléfono NO se suben (podían pisar récords
+     * mayores de la cuenta); se recalculan con el historial completo después de la primera sincronización.
+     */
+    fun requestRecordRebuild() { prefs.edit().putBoolean("rebuild_records", true).apply() }
 
     /** "Reintentar" en Revisar: el cambio vuelve a subirse en la siguiente sincronización. */
     fun retryRejected(table: String, key: String) { rejectedStore.remove(table, key); refreshRejected() }
@@ -350,7 +393,44 @@ class SyncEngine(
     private fun name(s: String, fallback: String, max: Int = 120) = s.trim().ifBlank { fallback }.take(max)
     private fun rest(s: Int) = s.coerceIn(0, 1800)
 
+    /**
+     * Consentimiento del peso corporal, ANTES de subir pesos:
+     *  - si se retiró en este teléfono (pendiente y en null), se borra todo el peso corporal de la cuenta;
+     *  - si no hay cambio local, se toma lo que diga la cuenta (otro teléfono pudo darlo o retirarlo; si lo retiró,
+     *    también se borra el peso de este teléfono).
+     */
+    private suspend fun consentDown(base: String, uid: String) {
+        val s = settings.current()
+        // Retiro pendiente: se borra el peso de la cuenta ANTES de subir pesos (aunque ya se haya vuelto a dar el
+        // consentimiento y haya pesos nuevos: esos se suben después, limpios).
+        if (s.healthPurgePending) {
+            authed { api.delete(base, jwt, "body_weights", listOf("user_id" to "eq.$uid")) }
+            settings.markHealthPurged()
+        }
+        if (s.healthConsentDirty) return
+        val row = try {
+            authed { api.select(base, jwt, "profiles", listOf("select" to "health_consent_at", "user_id" to "eq.$uid")) }.firstOrNull()?.jsonObject
+        } catch (e: DataApiException) {
+            if (e.code == 400) return else throw e                         // sin la columna (migración 006): no se toca nada
+        } ?: return
+        if (!row.containsKey("health_consent_at")) return                  // sin la columna: no se sabe, no se toca nada
+        val server = (row["health_consent_at"] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it !is JsonNull }?.content?.ms()
+        if (server == null && s.healthConsentAt != null) onConsentWithdrawnElsewhere()
+        settings.setHealthConsentFromServer(server)
+    }
+
+    /** Avisa a la cuenta del consentimiento dado o retirado en este teléfono (después de crear el perfil). */
+    private suspend fun consentUp(base: String, uid: String) {
+        val s = settings.current()
+        if (!s.healthConsentDirty) return
+        val value = s.healthConsentAt?.let { kotlinx.serialization.json.JsonPrimitive(it.iso()) } ?: JsonNull
+        try { authed { api.patch(base, jwt, "profiles", listOf("user_id" to "eq.$uid"), JsonObject(mapOf("health_consent_at" to value))) } }
+        catch (e: DataApiException) { if (e.code == 400) return else throw e }   // sin la columna: sigue pendiente
+        settings.markHealthConsentSynced(s.healthConsentRev)
+    }
+
     private suspend fun push(base: String, uid: String) {
+        consentDown(base, uid)
         val ex = db.exercises(); val ro = db.routines(); val wo = db.workouts(); val rec = db.records(); val bw = db.bodyWeights()
         pushTable("exercises", "id", { ex.dirty(it) }, { rows ->
             api.upsert(base, jwt, "exercises", "id", rows.map {
@@ -410,6 +490,7 @@ class SyncEngine(
         authed { api.upsert(base, jwt, "profiles", "user_id", listOf(
             ProfileDto(uid, name(nm, "Atleta", 80), s.unit.code, ZoneId.systemDefault().id, if (s.weekStart == 7) 7 else 1, rest(s.defaultRestSec), s.onboardingDone)
         ), ProfileDto.serializer()) }
+        consentUp(base, uid)
     }
 
 

@@ -23,6 +23,8 @@ import com.rupio.app.core.Fmt
 import com.rupio.app.core.WeightUnit
 import com.rupio.app.data.local.Muscles
 import com.rupio.app.domain.SetType
+import com.rupio.app.domain.CalorieEstimate
+import com.rupio.app.domain.MuscleSplit
 import com.rupio.app.domain.SupersetRestMode
 import com.rupio.app.domain.Tracking
 import com.rupio.app.ui.components.*
@@ -48,6 +50,8 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
     val zone by c.zone.collectAsStateWithLifecycle()
     val unit = settings?.unit ?: WeightUnit.LB
     val byId = remember(catalog) { catalog.associateBy { it.id } }
+    // v1.8: peso corporal más reciente para estimar calorías (si no hay, se usa 70 kg y se dice).
+    val bodyKg by c.bodyWeight.recent(1).collectAsStateWithLifecycle(initialValue = emptyList())
     var menu by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val workout = w
@@ -72,6 +76,10 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
             Box {
                 IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, "Opciones") }
                 DropdownMenu(menu, { menu = false }) {
+                    // v1.7 (N1): corregir un peso mal escrito, una serie de más o de menos, el tipo de serie.
+                    DropdownMenuItem(text = { Text("Editar") }, leadingIcon = { Icon(Icons.Rounded.Edit, null) }, enabled = workout?.endedAt != null, onClick = {
+                        menu = false; nav.navigate(com.rupio.app.Routes.edit(id))
+                    })
                     DropdownMenuItem(text = { Text("Guardar como rutina") }, leadingIcon = { Icon(Icons.Rounded.BookmarkAdd, null) }, onClick = {
                         menu = false
                         scope.launch { if (c.routines.saveFromWorkout(id) != null) snackbar.showSnackbar("Rutina creada. La encuentras en Entrenar.") }
@@ -131,7 +139,24 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
                         Tile("Repeticiones", "${workout.totalReps}")
                         Tile("Récords", "${workout.prCount}")
                     }
+                    // v1.8: calorías estimadas (método MET, ver CalorieEstimate).
+                    CalorieEstimate.estimate((workout.durationSec ?: 0).toLong(), workout.totalSets, bodyKg.firstOrNull()?.weightKg)?.let { kcal ->
+                        Spacer(Modifier.height(8.dp)); TileRow { CaloriesTile(kcal) }
+                    }
                     workout.notes?.let { Spacer(Modifier.height(10.dp)); Text("📝 $it", style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim) }
+                }
+            }
+            // v1.8: reparto de músculos de este entreno.
+            val split = MuscleSplit.compute(exercises.mapNotNull { we ->
+                val ex = byId[we.exerciseId] ?: return@mapNotNull null
+                MuscleSplit.Item(ex.primaryMuscle, ex.secondaryMuscles.split(',').map { it.trim() }.filter { it.isNotEmpty() },
+                    setsBy[we.id].orEmpty().count { it.completed && it.setType != SetType.WARMUP.code })
+            })
+            if (split.isNotEmpty()) item(key = "musculos") {
+                SectionCard {
+                    Text("Reparto de músculos", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(10.dp))
+                    MuscleSplitBars(split)
                 }
             }
             items(groups, key = { it.first().id }) { g ->
@@ -162,8 +187,10 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
                                         modifier = Modifier.width(28.dp), color = if (type == SetType.WARMUP) RupioColors.Warning else RupioColors.TextDim,
                                         style = MaterialTheme.typography.bodyMedium.merge(Tabular))
                                     Text(formatSet(s.weightKg, s.reps, s.durationSec, tr, unit), style = MaterialTheme.typography.bodyMedium.merge(Tabular), modifier = Modifier.weight(1f))
-                                    if (tr.usesWeight && (s.weightKg ?: 0.0) != 0.0) Text(Fmt.weight(kotlin.math.abs(s.weightKg ?: 0.0), unit.other), style = MaterialTheme.typography.labelSmall.merge(Tabular), color = RupioColors.TextFaint)
-                                    if (s.isPr) Text("  🏆", fontWeight = FontWeight.Bold)
+                                    // v1.8: el kg va en su columna fija y el trofeo en la suya: ya no se recorre cuando hay récord.
+                                    if (tr.usesWeight) Text(if ((s.weightKg ?: 0.0) != 0.0) Fmt.weight(kotlin.math.abs(s.weightKg ?: 0.0), unit.other) else "",
+                                        style = MaterialTheme.typography.labelMedium.merge(Tabular), color = RupioColors.TextFaint, textAlign = TextAlign.End, maxLines = 1)
+                                    Box(Modifier.width(30.dp), contentAlignment = Alignment.CenterEnd) { if (s.isPr) Text("🏆", fontWeight = FontWeight.Bold) }
                                 }
                             }
                         }

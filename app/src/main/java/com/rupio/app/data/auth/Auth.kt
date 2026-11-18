@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -33,8 +34,11 @@ sealed interface AuthState {
     /**
      * [sessionExpired]: la sesión del servidor venció (p. ej. semanas sin abrir la app). La app sigue funcionando y
      * guardando en el teléfono, pero no respalda nada hasta que la persona vuelva a escribir su contraseña.
+     * [needsVerification]: falta escribir el código que llegó al correo; la cuenta no está lista (no se sincroniza).
+     * [newAccount]: la cuenta se acaba de crear en este teléfono (si el correo estaba mal, se puede descartar).
      */
-    data class SignedIn(val userId: String, val email: String, val name: String, val localOnly: Boolean, val sessionExpired: Boolean = false) : AuthState
+    data class SignedIn(val userId: String, val email: String, val name: String, val localOnly: Boolean, val sessionExpired: Boolean = false,
+                        val needsVerification: Boolean = false, val newAccount: Boolean = false) : AuthState
 }
 
 /** Por qué no se pudo obtener un JWT: cada causa se explica distinto al usuario (ver SyncProblem). */
@@ -117,7 +121,7 @@ class AuthRepository(
         secure.put("cred_email", null); secure.put("cred_pass", null)
         val uid = secure.get("user_id")
         val loaded = if (uid != null) AuthState.SignedIn(uid, secure.get("email") ?: "", secure.get("name") ?: "", secure.get("local_only") == "1",
-            sessionExpired = secure.get("session_expired") == "1")
+            sessionExpired = secure.get("session_expired") == "1", needsVerification = secure.get("verify_pending") == "1", newAccount = secure.get("verify_new") == "1")
         else AuthState.SignedOut
         // Si mientras tanto alguien ya inició sesión o entró sin cuenta, no se pisa.
         if (_state.compareAndSet(AuthState.Loading, loaded) && jwt == null) {
@@ -127,6 +131,7 @@ class AuthRepository(
 
     val currentUserId: String? get() = (state.value as? AuthState.SignedIn)?.userId
     val isLocalOnly: Boolean get() = (state.value as? AuthState.SignedIn)?.localOnly == true
+    val needsVerification: Boolean get() = (state.value as? AuthState.SignedIn)?.needsVerification == true
 
     suspend fun serverConfigured(): Boolean = settings.current().authUrl.isNotBlank()
 
@@ -147,15 +152,36 @@ class AuthRepository(
         val user = r.body?.get("user")?.jsonObject ?: throw AuthException("Respuesta inesperada del servidor (código R1).")
         val uid = user["id"]?.jsonPrimitive?.content ?: throw AuthException("Respuesta inesperada del servidor (código R2).")
         val displayName = user["name"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: name ?: email.substringBefore('@')
+        // v1.7 (N6): la cuenta no está lista hasta confirmar el correo con el código de 6 dígitos.
+        val verified = (user["emailVerified"] as? kotlinx.serialization.json.JsonPrimitive)?.booleanOrNull ?: true
+        val isNew = !verified && path == "/sign-up/email"
         adopt?.invoke(uid)
         saveCookies(r.cookies, merge = false)
         secure.put("user_id", uid); secure.put("email", email.trim()); secure.put("name", displayName); secure.put("local_only", "0")
         secure.put("session_expired", null)
+        secure.put("verify_pending", if (verified) null else "1"); secure.put("verify_new", if (isNew) "1" else null)
         jwt = null; jwtExp = 0; secure.put("jwt", null)
         r.jwt?.let { storeJwt(it) }
         lastFailure = JwtFailure.NONE
-        _state.value = AuthState.SignedIn(uid, email.trim(), displayName, localOnly = false)
+        _state.value = AuthState.SignedIn(uid, email.trim(), displayName, localOnly = false, needsVerification = !verified, newAccount = isNew)
         runCatching { validJwt() }
+        if (!verified) runCatching { sendVerificationCode() }
+    }
+
+    /** Manda (otra vez) el código de 6 dígitos al correo de la cuenta. */
+    suspend fun sendVerificationCode() {
+        val s = state.value as? AuthState.SignedIn ?: throw AuthException("No hay una cuenta abierta.")
+        postAuth("/email-otp/send-verification-otp", buildJsonObject { put("email", s.email); put("type", "email-verification") })
+    }
+
+    /** Confirma el correo con el código. Desde aquí la cuenta queda lista y empieza a respaldarse. */
+    suspend fun verifyEmail(code: String) {
+        val s = state.value as? AuthState.SignedIn ?: throw AuthException("No hay una cuenta abierta.")
+        val r = postAuth("/email-otp/verify-email", buildJsonObject { put("email", s.email); put("otp", code.filter { it.isDigit() }) })
+        saveCookies(r.cookies, merge = true)
+        r.jwt?.let { storeJwt(it) }
+        secure.put("verify_pending", null); secure.put("verify_new", null)
+        _state.value = (state.value as? AuthState.SignedIn ?: s).copy(needsVerification = false, newAccount = false)
     }
 
     /**
@@ -208,6 +234,9 @@ class AuthRepository(
         secure.put("user_id", uid); secure.put("email", ""); secure.put("name", name.trim().ifBlank { "Atleta" }); secure.put("local_only", "1")
         _state.value = AuthState.SignedIn(uid, "", name.trim().ifBlank { "Atleta" }, localOnly = true)
     }
+
+    /** El siguiente "modo sin cuenta" usa este id (para regresar a él sin perder los datos del teléfono). */
+    fun keepLocalId(uid: String) = secure.put("local_uid", uid)
 
     fun updateName(name: String) {
         val s = state.value as? AuthState.SignedIn ?: return
@@ -300,7 +329,8 @@ class AuthRepository(
             code.contains("PASSWORD_TOO_SHORT") -> "La contraseña debe tener al menos 8 caracteres."
             code.contains("PASSWORD_TOO_LONG") -> "La contraseña es demasiado larga."
             code.contains("INVALID_EMAIL") -> "Ese correo no parece válido."
-            code.contains("EMAIL_NOT_VERIFIED") -> "Confirma tu correo con el enlace que te enviamos y vuelve a intentar."
+            code.contains("EMAIL_NOT_VERIFIED") -> "Confirma tu correo con el código que te enviamos y vuelve a intentar."
+            code.contains("USER_NOT_FOUND") -> "No encontramos esa cuenta."
             r.code == 403 -> "No se pudo conectar con el servidor. Inténtalo más tarde."
             r.code == 429 -> "Demasiados intentos. Espera un momento."
             r.code >= 500 -> "El servidor no responde (código ${r.code}). Inténtalo en unos minutos."

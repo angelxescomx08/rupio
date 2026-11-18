@@ -121,6 +121,17 @@ fun AuthScreen(upgrade: Boolean = false, onBack: (() -> Unit)? = null, onDone: (
                 }
             }
         }
+        // v1.7 (N3): al entrar a una cuenta que ya existe, lo del teléfono se suma a lo de la cuenta (no la reemplaza).
+        if (upgrade && !signUp) {
+            Spacer(Modifier.height(12.dp))
+            Surface(color = RupioColors.Warning.copy(alpha = 0.12f), shape = RoundedCornerShape(12.dp)) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
+                    Icon(Icons.Rounded.MergeType, null, tint = RupioColors.Warning); Spacer(Modifier.width(8.dp))
+                    Text("Se juntarán con lo que ya tienes en tu cuenta: no se borra nada de ella. Tus récords se recalculan con todo tu historial.",
+                        color = RupioColors.Text, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
         Spacer(Modifier.height(20.dp))
         LoadingButton(if (signUp) (if (upgrade) "Crear cuenta y subir mis datos" else "Crear cuenta") else (if (upgrade) "Entrar y subir mis datos" else "Iniciar sesión"),
             loading = busy, onClick = { submit() },

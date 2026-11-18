@@ -68,11 +68,12 @@ fun DeleteAccountScreen(nav: NavHostController) {
                 Spacer(Modifier.height(8.dp))
                 Text("De la nube y de este teléfono se eliminan:", style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
                 Spacer(Modifier.height(6.dp))
-                listOf(
+                (listOf(
                     "Tu cuenta (${me.email})",
                     "Tus $count ${if (count == 1) "entrenamiento" else "entrenamientos"}, con sus series y récords",
                     "Tus rutinas y ejercicios personalizados",
                     "Tu registro de peso corporal",
+                ) + (if (com.rupio.app.container().support.state.collectAsState().value.isPatron) listOf("Tu lugar en el muro de agradecimientos") else emptyList())
                 ).forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
                 Spacer(Modifier.height(8.dp))
                 Text("No se puede deshacer. Las copias de seguridad automáticas del servidor se borran solas en un máximo de 30 días. " +

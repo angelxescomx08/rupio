@@ -96,10 +96,18 @@ fun StatTile(label: String, value: String, modifier: Modifier = Modifier, sub: S
     }
 }
 
+/** Reglas de [FitText] con letra agrandada (aparte para poder probarlas). */
+object FitTextRules {
+    /** Lo más que se achica: ~150 % del tamaño normal ([base] / [fontScale] × 1.5), nunca más grande que [base]. */
+    fun floorSp(base: Float, fontScale: Float): Float = if (fontScale <= 1f) base else minOf(base, base / fontScale * 1.5f)
+    /** Con letra agrandada caben hasta 3 líneas antes de achicar. */
+    fun maxLines(requested: Int, fontScale: Float): Int = if (fontScale > 1f) maxOf(requested, 3) else requested
+}
+
 /**
  * Texto que respeta el tamaño de letra que pidió la persona (accesibilidad, WCAG 1.4.4):
  *  1. Primero se acomoda en hasta [maxLines] líneas, con guiones en español si una palabra se parte.
- *  2. Solo si aun así no cabe, se achica, pero con letra agrandada NUNCA por debajo del tamaño normal (escala 100 %).
+ *  2. Solo si aun así no cabe, se achica; con letra agrandada caben hasta 3 líneas y nunca baja de ~150 % del normal.
  *     Con letra normal, una palabra sola se achica hasta 75 % antes que partirse.
  * Antes se achicaba hasta 35–60 % del tamaño pedido: con letra al 200 % las pestañas quedaban más chicas que lo normal.
  * Usa el autoSize de Compose (una sola pasada de medición, sin recomponer ni esconder el texto mientras tanto).
@@ -126,10 +134,11 @@ fun FitText(
         androidx.compose.foundation.text.BasicText(text, modifier, style = st, maxLines = if (single) 1 else maxLines, overflow = TextOverflow.Ellipsis,
             autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = base * 0.75f, maxFontSize = base, stepSize = 0.5.sp))
     } else {
-        // Letra agrandada por la persona: nunca más chica que el tamaño normal. En sp el tamaño "normal" es
-        // base / fontScale (el sistema lo vuelve a multiplicar al dibujar).
-        androidx.compose.foundation.text.BasicText(text, modifier, style = st, maxLines = maxLines, overflow = TextOverflow.Ellipsis,
-            autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = base / fontScale, maxFontSize = base, stepSize = 0.5.sp))
+        // Letra agrandada por la persona (v1.7, N7): primero hasta 3 líneas y, solo si aun así no cabe, se achica, pero
+        // nunca por debajo de ~150 % del tamaño normal (antes bajaba hasta 100 %: quien pidió 200 % veía la mitad).
+        // En sp el tamaño "normal" es base / fontScale (el sistema lo vuelve a multiplicar al dibujar).
+        androidx.compose.foundation.text.BasicText(text, modifier, style = st, maxLines = FitTextRules.maxLines(maxLines, fontScale), overflow = TextOverflow.Ellipsis,
+            autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = FitTextRules.floorSp(base.value, fontScale).sp, maxFontSize = base, stepSize = 0.5.sp))
     }
 }
 
@@ -219,6 +228,12 @@ fun NumberCell(
     done: Boolean = false,
     /** Qué es la celda, para TalkBack: "Peso en libras, serie 2, Press de banca, sugerido 135". */
     label: String? = null,
+    /**
+     * v1.8: segunda línea DENTRO de la celda (p. ej. "22.7 kg" bajo "50" lb). Antes iba debajo, fuera de la celda: la
+     * fila quedaba más alta que las reps y la ✓ y se veía desalineada.
+     */
+    sub: String? = null,
+    minHeight: androidx.compose.ui.unit.Dp = 40.dp,
 ) {
     var text by remember { mutableStateOf(value) }
     // Solo se reemplaza el texto si el valor guardado es OTRO número (así no se pierde "13." mientras escribes).
@@ -234,12 +249,18 @@ fun NumberCell(
         keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number),
         textStyle = MaterialTheme.typography.titleMedium.merge(Tabular).copy(color = RupioColors.Text, textAlign = TextAlign.Center),
         cursorBrush = SolidColor(RupioColors.Primary),
-        modifier = modifier.heightIn(min = 40.dp).clip(RoundedCornerShape(10.dp)).background(bg)
+        modifier = modifier.heightIn(min = minHeight).clip(RoundedCornerShape(10.dp)).background(bg)
             .then(if (label != null) Modifier.semantics { contentDescription = label } else Modifier),
         decorationBox = { inner ->
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                if (text.isEmpty()) Text(placeholder, style = MaterialTheme.typography.titleMedium.merge(Tabular), color = RupioColors.TextFaint, textAlign = TextAlign.Center)
-                inner()
+            // Sin fillMaxSize: dentro de una fila con IntrinsicSize (superseries) la celda se estiraba a cientos de dp.
+            Column(Modifier.fillMaxWidth().heightIn(min = minHeight).padding(vertical = 2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (text.isEmpty()) Text(placeholder, style = MaterialTheme.typography.titleMedium.merge(Tabular), color = RupioColors.TextFaint, textAlign = TextAlign.Center, maxLines = 1)
+                    inner()
+                }
+                if (sub != null) Text(sub, style = MaterialTheme.typography.labelSmall.merge(Tabular), color = RupioColors.TextFaint, maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
         },
     )
