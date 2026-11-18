@@ -64,7 +64,7 @@ object Tutorials {
                 Quiz("¿Qué pasa si marcas ✓ sin escribir nada?", listOf("No se guarda", "Se guardan los números en gris", "Se guarda en cero"), 1,
                     "Los números en gris son la sugerencia de hoy; si no escribes nada, se usan esos."),
                 Quiz("¿Dónde marcas una serie como calentamiento?", listOf("Tocando el número de la serie", "En Perfil", "No se puede"), 0,
-                    "Toca el número de la serie para elegir su tipo: calentamiento, drop set o al fallo."),
+                    "Toca el número de la serie para elegir su tipo: calentamiento, drop set o al fallo. Para sumar un calentamiento antes de la primera, usa \"Agregar calentamiento\"."),
             ),
             action = TutorialAction.REPLAY_TOUR),
 

@@ -1,15 +1,10 @@
 package com.rupio.app.ui.home
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,7 +24,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.rupio.app.Routes
@@ -46,10 +40,6 @@ import com.rupio.app.domain.SupersetRestMode
 import com.rupio.app.ui.components.*
 import com.rupio.app.ui.theme.RupioColors
 import com.rupio.app.ui.theme.Tabular
-import com.rupio.app.ui.tutorial.CoachStep
-import com.rupio.app.ui.tutorial.LocalCoach
-import com.rupio.app.ui.tutorial.coachTarget
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalTime
 
@@ -74,43 +64,21 @@ fun HomeScreen(nav: NavHostController) {
     val firstDownload = (auth as? AuthState.SignedIn)?.localOnly == false && syncSt.lastSuccess == null
     val names = remember(catalog) { catalog.associate { it.id to it.name } }
     val byRoutine = remember(items) { items.groupBy { it.routineId } }
-    val coach = LocalCoach.current
     var toDelete by remember { mutableStateOf<RoutineEntity?>(null) }
     val unit = settings?.unit ?: com.rupio.app.core.WeightUnit.LB
     LaunchedEffect(Unit) { com.rupio.app.ui.learn.LearnProgress.load(context) }
     val learned by com.rupio.app.ui.learn.LearnProgress.done.collectAsStateWithLifecycle()
+    // v1.9: qué rutina toca (la que sigue a la última que terminaste) y cuándo hiciste cada una.
+    val lastDone by c.workouts.routineLastDone.collectAsStateWithLifecycle(initialValue = emptyList())
+    val lastDay = remember(lastDone) { lastDone.associate { it.routineId to it.lastDay } }
 
-    // Permiso de notificaciones EN CONTEXTO: al empezar el primer entreno, después de explicar para qué sirve.
-    // Se pregunta una sola vez; si dice que no, el entreno muestra una tarjeta para activarlas cuando quiera.
-    var pendingStart by remember { mutableStateOf<String?>(null) }
-    var askNotif by remember { mutableStateOf(false) }
-    fun go(routineId: String?) {
+    // v1.9: sin globos de tutorial en Inicio (el estado vacío ya dice qué hacer) y el permiso de notificaciones ya no
+    // se pide aquí: se pide al marcar la primera serie, cuando arranca el primer descanso (ver ActiveWorkoutScreen).
+    fun start(routineId: String?) {
         scope.launch {
             if (active == null) { if (routineId == null) c.workouts.startEmpty() else c.workouts.startFromRoutine(routineId) }
             nav.navigate(Routes.WORKOUT)
         }
-    }
-    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { go(pendingStart?.takeIf { it.isNotEmpty() }) }
-    fun start(routineId: String?) {
-        val needs = Build.VERSION.SDK_INT >= 33 && active == null && settings?.notifAsked != true &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        if (needs) { pendingStart = routineId ?: ""; askNotif = true } else go(routineId)
-    }
-
-    // Tutorial interactivo la primera vez: resalta los botones reales.
-    LaunchedEffect(settings?.tutorialHome, routines?.size) {
-        val s = settings ?: return@LaunchedEffect
-        if (s.tutorialHome || routines == null || coach.active) return@LaunchedEffect
-        delay(700)
-        val steps = buildList {
-            add(CoachStep("start_empty", "Entrena cuando quieras", "Empieza un entrenamiento libre y agrega ejercicios sobre la marcha."))
-            if (!routines.isNullOrEmpty()) {
-                add(CoachStep("routine_card", "Tus rutinas", "Una rutina es tu plan: ejercicios, series, repeticiones y descansos."))
-                add(CoachStep("start_routine", "Empieza tu rutina", "Carga todos los ejercicios con las series listas para marcar. Rupio te dirá cuándo subir peso."))
-            }
-            add(CoachStep("new_routine", "Crea la tuya", "Con la guía (según tus días, tiempo y equipo) o desde cero, con más de 200 ejercicios en español con imágenes."))
-        }
-        coach.start(steps) { scope.launch { c.settings.setTutorialHome(true) } }
     }
 
     // Resumen de la semana (en la zona horaria del usuario).
@@ -211,7 +179,7 @@ fun HomeScreen(nav: NavHostController) {
         item {
             Button(
                 onClick = { start(null) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).coachTarget("start_empty"),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = if (active != null) RupioColors.Success else RupioColors.Primary, contentColor = if (active != null) Color.Black else RupioColors.OnPrimary),
             ) {
@@ -222,7 +190,7 @@ fun HomeScreen(nav: NavHostController) {
         }
         item {
             SectionTitle("Mis rutinas") {
-                Row(Modifier.coachTarget("new_routine")) {
+                Row {
                     TextButton(onClick = { nav.navigate(Routes.GUIDE) }) {
                         Icon(Icons.Rounded.AutoAwesome, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Guía")
                     }
@@ -244,25 +212,23 @@ fun HomeScreen(nav: NavHostController) {
                 }
             }
         }
-        if (list != null) itemsIndexed(list, key = { _, r -> r.id }) { i, r ->
-            RoutineCard(
-                routine = r, items = byRoutine[r.id].orEmpty(), names = names, first = i == 0, activeExists = active != null,
-                onStart = { start(r.id) }, onEdit = { nav.navigate(Routes.routine(r.id)) }, onDelete = { toDelete = r },
-            )
+        if (list != null) {
+            // v1.9: la que toca va primero y lo dice ("Te toca hoy"; "La próxima" si ya entrenaste hoy).
+            val today = Dates.today(zone).toEpochDay().toInt()
+            val nextId = if (list.size >= 2) com.rupio.app.domain.RoutineRotation.next(list.map { it.id },
+                lastDone.map { com.rupio.app.domain.RoutineRotation.Done(it.routineId, it.lastDay, it.lastEnd) }) else null
+            val trainedToday = lastDone.any { it.lastDay == today }
+            val ordered = com.rupio.app.domain.RoutineRotation.withNextFirst(list, nextId) { it.id }
+            items(ordered, key = { r -> r.id }) { r ->
+                RoutineCard(
+                    routine = r, items = byRoutine[r.id].orEmpty(), names = names, activeExists = active != null,
+                    badge = if (r.id == nextId) (if (trainedToday) "La próxima" else "Te toca hoy") else null,
+                    lastDone = lastDay[r.id]?.let { "Última vez: " + Dates.daysAgo(it, today).replaceFirstChar { ch -> ch.lowercase() } } ?: "Aún no la haces",
+                    onStart = { start(r.id) }, onEdit = { nav.navigate(Routes.routine(r.id)) }, onDelete = { toDelete = r },
+                )
+            }
         }
     }
-
-    if (askNotif) AlertDialog(
-        onDismissRequest = { askNotif = false; scope.launch { c.settings.setNotifAsked(true) }; go(pendingStart?.takeIf { it.isNotEmpty() }) },
-        icon = { Icon(Icons.Rounded.NotificationsActive, null, tint = RupioColors.Rest) },
-        title = { Text("¿Te avisamos al terminar el descanso?") },
-        text = { Text("Para avisarte cuando termine tu descanso, aunque tengas la pantalla apagada, Rupio necesita mostrar notificaciones. Solo suena al final de cada descanso.", color = RupioColors.TextDim) },
-        confirmButton = { TextButton(onClick = {
-            askNotif = false; scope.launch { c.settings.setNotifAsked(true) }
-            notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }) { Text("Permitir") } },
-        dismissButton = { TextButton(onClick = { askNotif = false; scope.launch { c.settings.setNotifAsked(true) }; go(pendingStart?.takeIf { it.isNotEmpty() }) }) { Text("Ahora no") } },
-    )
 
     toDelete?.let { r ->
         ConfirmDialog("¿Eliminar rutina?", "\"${r.name}\" se eliminará. Tu historial de entrenamientos no se toca.", "Eliminar", { toDelete = null }, danger = true) {
@@ -274,13 +240,19 @@ fun HomeScreen(nav: NavHostController) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RoutineCard(
-    routine: RoutineEntity, items: List<RoutineExerciseEntity>, names: Map<String, String>, first: Boolean, activeExists: Boolean,
+    routine: RoutineEntity, items: List<RoutineExerciseEntity>, names: Map<String, String>, activeExists: Boolean,
+    badge: String?, lastDone: String,
     onStart: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit,
 ) {
     val summary = remember(items) { RestPlanner.summarize(items.map { it.toPlan() }) }
     val ssIndex = remember(items) { supersetIndexMap(items.map { it.supersetId }) }
     var menu by remember { mutableStateOf(false) }
-    SectionCard(Modifier.then(if (first) Modifier.coachTarget("routine_card") else Modifier)) {
+    // v1.9: toda la tarjeta abre la rutina (antes solo "Empezar rutina" y ⋮ → Editar).
+    SectionCard(Modifier.clickable(onClickLabel = "Ver y editar la rutina", onClick = onEdit)) {
+        if (badge != null) {
+            Pill("▶ $badge", RupioColors.Success, filled = true)
+            Spacer(Modifier.height(8.dp))
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(routine.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
             Box {
@@ -291,6 +263,7 @@ private fun RoutineCard(
                 }
             }
         }
+        Text(lastDone, style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
         Spacer(Modifier.height(4.dp))
         val groups = remember(items) { groupConsecutive(items) { it.supersetId } }
         groups.take(5).forEach { g ->
@@ -329,8 +302,8 @@ private fun RoutineCard(
         }
         Spacer(Modifier.height(12.dp))
         Button(
-            onClick = onStart, enabled = !activeExists || true,
-            modifier = Modifier.fillMaxWidth().height(48.dp).then(if (first) Modifier.coachTarget("start_routine") else Modifier),
+            onClick = onStart, enabled = items.isNotEmpty() || activeExists,
+            modifier = Modifier.fillMaxWidth().height(48.dp),
             shape = RoundedCornerShape(14.dp),
         ) { Icon(Icons.Rounded.PlayArrow, null); Spacer(Modifier.width(6.dp)); Text(if (activeExists) "Ir al entrenamiento en curso" else "Empezar rutina", fontWeight = FontWeight.SemiBold) }
     }

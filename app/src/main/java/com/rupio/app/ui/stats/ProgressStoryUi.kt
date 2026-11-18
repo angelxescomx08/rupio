@@ -84,7 +84,7 @@ fun ProgressStoryCard(onOpen: () -> Unit) {
                 s.improved.take(2).forEach { e -> ProgressBarRow(e, unit, compact = true); Spacer(Modifier.height(8.dp)) }
                 TileRow {
                     Tile("Entrenos", "${s.total.n}", "en ${s.weeks} ${if (s.weeks == 1) "semana" else "semanas"}")
-                    Tile("Racha", "${s.streakWeeks}", "semanas seguidas")
+                    Tile("Racha", "${s.streakWeeks}", if (s.streakWeeks == 1) "semana seguida" else "semanas seguidas")
                     Tile("Récords", "${s.recordsTotal}", if (s.records30 > 0) "+${s.records30} este mes" else "en total")
                 }
                 Spacer(Modifier.height(8.dp))
@@ -143,7 +143,7 @@ fun ProgressStoryScreen(nav: NavHostController) {
             item {
                 Text(ProgressStoryBuilder.headline(s), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                 s.firstDay?.let {
-                    Text("Desde ${Dates.formatDay(it)} · ${s.weeks} ${if (s.weeks == 1) "semana" else "semanas"} · mejor racha: ${s.bestStreakWeeks} semanas",
+                    Text("Desde ${Dates.formatDay(it)} · ${Fmt.plural(s.weeks, "semana", "semanas")} · mejor racha: ${Fmt.plural(s.bestStreakWeeks, "semana", "semanas")}",
                         style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
                 }
             }
@@ -179,7 +179,7 @@ fun ProgressStoryScreen(nav: NavHostController) {
                     Text("Todo lo que has levantado", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(4.dp))
                     Text(Fmt.volume(s.total.vol, unit), style = MaterialTheme.typography.headlineMedium.merge(Tabular), fontWeight = FontWeight.SemiBold)
-                    Text("${s.total.sets} series en ${s.total.n} entrenamientos", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
+                    Text("${Fmt.plural(s.total.sets, "serie", "series")} en ${Fmt.plural(s.total.n, "entrenamiento", "entrenamientos")}", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
                     ProgressStoryBuilder.equivalence(s.total.vol)?.let { Text("≈ $it", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 6.dp)) }
                 }
             }

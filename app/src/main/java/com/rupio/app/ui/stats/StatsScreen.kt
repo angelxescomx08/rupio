@@ -143,7 +143,7 @@ fun StatsScreen(nav: NavHostController) {
                     Text("Más series ayudan, pero cada vez menos: no hace falta pasarse.", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
                     Spacer(Modifier.height(10.dp))
                     if (s.muscles.isEmpty()) Text("Sin series en este periodo.", color = RupioColors.TextDim, style = MaterialTheme.typography.bodySmall)
-                    else MuscleSetsChart(s.muscles, s.weeksInPeriod)
+                    else MuscleSetsChart(s.muscles, s.weeksInPeriod, judge = !s.firstWeek)
                 }
             }
             item {
@@ -213,8 +213,13 @@ fun StatsScreen(nav: NavHostController) {
     }
 }
 
-private fun rangeLabel(s: StatsSnapshot) = if (s.period == Period.ALL) "Desde ${Dates.formatDayShort(s.from)} ${s.from.year} · todo tu historial"
-    else "${Dates.formatDayShort(s.from)} – ${Dates.formatDayShort(s.to)} ${s.to.year} · comparado con el periodo anterior"
+internal fun rangeLabel(s: StatsSnapshot) = if (s.period == Period.ALL) "Desde ${Dates.formatDayShort(s.from)} ${s.from.year} · todo tu historial"
+    else rangeText(s.from, s.to) + " · comparado con el periodo anterior"
+
+/** v1.9: con años distintos, el año va en las dos fechas ("1 dic 2025 – 18 nov 2026"; antes "1 dic – 18 nov 2026"). */
+internal fun rangeText(from: java.time.LocalDate, to: java.time.LocalDate): String =
+    if (from.year != to.year) "${Dates.formatDayShort(from)} ${from.year} – ${Dates.formatDayShort(to)} ${to.year}"
+    else "${Dates.formatDayShort(from)} – ${Dates.formatDayShort(to)} ${to.year}"
 
 private fun delta(now: Double, prev: Double?): String? {
     if (prev == null) return null

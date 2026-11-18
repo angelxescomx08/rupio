@@ -33,6 +33,17 @@ import com.rupio.app.ui.legal.PrivacyPolicyDialog
 import com.rupio.app.ui.theme.RupioColors
 import kotlinx.coroutines.launch
 
+/** v1.9: revisa todos los campos de una vez; cada error va debajo de su campo. */
+object AuthValidation {
+    data class Fields(val name: String?, val email: String?, val password: String?) { val ok get() = name == null && email == null && password == null }
+
+    fun check(signUp: Boolean, name: String, email: String, pass: String) = Fields(
+        name = if (signUp && name.isBlank()) "Escribe tu nombre." else null,
+        email = if (!looksLikeEmail(email)) "Escribe un correo válido, como nombre@gmail.com." else null,
+        password = if (pass.length < 8) "La contraseña debe tener al menos 8 caracteres." else null,
+    )
+}
+
 /**
  * Inicio de sesión y registro.
  * [upgrade]: viene del modo sin cuenta ("Crear cuenta y conservar mis datos"): al terminar, todo lo del teléfono
@@ -55,11 +66,16 @@ fun AuthScreen(upgrade: Boolean = false, onBack: (() -> Unit)? = null, onDone: (
     var privacy by remember { mutableStateOf(false) }
     var info by remember { mutableStateOf<String?>(null) }
 
+    // v1.9: cada campo con su error, todos a la vez (antes salía uno solo, en una caja lejos del campo).
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passError by remember { mutableStateOf<String?>(null) }
+
     fun submit() {
         error = null; info = null
-        if (signUp && name.isBlank()) { error = "Escribe tu nombre."; return }
-        if (!looksLikeEmail(email)) { error = "Escribe un correo válido, como nombre@gmail.com."; return }
-        if (pass.length < 8) { error = "La contraseña debe tener al menos 8 caracteres."; return }
+        val f = AuthValidation.check(signUp, name, email, pass)
+        nameError = f.name; emailError = f.email; passError = f.password
+        if (!f.ok) return
         busy = true
         scope.launch {
             val adopt: (suspend (String) -> Unit)? = if (upgrade) { uid -> c.adoptLocalData(uid) } else null
@@ -95,21 +111,23 @@ fun AuthScreen(upgrade: Boolean = false, onBack: (() -> Unit)? = null, onDone: (
 
         AnimatedVisibility(signUp) {
             Column {
-                OutlinedTextField(name, { name = it }, label = { Text("Nombre") }, singleLine = true,
+                OutlinedTextField(name, { name = it; nameError = null }, label = { Text("Nombre") }, singleLine = true,
+                    isError = nameError != null, supportingText = nameError?.let { t -> { Text(t) } },
                     modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.PersonFullName },
                     leadingIcon = { Icon(Icons.Rounded.Person, null) }, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), shape = RoundedCornerShape(14.dp))
                 Spacer(Modifier.height(12.dp))
             }
         }
-        OutlinedTextField(email, { email = it.trim() }, label = { Text("Correo electrónico") }, singleLine = true,
+        OutlinedTextField(email, { email = it.trim(); emailError = null }, label = { Text("Correo electrónico") }, singleLine = true,
+            isError = emailError != null, supportingText = emailError?.let { t -> { Text(t) } },
             // Conectado al autocompletado de Android: los gestores de contraseñas lo llenan.
             modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.Username + ContentType.EmailAddress },
             leadingIcon = { Icon(Icons.Rounded.Email, null) }, shape = RoundedCornerShape(14.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next))
         Spacer(Modifier.height(12.dp))
-        PasswordField(pass, { pass = it }, showPass, { showPass = !showPass }, newPassword = signUp, onDone = { submit() })
-        if (signUp) Text("Mínimo 8 caracteres", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = Modifier.padding(start = 16.dp, top = 4.dp))
-        else TextButton(onClick = { forgot = true; error = null }, modifier = Modifier.align(Alignment.End)) { Text("¿Olvidaste tu contraseña?") }
+        PasswordField(pass, { pass = it; passError = null }, showPass, { showPass = !showPass }, newPassword = signUp, onDone = { submit() },
+            error = passError, hint = if (signUp) "Mínimo 8 caracteres" else null)
+        if (!signUp) TextButton(onClick = { forgot = true; error = null }, modifier = Modifier.align(Alignment.End)) { Text("¿Olvidaste tu contraseña?") }
 
         (error ?: info)?.let {
             Spacer(Modifier.height(8.dp))
@@ -136,7 +154,7 @@ fun AuthScreen(upgrade: Boolean = false, onBack: (() -> Unit)? = null, onDone: (
         LoadingButton(if (signUp) (if (upgrade) "Crear cuenta y subir mis datos" else "Crear cuenta") else (if (upgrade) "Entrar y subir mis datos" else "Iniciar sesión"),
             loading = busy, onClick = { submit() },
             modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), loadingText = if (signUp) "Creando tu cuenta…" else "Entrando…")
-        TextButton(onClick = { signUp = !signUp; error = null }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+        TextButton(onClick = { signUp = !signUp; error = null; nameError = null; emailError = null; passError = null }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Text(if (signUp) "¿Ya tienes cuenta? Inicia sesión" else "¿No tienes cuenta? Regístrate")
         }
         Spacer(Modifier.height(8.dp))

@@ -221,8 +221,11 @@ fun ReauthDialog(onDone: () -> Unit) {
 /** Campo de contraseña con "mostrar" y conectado al autocompletado / gestores de contraseñas. */
 @Composable
 fun PasswordField(value: String, onValue: (String) -> Unit, show: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier,
-                  label: String = "Contraseña", newPassword: Boolean = false, onDone: () -> Unit = {}) {
+                  label: String = "Contraseña", newPassword: Boolean = false, onDone: () -> Unit = {},
+                  /** v1.9: error de ESTE campo, debajo de él y en rojo; [hint] si no hay error. */
+                  error: String? = null, hint: String? = null) {
     OutlinedTextField(value, onValue, label = { Text(label) }, singleLine = true,
+        isError = error != null, supportingText = (error ?: hint)?.let { t -> { Text(t) } },
         modifier = modifier.fillMaxWidth().semantics { contentType = if (newPassword) ContentType.NewPassword else ContentType.Password },
         leadingIcon = { Icon(Icons.Rounded.Lock, null) }, shape = RoundedCornerShape(14.dp),
         visualTransformation = if (show) VisualTransformation.None else PasswordVisualTransformation(),

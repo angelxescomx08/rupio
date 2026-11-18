@@ -106,6 +106,8 @@ data class StatsSnapshot(
     val bars: List<Bar>,
     val muscles: List<MuscleLoad>,
     val weeksInPeriod: Double,
+    /** v1.9: llevas menos de una semana entrenando: se muestran los números sin "poco / moderado". */
+    val firstWeek: Boolean,
     val trainingDays: Map<Int, Int>,
     val heatFrom: LocalDate,
     val topExercises: List<ExerciseUsage>,
@@ -186,7 +188,10 @@ class StatsRepository(private val db: RupioDatabase, private val settings: Setti
         return StatsSnapshot(
             period, from, today, bucket, totals, previous, bars,
             muscleLoads(f, t),
-            weeksInPeriod = (ChronoUnit.DAYS.between(from, today) + 1) / 7.0,
+            // v1.9: si empezaste a entrenar dentro del periodo, se divide entre las semanas DESDE tu primer entreno
+            // (antes, con 3 series en tu primera semana, "Mes" decía "0.7 series/sem · poco").
+            weeksInPeriod = (ChronoUnit.DAYS.between(maxOf(from, first), today) + 1) / 7.0,
+            firstWeek = ChronoUnit.DAYS.between(first, today) < 7,
             trainingDays = dao.trainingDays(heatFrom.toEpochDay().toInt(), t).associate { it.localDate to it.n },
             heatFrom = heatFrom,
             // Ventana máx. de 1 año: siempre < 1 ms aunque tengas 14 años de historial (ver benchmark).
@@ -229,6 +234,7 @@ class StatsRepository(private val db: RupioDatabase, private val settings: Setti
         val sets = HashMap<String, Double>(); val vol = HashMap<String, Double>()
         for (c in counts) {
             val e = ex[c.exerciseId] ?: continue
+            if (e.primaryMuscle in com.rupio.app.domain.MuscleSplit.NOT_COUNTED) continue      // v1.9: cardio no es un músculo
             sets[e.primaryMuscle] = (sets[e.primaryMuscle] ?: 0.0) + c.sets
             vol[e.primaryMuscle] = (vol[e.primaryMuscle] ?: 0.0) + c.volume
             e.secondaryMuscles.split(',').filter { it.isNotBlank() && it != e.primaryMuscle }.forEach { m ->

@@ -209,10 +209,13 @@ class SupportScreenshotTest {
     @Test fun o_boton_cerrar_sesion_abre_los_pasos() = runBlocking {
         c.auth.useLocalMode("José Ángel Hernández")
         app { ProfileScreen(rememberNavController()) }
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("Cerrar sesión").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNode(androidx.compose.ui.test.hasText("Cerrar sesión") and androidx.compose.ui.test.hasClickAction()).performScrollTo().performClick(); settle()
-        compose.onAllNodesWithText("Cerrar sesión").fetchSemanticsNodes().size.let { org.junit.Assert.assertTrue(it >= 2) }   // título + botón del diálogo
-        compose.onAllNodes(androidx.compose.ui.test.hasText("Cerrar sesión") and androidx.compose.ui.test.hasClickAction()).onLast().performClick()
+        // v1.9: sin cuenta el botón dice lo que hace ("Borrar mis datos y salir"), no "Cerrar sesión".
+        val exit = com.rupio.app.ui.profile.LOCAL_EXIT
+        compose.waitUntil(15_000) { compose.onAllNodesWithText(exit).fetchSemanticsNodes().isNotEmpty() }
+        org.junit.Assert.assertTrue(compose.onAllNodesWithText("Cerrar sesión").fetchSemanticsNodes().isEmpty())
+        compose.onNode(androidx.compose.ui.test.hasText(exit) and androidx.compose.ui.test.hasClickAction()).performScrollTo().performClick(); settle()
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("¿Borrar tus datos y salir?").fetchSemanticsNodes().isNotEmpty() }
+        compose.onAllNodes(androidx.compose.ui.test.hasText("Borrar y salir") and androidx.compose.ui.test.hasClickAction()).onLast().performClick()
         compose.waitUntil(5_000) { c.signOut.state.value.active || c.auth.state.value == com.rupio.app.data.auth.AuthState.SignedOut }
     }
 }

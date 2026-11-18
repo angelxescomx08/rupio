@@ -57,6 +57,8 @@ class WorkoutRepository(
         dao.historySearchPage(query, query.searchKey(), beforeDay, beforeStart, limit)
     suspend fun months() = dao.months()
     fun observeCount() = dao.observeCount()
+    /** v1.9: última vez que terminaste cada rutina. */
+    val routineLastDone: Flow<List<RoutineLastDone>> = dao.observeRoutineLastDone()
     suspend fun exerciseSummaries(ids: List<String>) = if (ids.isEmpty()) emptyList() else dao.exerciseSummaries(ids)
     suspend fun get(id: String) = dao.get(id)
 
@@ -216,8 +218,27 @@ class WorkoutRepository(
         val w = dao.get(we.workoutId) ?: return
         val sets = dao.sets(we.workoutId).filter { it.workoutExerciseId == workoutExerciseId }
         val last = sets.lastOrNull()
+        // v1.9: vacía. El peso de la anterior sale en gris como sugerencia (y se usa al marcar ✓); antes se copiaba como
+        // si lo hubieras escrito, y al terminar no se distinguía de una serie con datos sin marcar.
         dao.upsertSet(WorkoutSetEntity(Ids.uuidV7(), workoutExerciseId, we.workoutId, uid(), we.exerciseId, (last?.position ?: -1) + 1,
-            weightKg = last?.weightKg, reps = null, performedOn = w.localDate, updatedAt = now()))
+            performedOn = w.localDate, updatedAt = now()))
+    }
+
+    /**
+     * v1.9 · "Agregar calentamiento": una serie C ANTES de la primera serie efectiva (después de los calentamientos que
+     * ya haya). Antes la única forma era convertir la serie 1 y te quedabas con una serie de trabajo menos.
+     */
+    suspend fun addWarmup(workoutExerciseId: String) {
+        val workoutId = dao.workoutIdOf(workoutExerciseId) ?: return
+        val we = dao.exercises(workoutId).firstOrNull { it.id == workoutExerciseId } ?: return
+        val w = dao.get(workoutId) ?: return
+        val sets = dao.sets(workoutId).filter { it.workoutExerciseId == workoutExerciseId }.sortedBy { it.position }
+        val at = sets.indexOfFirst { it.setType != SetType.WARMUP.code }.let { if (it < 0) sets.size else it }
+        val t = now()
+        val warm = WorkoutSetEntity(Ids.uuidV7(), workoutExerciseId, workoutId, uid(), we.exerciseId, at, setType = SetType.WARMUP.code,
+            performedOn = w.localDate, updatedAt = t)
+        val list = sets.toMutableList().apply { add(at, warm) }
+        db.withTransaction { dao.upsertSets(list.mapIndexed { k, s -> if (s.position == k && s.id != warm.id) s else s.copy(position = k, updatedAt = t, dirty = true) }) }
     }
 
     suspend fun removeSet(setId: String) {
@@ -275,8 +296,15 @@ class WorkoutRepository(
         if (affected.isEmpty()) return EditResult(touched, removed)
         rebuildRecords(affected)
         // Trofeo de las series que cambiaste: lo tienen si ahora sostienen un récord (las demás conservan el suyo).
-        val holders = affected.flatMap { db.records().forExercise(it) }.mapNotNull { it.setId }.toSet()
-        touched.forEach { id -> dao.getSet(id)?.let { s -> (id in holders).let { pr -> if (s.isPr != pr) dao.upsertSet(s.copy(isPr = pr)) } } }
+        // v1.9: y solo si superan algo anterior (la primera vez que haces un ejercicio no hay récord que romper).
+        val headline = Records.HEADLINE.map { it.code }.toSet()
+        val holders = affected.flatMap { db.records().forExercise(it) }.filter { it.kind in headline }.mapNotNull { it.setId }.toSet()
+        touched.forEach { id ->
+            dao.getSet(id)?.let { s ->
+                val pr = id in holders && dao.hasEarlierSets(s.exerciseId, workoutId, s.performedOn, s.completedAt ?: Long.MAX_VALUE)
+                if (s.isPr != pr) dao.upsertSet(s.copy(isPr = pr))
+            }
+        }
         return EditResult(touched, removed)
     }
 
@@ -315,16 +343,21 @@ class WorkoutRepository(
         )
         val current = currentBest(filled.exerciseId, filled.workoutId, excludeSet = filled.id)
         val beaten = Records.beaten(tracking, filled.toData(), current)
-        val headline = beaten.intersect(setOf(RecordKind.MAX_WEIGHT, RecordKind.E1RM, RecordKind.MAX_REPS, RecordKind.MAX_DURATION))
+        val headline = beaten.intersect(Records.HEADLINE)
         dao.upsertSet(filled.copy(isPr = headline.isNotEmpty()))
         return ToggleResult(true, headline)
     }
 
+    /**
+     * La marca a superar: tus récords de sesiones anteriores y, si ya los superaste hoy, tu mejor serie de hoy.
+     * v1.9: un tipo sin marca anterior no entra (la primera vez de un ejercicio no es "récord").
+     */
     private suspend fun currentBest(exerciseId: String, workoutId: String, excludeSet: String): Map<RecordKind, Double> {
         val stored = db.records().forExercise(exerciseId).associate { RecordKind.of(it.kind) to it.value }.toMutableMap()
+        if (stored.isEmpty()) return stored
         val tracking = Tracking.of(db.exercises().get(exerciseId)?.tracking ?: "weight_reps")
         dao.sets(workoutId).filter { it.exerciseId == exerciseId && it.completed && it.id != excludeSet }.forEach { st ->
-            Records.candidates(tracking, st.toData()).forEach { (k, v) -> if (v > (stored[k] ?: 0.0)) stored[k] = v }
+            Records.candidates(tracking, st.toData()).forEach { (k, v) -> val cur = stored[k]; if (cur != null && v > cur) stored[k] = v }
         }
         return stored
     }
@@ -344,11 +377,14 @@ class WorkoutRepository(
             exercises.filter { it.id !in withSets }.forEach { dao.upsertExercise(it.copy(deleted = true, dirty = true, updatedAt = t)) }
 
             val catalog = db.exercises().getMany(done.map { it.exerciseId }.distinct()).associateBy { it.id }
-            // Récords definitivos
+            // Récords definitivos. v1.9: la primera marca de cada ejercicio (o de cada tipo) se guarda para compararte la
+            // próxima vez, pero no se cuenta ni se celebra: solo es récord lo que supera una marca anterior.
             val newRecords = mutableListOf<PersonalRecordEntity>()
+            val beatPrevious = mutableListOf<PersonalRecordEntity>()
             for ((exId, exSets) in done.groupBy { it.exerciseId }) {
                 val tracking = Tracking.of(catalog[exId]?.tracking ?: "weight_reps")
-                val best = db.records().forExercise(exId).associateBy { it.kind }.toMutableMap()
+                val before = db.records().forExercise(exId).associateBy { it.kind }
+                val best = before.toMutableMap()
                 for (st in exSets) {
                     for ((kind, v) in Records.candidates(tracking, st.toData())) {
                         if (v > (best[kind.code]?.value ?: 0.0) + 1e-6) {
@@ -356,11 +392,14 @@ class WorkoutRepository(
                         }
                     }
                 }
-                newRecords += best.values.filter { it.updatedAt == t }
+                val changed = best.values.filter { it.updatedAt == t }
+                newRecords += changed
+                beatPrevious += changed.filter { it.kind in before }
             }
             db.records().upsert(newRecords)
-            prCount = newRecords.count { it.kind in listOf(RecordKind.MAX_WEIGHT.code, RecordKind.E1RM.code, RecordKind.MAX_REPS.code, RecordKind.MAX_DURATION.code) }
-            val prSetIds = newRecords.mapNotNull { it.setId }.toSet()
+            val headline = Records.HEADLINE.map { it.code }.toSet()
+            prCount = beatPrevious.count { it.kind in headline }
+            val prSetIds = beatPrevious.filter { it.kind in headline }.mapNotNull { it.setId }.toSet()
             done.forEach { dao.upsertSet(it.copy(isPr = it.id in prSetIds, updatedAt = t, dirty = true)) }
 
             val working = done.filter { it.setType != SetType.WARMUP.code }

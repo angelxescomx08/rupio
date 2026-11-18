@@ -155,8 +155,10 @@ class AppContainer(val app: Application) {
         sync.resetCursors()
         sync.requestRecordRebuild()
         settings.adoptHealthConsent()
+        // v1.9: el nombre que tenías sin cuenta, por si cancelas la cuenta nueva ("¿Correo equivocado?") y regresas.
+        val localName = (auth.state.value as? AuthState.SignedIn)?.takeIf { it.localOnly }?.name
         app.getSharedPreferences("rupio_owner", Context.MODE_PRIVATE).edit().putString("uid", uid).putBoolean("local", false)
-            .putBoolean("adopted", true).commit()
+            .putBoolean("adopted", true).putString("local_name", localName).commit()
     }
 
     /**
@@ -186,8 +188,10 @@ class AppContainer(val app: Application) {
             // De vuelta al modo sin cuenta con el MISMO id: claimLocalData ve al mismo dueño y no borra nada.
             auth.signOut(scope)
             auth.keepLocalId(s.userId)
-            owner.edit().remove("adopted").putString("uid", s.userId).putBoolean("local", true).commit()
-            auth.useLocalMode(s.name)
+            // v1.9: vuelve el nombre de antes del registro (antes se quedaba el de la cuenta cancelada: "QA", avatar "QT").
+            val localName = owner.getString("local_name", null)?.takeIf { it.isNotBlank() } ?: s.name
+            owner.edit().remove("adopted").remove("local_name").putString("uid", s.userId).putBoolean("local", true).commit()
+            auth.useLocalMode(localName)
             sync.resetCursors()
             workouts.rebuildAllRecords()                    // los récords se habían quitado para recalcularse con la cuenta
         } else {

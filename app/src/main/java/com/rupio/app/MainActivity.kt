@@ -206,7 +206,8 @@ fun MainShell() {
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(Unit) {
         c.notices.collect { n ->
-            val r = kotlinx.coroutines.withTimeoutOrNull(if (n.undo != null) 5_000L else 3_000L) {
+            // v1.9: 10 s para "Deshacer" (con 5 s se iba mientras lo tocabas).
+            val r = kotlinx.coroutines.withTimeoutOrNull(if (n.undo != null) com.rupio.app.ui.components.UNDO_MS else 3_000L) {
                 snackbar.showSnackbar(n.text, actionLabel = if (n.undo != null) "Deshacer" else null, duration = SnackbarDuration.Indefinite)
             }
             if (r == null) snackbar.currentSnackbarData?.dismiss()
@@ -228,7 +229,6 @@ fun MainShell() {
     CoachHost(coach) {
         Scaffold(
             containerColor = RupioColors.Background,
-            snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 if (showBar) Column {
                     AnimatedVisibility(active != null, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
@@ -257,7 +257,12 @@ fun MainShell() {
             },
         ) { pad ->
             // Respeta barra de estado, barra de navegación, recortes de cámara y teclado en TODAS las pantallas.
-            NavGraph(nav, Modifier.padding(pad).consumeWindowInsets(pad).imePadding())
+            Box(Modifier.fillMaxSize()) {
+                NavGraph(nav, Modifier.padding(pad).consumeWindowInsets(pad).imePadding())
+                // v1.9: los avisos (y su "Deshacer") van ARRIBA: abajo quedaban encima de "Empezar rutina" y, si el aviso se
+                // iba justo al tocar "Deshacer", empezabas una rutina sin querer.
+                SnackbarHost(snackbar, Modifier.align(Alignment.TopCenter).padding(top = pad.calculateTopPadding() + 4.dp))
+            }
         }
         com.rupio.app.ui.components.SyncUiHost(syncUi, onCreateAccount = { nav.navigate(Routes.ACCOUNT) }, onFixSet = { setId ->
             // "Revisar" → "Corregir": abre el editor del entreno de esa serie.

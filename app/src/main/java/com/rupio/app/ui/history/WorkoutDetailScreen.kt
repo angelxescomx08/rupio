@@ -61,8 +61,11 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
     // ignorar, no un diálogo. Se marca antes de mostrarse: girar el teléfono o volver atrás no lo repite.
     val support by c.support.state.collectAsStateWithLifecycle()
     var supportAsk by rememberSaveable { mutableStateOf<Pair<Int, Double>?>(null) }
+    // v1.9: la celebración y el mensaje de apoyo son solo de "acabas de terminar". Al volver de "Editar" ya no salen
+    // (antes reaparecían, y el mensaje decía el volumen de antes de corregir).
+    var celebrating by rememberSaveable(celebrate) { mutableStateOf(celebrate > 0) }
     LaunchedEffect(id, celebrate) {
-        if (celebrate <= 0) return@LaunchedEffect
+        if (!celebrating) return@LaunchedEffect
         val finished = c.db.admin().finishedCount()
         val s = c.support
         if (!SupportPolicy.shouldPrompt(s.state.value.isSupporter, finished, id, s.lastPromptedWorkoutId, s.lastPromptedMilestone, s.lastPromptAt, s.dismissals)) return@LaunchedEffect
@@ -78,7 +81,7 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
                 DropdownMenu(menu, { menu = false }) {
                     // v1.7 (N1): corregir un peso mal escrito, una serie de más o de menos, el tipo de serie.
                     DropdownMenuItem(text = { Text("Editar") }, leadingIcon = { Icon(Icons.Rounded.Edit, null) }, enabled = workout?.endedAt != null, onClick = {
-                        menu = false; nav.navigate(com.rupio.app.Routes.edit(id))
+                        menu = false; celebrating = false; supportAsk = null; nav.navigate(com.rupio.app.Routes.edit(id))
                     })
                     DropdownMenuItem(text = { Text("Guardar como rutina") }, leadingIcon = { Icon(Icons.Rounded.BookmarkAdd, null) }, onClick = {
                         menu = false
@@ -104,7 +107,7 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
         val ssIndex = supersetIndexMap(exercises.map { it.supersetId })
         val setsBy = sets.groupBy { it.workoutExerciseId }
         LazyColumn(Modifier.padding(pad), contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (celebrate > 0) item {
+            if (celebrating) item {
                 Surface(shape = RoundedCornerShape(20.dp), color = RupioColors.Success.copy(alpha = 0.14f), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("🎉", style = MaterialTheme.typography.displaySmall)

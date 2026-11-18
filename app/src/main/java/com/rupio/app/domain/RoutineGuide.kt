@@ -46,8 +46,12 @@ object RoutineGuide {
 
     data class Item(val exerciseId: String, val sets: Int, val repMin: Int, val repMax: Int, val restSec: Int, val compound: Boolean)
     data class Session(val name: String, val items: List<Item>) {
-        /** Minutos estimados: ~40 s por serie + descansos + 5 min de calentamiento. */
-        val minutes get() = 5 + items.sumOf { it.sets * (40 + it.restSec) - it.restSec } / 60
+        /**
+         * v1.9: la MISMA cuenta que la tarjeta de la rutina en Inicio (RestPlanner.summarize): ~40 s por serie más todos
+         * los descansos, también entre ejercicios. Antes la guía decía 34 min y la misma rutina en Inicio 39 min.
+         */
+        val estimatedSec get() = RestPlanner.summarize(items.map { PlanItem(it.exerciseId, it.sets, it.restSec, null, SupersetRestMode.INDIVIDUAL, null) }).estimatedSec
+        val minutes get() = estimatedSec / 60
     }
     data class Plan(val split: Split, val sessions: List<Session>, val schedule: List<String>)
 

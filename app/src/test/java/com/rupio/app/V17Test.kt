@@ -103,6 +103,8 @@ class V17Test {
     /** N1: editar un entreno terminado recalcula volumen, series, reps y récords, y lo marca para subir. */
     @Test fun n1_editarEntrenoTerminadoRecalculaTodo() = runBlocking {
         val user = c.auth.currentUserId!!
+        // v1.9: una sesión anterior (55 kg): sin ella los 70 kg serían tu primera marca, no un récord con trofeo.
+        workout(user, 55.0 to 8, daysAgo = 3, dirty = false)
         val (w, sets) = workout(user, 60.0 to 8, 60.0 to 8, dirty = false)
         c.workouts.rebuildRecords(setOf(bench))
         assertEquals(60.0, c.db.records().forExercise(bench).first { it.kind == RecordKind.MAX_WEIGHT.code }.value, 0.0)
@@ -371,6 +373,8 @@ class V17Test {
         assertEquals("'-2", DataExport.text("-2")); assertEquals("80", DataExport.num(80.0)); assertEquals("", DataExport.num(null))
 
         // Se comparten con permiso de lectura temporal (FileProvider), los 3 a la vez.
+        // FileProvider solo reconoce rutas con "/" (las de Android); en Windows Robolectric arma la caché con "\".
+        org.junit.Assume.assumeTrue("FileProvider necesita rutas con /: corre esta parte en Linux o en CI", java.io.File.separatorChar == '/')
         val uri = FileProvider.getUriForFile(app, DataExport.authority(app), files[0])
         assertEquals("content", uri.scheme)
         DataExport.share(app, files)

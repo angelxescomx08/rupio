@@ -49,14 +49,22 @@ class WorkoutService : LifecycleService() {
             if (Build.VERSION.SDK_INT >= 34) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0)
 
         // Notificación en curso: cronómetro de la sesión o cuenta regresiva del descanso (silenciosa).
+        // v1.9: lo que FALTA es el título ("Quedan 1:24 de descanso") con una barra que se vacía; el total va chico.
+        // Antes el título grande era el total ("Descanso · 1 min 30 s") y con +15 s parecía que era lo que quedaba.
         lifecycleScope.launch {
-            combine(container.workouts.active, container.restTimer.state) { w, r -> w to r }.collect { (w, r) ->
-                if (w == null) { stopSelf(); return@collect }
-                val n = if (r != null) {
-                    val endsWall = System.currentTimeMillis() + r.remainingMs(SystemClock.elapsedRealtime())
-                    build("Descanso · ${Fmt.restLabel(r.totalSec)}", r.label, endsWall, countDown = true)
-                } else build(w.name, "Entrenamiento en curso", w.startedAt, countDown = false)
-                if (canNotify(this@WorkoutService)) NotificationManagerCompat.from(this@WorkoutService).notify(NOTIF_ID, n)
+            combine(container.workouts.active, container.restTimer.state) { w, r -> w to r }.collectLatest { (w, r) ->
+                if (w == null) { stopSelf(); return@collectLatest }
+                if (r == null) {
+                    if (canNotify(this@WorkoutService)) NotificationManagerCompat.from(this@WorkoutService)
+                        .notify(NOTIF_ID, build(w.name, "Entrenamiento en curso", w.startedAt, countDown = false))
+                    return@collectLatest
+                }
+                while (true) {
+                    val left = r.remainingMs(SystemClock.elapsedRealtime())
+                    if (canNotify(this@WorkoutService)) NotificationManagerCompat.from(this@WorkoutService).notify(NOTIF_ID, buildRest(r, left))
+                    if (left <= 0) break
+                    delay((left % 1000).let { if (it == 0L) 1000L else it })     // justo cuando cambia el segundo
+                }
             }
         }
         // Fin de descanso: collectLatest cancela la espera anterior si el temporizador cambia o se cancela.
@@ -114,10 +122,30 @@ class WorkoutService : LifecycleService() {
         return b.build()
     }
 
+    /** Descanso en curso: lo que falta como título, la barra que se vacía y el total y "Siguiente…" en chico. */
+    private fun buildRest(r: RestTimerController.State, leftMs: Long): Notification {
+        val leftSec = ((leftMs + 999) / 1000).toInt()
+        val total = r.totalSec.coerceAtLeast(1)
+        return NotificationCompat.Builder(this, RupioApp.CHANNEL_WORKOUT)
+            .setSmallIcon(R.drawable.ic_stat_rupio)
+            .setContentTitle(restTitle(leftSec)).setContentText(r.label).setSubText("de ${Fmt.restLabel(total)}")
+            .setProgress(total, leftSec.coerceIn(0, total), false)
+            .setOngoing(true).setOnlyAlertOnce(true).setSilent(true)
+            .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            .setContentIntent(openApp(this))
+            .setShowWhen(false)
+            .addAction(0, "+15 s", action(ACTION_ADD15, 1)).addAction(0, "Saltar", action(ACTION_SKIP, 2))
+            .build()
+    }
+
     private fun action(a: String, code: Int) = PendingIntent.getService(this, code, Intent(this, WorkoutService::class.java).setAction(a),
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
     companion object {
+        /** "Quedan 1:24 de descanso" (lo que importa con el teléfono bloqueado). */
+        fun restTitle(leftSec: Int): String = "Quedan ${Fmt.duration(leftSec.coerceAtLeast(0).toLong())} de descanso"
+
         const val NOTIF_ID = 42
         const val ACTION_ADD15 = "rupio.add15"
         const val ACTION_SKIP = "rupio.skip"

@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
@@ -234,11 +235,18 @@ fun NumberCell(
      */
     sub: String? = null,
     minHeight: androidx.compose.ui.unit.Dp = 40.dp,
+    /**
+     * v1.9: tope del agrandado de letra dentro de la cajita (p. ej. 1.5 = hasta 150 %). Con letra al 200 % los kilos de
+     * la tabla de series salían "45.4 …"; así se ven completos y nunca más chicos que el 150 % (como [FitText]).
+     */
+    maxFontScale: Float? = null,
 ) {
     var text by remember { mutableStateOf(value) }
     // Solo se reemplaza el texto si el valor guardado es OTRO número (así no se pierde "13." mientras escribes).
     LaunchedEffect(value) { if (text.toDoubleOrNull() != value.toDoubleOrNull()) text = value }
     val bg = if (done) RupioColors.Success.copy(alpha = 0.10f) else RupioColors.Surface2
+    val main = cappedScale(MaterialTheme.typography.titleMedium.merge(Tabular), maxFontScale)
+    val small = cappedScale(MaterialTheme.typography.labelSmall.merge(Tabular), maxFontScale)
     BasicTextField(
         value = text,
         onValueChange = { v ->
@@ -247,7 +255,7 @@ fun NumberCell(
         },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number),
-        textStyle = MaterialTheme.typography.titleMedium.merge(Tabular).copy(color = RupioColors.Text, textAlign = TextAlign.Center),
+        textStyle = main.copy(color = RupioColors.Text, textAlign = TextAlign.Center),
         cursorBrush = SolidColor(RupioColors.Primary),
         modifier = modifier.heightIn(min = minHeight).clip(RoundedCornerShape(10.dp)).background(bg)
             .then(if (label != null) Modifier.semantics { contentDescription = label } else Modifier),
@@ -256,14 +264,22 @@ fun NumberCell(
             Column(Modifier.fillMaxWidth().heightIn(min = minHeight).padding(vertical = 2.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 Box(contentAlignment = Alignment.Center) {
-                    if (text.isEmpty()) Text(placeholder, style = MaterialTheme.typography.titleMedium.merge(Tabular), color = RupioColors.TextFaint, textAlign = TextAlign.Center, maxLines = 1)
+                    if (text.isEmpty()) Text(placeholder, style = main, color = RupioColors.TextFaint, textAlign = TextAlign.Center, maxLines = 1)
                     inner()
                 }
-                if (sub != null) Text(sub, style = MaterialTheme.typography.labelSmall.merge(Tabular), color = RupioColors.TextFaint, maxLines = 1,
+                if (sub != null) Text(sub, style = small, color = RupioColors.TextFaint, maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
         },
     )
+}
+
+/** El estilo con el agrandado de letra del sistema topado en [max] (null = sin tope). */
+@Composable
+fun cappedScale(style: TextStyle, max: Float?): TextStyle {
+    val fs = androidx.compose.ui.platform.LocalDensity.current.fontScale
+    if (max == null || fs <= max || !style.fontSize.isSpecified) return style
+    return style.copy(fontSize = style.fontSize * (max / fs))
 }
 
 val restOptions = listOf(0, 15, 30, 45, 60, 75, 90, 105, 120, 150, 180, 210, 240, 300, 360, 420, 600)
@@ -384,6 +400,33 @@ fun RepRangeDialog(min: Int, max: Int, onDismiss: () -> Unit, onSave: (Int, Int)
             }
         },
         confirmButton = { TextButton(onClick = { onSave(lo, hi) }) { Text("Guardar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+    )
+}
+
+/** v1.9: tiempo para tocar "Deshacer" (con 5 s el aviso se iba mientras lo tocabas). */
+const val UNDO_MS = 10_000L
+
+/**
+ * v1.9 · Cambiar un nombre. El campo llega con el foco y el texto seleccionado: el teclado se abre solo y lo que
+ * escribes reemplaza el nombre (antes había que tocar el campo primero).
+ */
+@Composable
+fun RenameDialog(title: String, initial: String, onDismiss: () -> Unit, below: (@Composable (String) -> Unit)? = null, onSave: (String) -> Unit) {
+    var value by remember { mutableStateOf(androidx.compose.ui.text.input.TextFieldValue(initial, androidx.compose.ui.text.TextRange(0, initial.length))) }
+    val focus = remember { androidx.compose.ui.focus.FocusRequester() }
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    LaunchedEffect(Unit) { delay(150); runCatching { focus.requestFocus(); keyboard?.show() } }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                OutlinedTextField(value, { value = it }, singleLine = true, modifier = Modifier.fillMaxWidth().focusRequester(focus))
+                below?.invoke(value.text)
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave(value.text) }) { Text("Guardar") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
     )
 }

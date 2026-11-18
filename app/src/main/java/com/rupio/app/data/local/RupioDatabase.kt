@@ -67,7 +67,8 @@ abstract class RupioDatabase : RoomDatabase() {
  */
 object CatalogSeeder {
     /** Súbelo cuando cambie el catálogo (nombres, imágenes…): se vuelve a escribir aunque ya esté completo. */
-    private const val VERSION = 2
+    // v3 (v1.9): técnica en pasos (posición, movimiento y error común) y ejercicios de cardio por tiempo.
+    private const val VERSION = 3
     @Serializable
     private data class Item(
         val id: String, val src: String, val name: String, val primary: String, val secondary: List<String>,
@@ -101,8 +102,13 @@ object Muscles {
         "antebrazos" to "Antebrazos", "abdomen" to "Abdomen", "cuadriceps" to "Cuádriceps",
         "isquiotibiales" to "Isquiotibiales", "gluteos" to "Glúteos", "pantorrillas" to "Pantorrillas",
         "aductores" to "Aductores", "abductores" to "Abductores", "cuello" to "Cuello",
+        // v1.9: grupos que no son un músculo (no cuentan para las series por músculo, ver MuscleSplit.NOT_COUNTED).
+        "cardio" to "Cardio", "cuerpo_completo" to "Cuerpo completo",
     )
     fun label(code: String) = names[code] ?: code.replaceFirstChar { it.uppercase() }
+
+    /** v1.9: "Espalda" junta lo que un principiante llama espalda (los filtros usaban solo nombres de anatomía). */
+    val BACK = setOf("dorsales", "espalda_media", "lumbar", "trapecio")
 
     val equipment = mapOf(
         "barra" to "Barra", "mancuernas" to "Mancuernas", "polea" to "Polea", "maquina" to "Máquina",

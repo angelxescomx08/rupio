@@ -2,6 +2,7 @@ package com.rupio.app.domain
 
 import com.rupio.app.core.Fmt
 import com.rupio.app.core.WeightUnit
+import com.rupio.app.core.searchKey
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -237,7 +238,7 @@ object Progression {
         val target = (minReps + 1).coerceIn(i.repMin, i.repMax)
         return Recommendation(
             RecKind.ADD_REPS, "Mantén ${Fmt.weight(topKg, u)}",
-            "Busca $target reps en todas las series (hoy tu serie más floja fue de $minReps). Cuando todas lleguen a ${i.repMax}, Rupio te pedirá subir peso.",
+            "Busca $target reps en todas las series (la vez pasada tu serie más floja fue de $minReps). Cuando todas lleguen a ${i.repMax}, Rupio te pedirá subir peso.",
             targetWeightKg = topKg, targetReps = target, sources = listOf(Sources.PLOTKIN, Sources.ROBINSON),
         )
     }
@@ -404,7 +405,84 @@ object Records {
         return out
     }
 
-    /** Devuelve los tipos de récord que la serie supera. */
+    /**
+     * Devuelve los tipos de récord que la serie supera. v1.9: solo cuenta lo que tiene una marca ANTERIOR en [current]:
+     * la primera vez que haces un ejercicio se guarda tu marca sin anunciarla (antes la primera serie de tu vida ya
+     * era "¡Nuevo récord!" y cada ejercicio nuevo sumaba 3 récords).
+     */
     fun beaten(tracking: Tracking, s: SetData, current: Map<RecordKind, Double>): Set<RecordKind> =
-        candidates(tracking, s).filter { (k, v) -> v > (current[k] ?: 0.0) + 1e-6 }.keys
+        candidates(tracking, s).filter { (k, v) -> current[k]?.let { v > it + 1e-6 } == true }.keys
+
+    /** Los tipos que se anuncian como récord (la mejor serie por volumen se guarda pero no se celebra). */
+    val HEADLINE = setOf(RecordKind.MAX_WEIGHT, RecordKind.E1RM, RecordKind.MAX_REPS, RecordKind.MAX_DURATION)
+}
+
+/**
+ * v1.9: el número de serie que ve la persona, igual en todos lados (tabla, descanso, notificación, TalkBack, editor).
+ * Los calentamientos no cuentan: "C, 1, 2". Antes la barra del descanso decía "serie 2" para la que en pantalla era la 1.
+ */
+object SetNumbering {
+    /** Número de serie efectiva (1, 2…) o null si es calentamiento. */
+    fun working(types: List<Int>, index: Int): Int? {
+        if (index !in types.indices || types[index] == SetType.WARMUP.code) return null
+        return types.take(index + 1).count { it != SetType.WARMUP.code }
+    }
+
+    /** "serie 2" o "calentamiento" (o "calentamiento 2" si hay varios). */
+    fun spoken(types: List<Int>, index: Int): String = working(types, index)?.let { "serie $it" } ?: run {
+        val warm = types.count { it == SetType.WARMUP.code }
+        val k = types.take(index + 1).count { it == SetType.WARMUP.code }
+        if (warm > 1) "calentamiento $k" else "calentamiento"
+    }
+
+    /** Descanso después de un calentamiento: corto (no es una serie pesada). */
+    const val WARMUP_REST_SEC = 60
+}
+
+/**
+ * v1.9 · "¿Qué rutina me toca hoy?": la que sigue en orden después de la última que terminaste (la guía arma
+ * A, B, A… "la semana siguiente sigue donde te quedaste"). Sin historial, la primera.
+ */
+object RoutineRotation {
+    data class Done(val routineId: String, val lastDay: Int, val lastEnd: Long)
+
+    fun next(ordered: List<String>, done: List<Done>): String? {
+        if (ordered.isEmpty()) return null
+        val last = done.filter { it.routineId in ordered }.maxByOrNull { it.lastEnd } ?: return ordered.first()
+        return ordered[(ordered.indexOf(last.routineId) + 1) % ordered.size]
+    }
+
+    /** La rutina que toca primero y luego las demás en su orden de siempre. */
+    fun <T> withNextFirst(list: List<T>, nextId: String?, id: (T) -> String): List<T> {
+        val i = list.indexOfFirst { id(it) == nextId }
+        return if (i <= 0) list else listOf(list[i]) + list.filterIndexed { k, _ -> k != i }
+    }
+}
+
+/**
+ * v1.9 · Búsqueda de ejercicios con las palabras que usa la gente: "desplante" encuentra las zancadas, "gemelos" las
+ * pantorrillas, "flexiones" las lagartijas, "caminadora" o "cinta" el cardio, y algunas en inglés del gimnasio.
+ */
+object ExerciseSearch {
+    private val SYNONYMS: List<Pair<String, List<String>>> = listOf(
+        "desplante" to listOf("zancada"), "lunge" to listOf("zancada"),
+        "gemelo" to listOf("pantorrilla", "talones"), "pantorrilla" to listOf("talones"),
+        "flexion" to listOf("lagartija"), "lagartija" to listOf("flexion"), "pushup" to listOf("lagartija"),
+        "cinta" to listOf("caminadora"), "correr" to listOf("caminadora"), "trotar" to listOf("caminadora"), "treadmill" to listOf("caminadora"),
+        "bici" to listOf("bicicleta"), "spinning" to listOf("bicicleta"), "escalera" to listOf("escaladora"),
+        "cuerda" to listOf("saltar la cuerda"), "brincar" to listOf("saltar"),
+        "espalda" to listOf("dorsal", "lumbar", "trapecio"), "abs" to listOf("abdom"), "abdominal" to listOf("abdom", "crunch"),
+        "pierna" to listOf("cuadriceps", "isquiotibiales", "femoral", "gluteo", "pantorrilla"), "brazo" to listOf("biceps", "triceps"),
+        "squat" to listOf("sentadilla"), "deadlift" to listOf("peso muerto"), "pullup" to listOf("dominada"),
+        "plank" to listOf("plancha"), "dips" to listOf("fondos"), "bench" to listOf("banca"),
+    )
+
+    /** Cada palabra de la búsqueda con sus equivalentes (sin acentos). */
+    fun tokens(query: String): List<List<String>> = query.searchKey().split(' ').filter { it.isNotBlank() }.map { t ->
+        listOf(t) + SYNONYMS.filter { (k, _) -> t.startsWith(k) || (t.length >= 4 && k.startsWith(t)) }.flatMap { it.second }
+    }
+
+    /** Todas las palabras deben coincidir (o una de sus equivalentes) con el nombre o el músculo. */
+    fun matches(nameKey: String, muscleKey: String, tokens: List<List<String>>): Boolean =
+        tokens.all { alts -> alts.any { a -> nameKey.contains(a) || muscleKey.contains(a) } }
 }

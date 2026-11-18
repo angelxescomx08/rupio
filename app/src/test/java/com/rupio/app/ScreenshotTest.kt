@@ -59,14 +59,14 @@ class ScreenshotTest {
         compose.waitUntil(15_000) { compose.onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty() }
 
     @Test fun a_bienvenida() {
+        // v1.9: 2 páginas (registrar series y "te dice cuándo subir"); antes eran 4.
         app { OnboardingScreen("José Ángel Hernández") {} }
         shot("01_bienvenida")
-        compose.onNodeWithText("Siguiente").performClick(); settle()
         compose.onNodeWithContentDescription("Completar").performClick()
         shot("02_bienvenida_demo_serie")
         compose.onNodeWithText("Siguiente").performClick(); settle()
-        compose.onNodeWithText("Siguiente").performClick()
-        shot("03_bienvenida_superseries")
+        compose.onNodeWithText("Empezar").assertExists()
+        shot("03_bienvenida_cuando_subir")
     }
 
     @Test fun b_login() {
@@ -151,7 +151,7 @@ class ScreenshotTest {
         compose.onNodeWithText("Cancelar").performClick(); settle()
 
         // Selector de ejercicios con búsqueda sin acentos
-        scrollTo("Agregar ejercicios"); compose.onNodeWithText("Agregar ejercicios").performClick(); waitText("de 256")
+        scrollTo("Agregar ejercicios"); compose.onNodeWithText("Agregar ejercicios").performClick(); waitText("de 262")
         compose.onNode(hasSetTextAction()).performTextInput("press manc"); settle()
         compose.onAllNodesWithContentDescription("Ver detalles")[0].performClick(); waitText("Buscar videos")
         shot("20_detalle_ejercicio")

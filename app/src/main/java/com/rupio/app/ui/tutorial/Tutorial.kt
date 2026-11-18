@@ -131,11 +131,14 @@ private fun CoachOverlay(c: CoachController) {
 }
 
 // =====================================================================================
-// Bienvenida: 4 páginas con mini-demos que se pueden tocar.
+// Bienvenida: 2 páginas con mini-demos que se pueden tocar. v1.9: antes eran 4 (saludo y superseries aparte) y, con
+// los globos de Inicio y del entreno, había que pasar 24 toques antes de escribir el primer peso.
 // =====================================================================================
+private const val ONBOARDING_PAGES = 2
+
 @Composable
 fun OnboardingScreen(name: String, onDone: () -> Unit) {
-    val pager = rememberPagerState { 4 }
+    val pager = rememberPagerState { ONBOARDING_PAGES }
     val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxSize().background(RupioColors.Background).systemBarsPadding().padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -146,27 +149,24 @@ fun OnboardingScreen(name: String, onDone: () -> Unit) {
         HorizontalPager(pager, Modifier.weight(1f)) { page ->
             Column(Modifier.fillMaxSize().padding(top = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 when (page) {
-                    0 -> Page(Icons.Rounded.WavingHand, "¡Hola, ${name.substringBefore(' ')}!",
-                        "Rupio registra tus entrenamientos y te dice cuándo subir el peso, con reglas basadas en estudios científicos.\n\nNo necesitas saber de gimnasio: te guiamos paso a paso.") {}
-                    1 -> Page(Icons.Rounded.CheckCircle, "Registra cada serie",
-                        "Escribe el peso y las repeticiones y toca ✓ al terminar. Si lo dejas vacío, se usa el valor sugerido en gris.\n\nPruébalo aquí abajo 👇") { DemoSetRow() }
-                    2 -> Page(Icons.Rounded.TrendingUp, "Te dice cuándo subir",
-                        "Cuando completas todas tus series en el máximo de repeticiones, Rupio te pide subir el peso un poco (2.5–5 %). Si no, te propone sumar una repetición.") { DemoRecommendation() }
-                    else -> Page(Icons.Rounded.Link, "Superseries y descansos",
-                        "Agrupa ejercicios en superseries: se ven unidos con una letra y un color. Elige un descanso compartido al terminar la ronda, o uno por ejercicio.") { DemoSuperset() }
+                    0 -> Page(Icons.Rounded.CheckCircle, "¡Hola, ${name.substringBefore(' ')}! Registra cada serie",
+                        "Escribe el peso y las repeticiones y toca ✓ al terminar. Si lo dejas vacío, se usa el valor sugerido en gris. Pruébalo 👇") { DemoSetRow() }
+                    else -> Page(Icons.Rounded.TrendingUp, "Te dice cuándo subir",
+                        "Cuando completas todas tus series en el máximo de repeticiones, Rupio te pide subir el peso un poco (2.5–5 %). Si no, te propone sumar una repetición. No necesitas saber de gimnasio.") { DemoRecommendation() }
                 }
             }
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center) {
-            repeat(4) { i ->
+            repeat(ONBOARDING_PAGES) { i ->
                 val sel = pager.currentPage == i
                 Box(Modifier.padding(4.dp).height(8.dp).width(if (sel) 22.dp else 8.dp).clip(CircleShape).background(if (sel) RupioColors.Primary else RupioColors.Surface3))
             }
         }
+        val last = ONBOARDING_PAGES - 1
         Button(
-            onClick = { if (pager.currentPage < 3) scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } else onDone() },
+            onClick = { if (pager.currentPage < last) scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } else onDone() },
             modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp),
-        ) { Text(if (pager.currentPage < 3) "Siguiente" else "Empezar", style = MaterialTheme.typography.titleMedium) }
+        ) { Text(if (pager.currentPage < last) "Siguiente" else "Empezar", style = MaterialTheme.typography.titleMedium) }
     }
 }
 
@@ -220,20 +220,6 @@ private fun DemoRecommendation() {
                 Text("Sube a 140 lb", fontWeight = FontWeight.SemiBold, color = RupioColors.Warning)
                 Text("Completaste 3 × 12 con 135 lb. Vuelve a 8 reps con el nuevo peso.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
             }
-        }
-    }
-}
-
-@Composable
-private fun DemoSuperset() {
-    val c = RupioColors.Supersets[0]
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(RupioColors.Surface).padding(12.dp)) {
-        Box(Modifier.width(4.dp).height(96.dp).clip(RoundedCornerShape(2.dp)).background(c))
-        Spacer(Modifier.width(10.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) { SupersetTag(0, null); Spacer(Modifier.width(8.dp)); Text("Superserie · descanso compartido 1 min 30 s", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim) }
-            Row(verticalAlignment = Alignment.CenterVertically) { Text("├", color = c); Spacer(Modifier.width(6.dp)); SupersetTag(0, 0); Spacer(Modifier.width(8.dp)); Text("Press de banca con mancuernas") }
-            Row(verticalAlignment = Alignment.CenterVertically) { Text("└", color = c); Spacer(Modifier.width(6.dp)); SupersetTag(0, 1); Spacer(Modifier.width(8.dp)); Text("Remo con mancuerna") }
         }
     }
 }

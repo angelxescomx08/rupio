@@ -35,6 +35,9 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.format.TextStyle
 
+/** v1.9: el botón de salir sin cuenta (antes "Cerrar sesión", que no decía que se borra todo). */
+const val LOCAL_EXIT = "Borrar mis datos y salir"
+
 @Composable
 fun ProfileScreen(nav: NavHostController) {
     val c = container()
@@ -77,17 +80,31 @@ fun ProfileScreen(nav: NavHostController) {
                 support.best?.let { Spacer(Modifier.height(6.dp)); SupporterBadge(it, Modifier.clickable { nav.navigate(Routes.SUPPORT) }) }
                 Spacer(Modifier.height(4.dp))
                 Text(if (me.localOnly) "Modo local (sin cuenta en la nube)" else me.email, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
-                Text("$count entrenamientos", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextFaint)
+                Text(Fmt.plural(count, "entrenamiento", "entrenamientos"), style = MaterialTheme.typography.labelMedium, color = RupioColors.TextFaint)
+            }
+
+            // v1.9: sin cuenta, lo más importante va primero: tus datos solo viven en este teléfono (antes estaba tras dos scrolls).
+            if (me.localOnly) Surface(shape = RoundedCornerShape(20.dp), color = RupioColors.Warning.copy(alpha = 0.10f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, RupioColors.Warning.copy(alpha = 0.5f)), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.PhoneAndroid, null, tint = RupioColors.Warning)
+                        Spacer(Modifier.width(10.dp))
+                        Text("Tus datos se guardan solo en este teléfono", style = MaterialTheme.typography.titleSmall)
+                    }
+                    Text("No se respaldan: si pierdes o cambias el teléfono, se pierden. Con una cuenta se suben a la nube sin perder nada.",
+                        style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = Modifier.padding(top = 4.dp))
+                    Button(onClick = { nav.navigate(Routes.ACCOUNT) }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp).heightIn(min = 48.dp),
+                        shape = RoundedCornerShape(14.dp)) { Icon(Icons.Rounded.CloudUpload, null); Spacer(Modifier.width(8.dp)); Text("Crear cuenta y conservar mis datos") }
+                }
             }
 
             // Apoyo: una fila amable y siempre a la mano (para quien quiera apoyar sin esperar al mensaje).
+            // v1.9: el Muro de agradecimientos vive solo dentro de Apoya Rupio (antes también aquí, arriba de todo).
             if (support.isSupporter) {
                 SectionCard(padding = 4.dp) {
                     SettingRow(Icons.Rounded.Favorite, "Tus recompensas", "Color de la app" + (if (support.best?.hasGoldPerks == true) ", ícono dorado" else "") + " y tu insignia",
                         onClick = { nav.navigate(Routes.SUPPORT) })
-                    HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
-                    SettingRow(Icons.Rounded.AutoAwesome, "Muro de agradecimientos", if (support.isPatron) "Tu lugar y aportes para subir" else "Quienes hacen posible Rupio",
-                        onClick = { nav.navigate(Routes.WALL) })
                     HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
                     SettingRow(Icons.Rounded.EmojiEvents, "Ligas semanales", "Opcional: compite por volumen con personas de tu nivel", onClick = { nav.navigate(Routes.LEAGUE) })
                 }
@@ -110,8 +127,6 @@ fun ProfileScreen(nav: NavHostController) {
             // Aprende (antes era una pestaña; ahora Peso ocupa su lugar en la barra) y compartir, arriba y a un toque.
             SectionCard(padding = 4.dp) {
                 if (!support.isSupporter) {
-                    SettingRow(Icons.Rounded.AutoAwesome, "Muro de agradecimientos", "Quienes hacen posible Rupio", onClick = { nav.navigate(Routes.WALL) })
-                    HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
                     SettingRow(Icons.Rounded.EmojiEvents, "Ligas semanales", "Opcional: compite por volumen con personas de tu nivel", onClick = { nav.navigate(Routes.LEAGUE) })
                     HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
                 }
@@ -172,16 +187,12 @@ fun ProfileScreen(nav: NavHostController) {
                             })
                         }
                     }
-                } else {
-                    SettingRow(Icons.Rounded.PhoneAndroid, "Tus datos", "Se guardan solo en este teléfono y no se respaldan.")
-                    Button(onClick = { nav.navigate(Routes.ACCOUNT) }, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 12.dp).heightIn(min = 48.dp),
-                        shape = RoundedCornerShape(14.dp)) { Icon(Icons.Rounded.CloudUpload, null); Spacer(Modifier.width(8.dp)); Text("Crear cuenta y conservar mis datos") }
                 }
                 if (!me.localOnly) {
                     HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
                     SettingRow(Icons.Rounded.AlternateEmail, "Cambiar correo", me.email, onClick = { changeEmail = true })
+                    HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
                 }
-                HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
                 // v1.7 (N2): el consentimiento del peso corporal (dato de salud) se puede retirar; se borra el historial.
                 val consentAt = s.healthConsentAt
                 SettingRow(Icons.Rounded.MonitorHeart, "Permiso de peso corporal",
@@ -210,20 +221,21 @@ fun ProfileScreen(nav: NavHostController) {
             }
 
 
-            OutlinedButton(onClick = { logout = true }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).height(50.dp), shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = RupioColors.Danger)) { Icon(Icons.Rounded.Logout, null); Spacer(Modifier.width(6.dp)); Text("Cerrar sesión") }
+            // v1.9: sin cuenta no hay sesión que cerrar: el botón dice lo que hace (borra todo lo del teléfono).
+            OutlinedButton(onClick = { logout = true }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).heightIn(min = 50.dp), shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = RupioColors.Danger)) {
+                Icon(if (me.localOnly) Icons.Rounded.DeleteForever else Icons.Rounded.Logout, null); Spacer(Modifier.width(6.dp))
+                Text(if (me.localOnly) LOCAL_EXIT else "Cerrar sesión")
+            }
             Text("Rupio ${com.rupio.app.BuildConfig.VERSION_NAME} · hecho con datos abiertos de free-exercise-db (dominio público)", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint,
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 16.dp))
         }
     }
 
-    if (editName) {
-        var t by remember { mutableStateOf(me.name) }
-        AlertDialog(onDismissRequest = { editName = false }, title = { Text("Tu nombre") },
-            text = { Column { OutlinedTextField(t, { t = it }, singleLine = true); Spacer(Modifier.height(8.dp)); Row(verticalAlignment = Alignment.CenterVertically) { InitialsAvatar(t, 36.dp); Spacer(Modifier.width(8.dp)); Text("Así se verá tu avatar", color = RupioColors.TextDim) } } },
-            confirmButton = { TextButton(onClick = { if (t.isNotBlank()) c.auth.updateName(t.trim()); editName = false }) { Text("Guardar") } },
-            dismissButton = { TextButton(onClick = { editName = false }) { Text("Cancelar") } })
-    }
+    if (editName) RenameDialog("Tu nombre", me.name, { editName = false }, below = { t ->
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) { InitialsAvatar(t, 36.dp); Spacer(Modifier.width(8.dp)); Text("Así se verá tu avatar", color = RupioColors.TextDim) }
+    }) { t -> if (t.isNotBlank()) c.auth.updateName(t.trim()); editName = false }
     if (restAlert) RestAlertDialog(s.restAlert, onPick = { scope.launch { c.settings.setRestAlert(it) } }, onClose = { restAlert = false })
     if (privacy) com.rupio.app.ui.legal.PrivacyPolicyDialog { privacy = false }
     if (changeEmail) ChangeEmailDialog(me.email) { changeEmail = false }
@@ -235,12 +247,12 @@ fun ProfileScreen(nav: NavHostController) {
         scope.launch { c.withdrawHealthConsent(); c.notices.emit(com.rupio.app.Notice("Listo. Se borró tu historial de peso corporal.")) }
     }
     if (restPick) RestPickerDialog("Descanso por defecto", s.defaultRestSec, { restPick = false }, { scope.launch { c.settings.setDefaultRest(it) }; restPick = false })
-    if (logout) ConfirmDialog("¿Cerrar sesión?",
-        (if (me.localOnly) "Estás en modo local: tus datos solo viven en este teléfono y se borrarán al salir. Si quieres conservarlos, mejor usa «Crear cuenta y conservar mis datos»."
+    if (logout) ConfirmDialog(if (me.localOnly) "¿Borrar tus datos y salir?" else "¿Cerrar sesión?",
+        (if (me.localOnly) "Tus ${Fmt.plural(count, "entrenamiento", "entrenamientos")}, rutinas y pesos solo viven en este teléfono y se borrarán para siempre. Si quieres conservarlos, mejor usa «Crear cuenta y conservar mis datos»."
         else if (pending > 0) "Hay $pending cambios sin subir. Primero los guardaremos en la nube (tarda unos segundos); si no hay internet te preguntaremos qué hacer."
         else "Tus datos están en la nube y volverán al iniciar sesión.") +
             (if (active != null) "\n\nTienes un entrenamiento en curso: se descartará." else ""),
-        "Cerrar sesión", { logout = false }, danger = true) {
+        if (me.localOnly) "Borrar y salir" else "Cerrar sesión", { logout = false }, danger = true) {
         logout = false
         // Pasos visibles (subir → cerrar → borrar) en una pantalla que explica qué pasa: ver SignOutOverlay.
         c.signOut.start(me.localOnly)

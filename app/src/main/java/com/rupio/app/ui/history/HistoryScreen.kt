@@ -39,6 +39,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.focus.focusRequester
 
 /**
  * Historial con keyset pagination: cada página cuesta lo mismo aunque tengas 10 años de entrenamientos.
@@ -128,14 +129,20 @@ fun HistoryScreen(nav: NavHostController) {
     val byMonth = vm.items.groupBy { LocalDate.ofEpochDay(it.localDate.toLong()).withDayOfMonth(1) }
 
     Column(Modifier.fillMaxSize()) {
-        RupioTopBar("Historial", onBack = null, subtitle = if (vm.items.isNotEmpty() && !searching) "Horas en tu zona: ${zone.id}" else null) {
+        // v1.9: la zona horaria solo se menciona si algún entreno se hizo en otra (antes "Horas en tu zona: GMT" salía siempre).
+        val otherZone = vm.items.any { Dates.isOtherZone(it.startedAt, zone, it.timeZone) }
+        RupioTopBar("Historial", onBack = null, subtitle = if (otherZone && !searching) "Horas en tu zona: ${zone.id}" else null) {
             IconButton(onClick = { searching = !searching; if (!searching) text = "" }) {
                 Icon(if (searching) Icons.Rounded.SearchOff else Icons.Rounded.Search, if (searching) "Cerrar búsqueda" else "Buscar por ejercicio")
             }
             IconButton(onClick = { picking = true }) { Icon(Icons.Rounded.CalendarMonth, "Ir a un mes") }
             SyncStatusIcon()
         }
-        if (searching) OutlinedTextField(text, { text = it }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        // v1.9: al tocar la lupa el campo ya tiene el foco y abre el teclado (antes lo que escribías se perdía).
+        val focus = remember { androidx.compose.ui.focus.FocusRequester() }
+        LaunchedEffect(searching) { if (searching && text.isEmpty()) runCatching { focus.requestFocus() } }
+        if (searching) OutlinedTextField(text, { text = it }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+            .focusRequester(focus),
             placeholder = { Text("Buscar ejercicio o entreno (p. ej. sentadilla)") }, singleLine = true, leadingIcon = { Icon(Icons.Rounded.Search, null) },
             trailingIcon = { if (text.isNotEmpty()) IconButton(onClick = { text = "" }) { Icon(Icons.Rounded.Close, "Borrar búsqueda") } },
             shape = RoundedCornerShape(14.dp))
@@ -156,7 +163,7 @@ fun HistoryScreen(nav: NavHostController) {
                     FlowRow(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.Bottom) {
                         Text(month.month.getDisplayName(TextStyle.FULL_STANDALONE, Fmt.locale).replaceFirstChar { it.uppercase() } + " " + month.year,
                             style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() }.padding(end = 8.dp))
-                        Text("${ws.size} entrenos · ${Fmt.volume(ws.sumOf { it.totalVolumeKg }, unit)}", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim,
+                        Text("${Fmt.plural(ws.size, "entreno", "entrenos")} · ${Fmt.volume(ws.sumOf { it.totalVolumeKg }, unit)}", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim,
                             modifier = Modifier.align(Alignment.Bottom))
                     }
                 }
@@ -182,7 +189,7 @@ fun HistoryScreen(nav: NavHostController) {
                     item { AssistChip(onClick = { vm.jumpTo(null); picking = false; scope.launch { list.scrollToItem(0) } }, label = { Text("Lo más reciente") }) }
                     ms.groupBy { it.ym.take(4) }.forEach { (year, inYear) ->
                         item(key = year) {
-                            Text("$year · ${inYear.sumOf { it.n }} entrenos", style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
+                            Text("$year · ${Fmt.plural(inYear.sumOf { it.n }, "entreno", "entrenos")}", style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
                             Spacer(Modifier.height(6.dp))
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 inYear.forEach { mc ->
@@ -219,7 +226,7 @@ private fun WorkoutCard(w: WorkoutEntity, ex: List<WorkoutExerciseSummary>, unit
             FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Metric(Icons.Rounded.Schedule, Fmt.durationHuman((w.durationSec ?: 0).toLong()))
                 Metric(Icons.Rounded.FitnessCenter, Fmt.volume(w.totalVolumeKg, unit), Fmt.volume(w.totalVolumeKg, unit.other))
-                Metric(Icons.Rounded.Repeat, "${w.totalSets} series")
+                Metric(Icons.Rounded.Repeat, Fmt.plural(w.totalSets, "serie", "series"))
             }
             if (ex.isNotEmpty()) {
                 Spacer(Modifier.height(10.dp))

@@ -236,8 +236,9 @@ private fun EditSetRow(ex: EditWorkoutVM.Ex, r: EditWorkoutVM.Row, index: Int, a
     val unit = vm.unit
     val type = SetType.of(r.setType)
     val bad = r.key in vm.invalid
-    val n = index + 1
-    val working = all.take(index + 1).count { it.setType != SetType.WARMUP.code }
+    // v1.9: la misma numeración que se ve ("C, 1, 2"): un calentamiento ya no es "Serie 1" para TalkBack.
+    val spoken = com.rupio.app.domain.SetNumbering.spoken(all.map { it.setType }, index)
+    val working = com.rupio.app.domain.SetNumbering.working(all.map { it.setType }, index) ?: 0
     val border = when { bad -> RupioColors.Danger; highlight -> RupioColors.Warning; else -> Color.Transparent }
     Row(
         Modifier.fillMaxWidth().padding(vertical = 3.dp).clip(RoundedCornerShape(10.dp)).border(BorderStroke(1.5.dp, border), RoundedCornerShape(10.dp)).padding(2.dp),
@@ -246,7 +247,7 @@ private fun EditSetRow(ex: EditWorkoutVM.Ex, r: EditWorkoutVM.Row, index: Int, a
         Box(
             Modifier.width(W_TYPE).heightIn(min = 50.dp).clip(RoundedCornerShape(8.dp)).background(RupioColors.Surface2)
                 .clickable(onClickLabel = "cambiar el tipo de serie", role = Role.Button) { vm.cycleType(r.key) }
-                .clearAndSetSemantics { contentDescription = "Serie $n de ${ex.name}, ${type.label.lowercase()}. Toca para cambiar el tipo"; role = Role.Button },
+                .clearAndSetSemantics { contentDescription = "${spoken.replaceFirstChar { it.uppercase() }} de ${ex.name}, ${type.label.lowercase()}. Toca para cambiar el tipo"; role = Role.Button },
             contentAlignment = Alignment.Center,
         ) {
             Text(if (type == SetType.NORMAL) "$working" else type.short, style = MaterialTheme.typography.titleSmall.merge(Tabular),
@@ -257,18 +258,18 @@ private fun EditSetRow(ex: EditWorkoutVM.Ex, r: EditWorkoutVM.Row, index: Int, a
             // v1.8: la otra unidad dentro de la misma cajita (como al entrenar).
             val other = r.weight.toDoubleOrNull()?.takeIf { it != 0.0 }?.let { com.rupio.app.core.Fmt.weight(unit.toKg(kotlin.math.abs(it)), unit.other) }
             NumberCell(r.weight, unit.label, { t -> vm.update(r.key) { it.copy(weight = t.replace("-", "")) } },
-                Modifier.width(W_W), label = "$what en ${if (unit == WeightUnit.LB) "libras" else "kilos"}, serie $n, ${ex.name}", sub = other, minHeight = 50.dp)
+                Modifier.width(W_W), label = "$what en ${if (unit == WeightUnit.LB) "libras" else "kilos"}, $spoken, ${ex.name}", sub = other, minHeight = 50.dp)
         }
         if (tr == Tracking.DURATION) {
             NumberCell(r.seconds, "seg", { t -> vm.update(r.key) { it.copy(seconds = t.filter(Char::isDigit)) } }, Modifier.width(W_W),
-                decimal = false, label = "Segundos, serie $n, ${ex.name}", minHeight = 50.dp)
+                decimal = false, label = "Segundos, $spoken, ${ex.name}", minHeight = 50.dp)
         } else {
             NumberCell(r.reps, "reps", { t -> vm.update(r.key) { it.copy(reps = t.filter(Char::isDigit)) } }, Modifier.width(W_R),
-                decimal = false, label = "Repeticiones, serie $n, ${ex.name}", minHeight = 50.dp)
+                decimal = false, label = "Repeticiones, $spoken, ${ex.name}", minHeight = 50.dp)
         }
         Spacer(Modifier.weight(1f))
         IconButton(onClick = { vm.remove(r.key) }, modifier = Modifier.size(48.dp)) {
-            Icon(Icons.Rounded.DeleteOutline, "Borrar serie $n de ${ex.name}", tint = RupioColors.TextDim)
+            Icon(Icons.Rounded.DeleteOutline, "Borrar $spoken de ${ex.name}", tint = RupioColors.TextDim)
         }
     }
 }

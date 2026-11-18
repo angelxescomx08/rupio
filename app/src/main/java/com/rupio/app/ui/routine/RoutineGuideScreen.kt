@@ -209,7 +209,8 @@ private fun Proposal(plan: RoutineGuide.Plan, chosen: Split, input: RoutineGuide
         SectionCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(s.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                Text("≈ ${s.minutes} min", style = MaterialTheme.typography.labelLarge, color = RupioColors.TextDim)
+                // v1.9: el mismo cálculo y formato que la tarjeta de la rutina en Inicio.
+                Text("≈ ${Fmt.durationHuman(s.estimatedSec.toLong())}", style = MaterialTheme.typography.labelLarge, color = RupioColors.TextDim)
             }
             Spacer(Modifier.height(6.dp))
             s.items.forEach { it2 ->

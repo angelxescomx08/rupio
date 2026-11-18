@@ -16,6 +16,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -160,7 +162,11 @@ class RoutineEditorVM(private val c: AppContainer, private val routineId: String
         dirty = true
     }
 
+    /** v1.9: una rutina sin ejercicios no se guarda (antes quedaba "Mi rutina · 0 ejercicios" y abría un entreno vacío). */
+    val canSave get() = items.isNotEmpty()
+
     suspend fun save(): Boolean {
+        if (!canSave) return false
         val uid = c.auth.currentUserId ?: return false
         val t = System.currentTimeMillis()
         val r = existing?.copy(name = name.trim().ifBlank { "Mi rutina" }, notes = notes.ifBlank { null })
@@ -206,9 +212,12 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
     val ssIndex = supersetIndexMap(vm.items.map { it.supersetId })
     val groups = groupConsecutive(vm.items.toList()) { it.supersetId }
 
+    var needExercise by remember { mutableStateOf(false) }
+    LaunchedEffect(vm.items.size) { if (vm.items.isNotEmpty()) needExercise = false }
     Column(Modifier.fillMaxSize()) {
         RupioTopBar(if (vm.isNew) "Nueva rutina" else "Editar rutina", onBack = { exit() }) {
-            Button(onClick = { scope.launch { if (vm.save()) nav.safePop() } }, shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(end = 8.dp)) { Text("Guardar") }
+            Button(onClick = { if (!vm.canSave) needExercise = true else scope.launch { if (vm.save()) nav.safePop() } },
+                shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(end = 8.dp)) { Text("Guardar") }
         }
         LazyColumn(
             Modifier.weight(1f),
@@ -251,6 +260,9 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
             }
             if (vm.loaded && vm.items.isEmpty()) item {
                 EmptyState(Icons.Rounded.FitnessCenter, "Agrega ejercicios", "Busca por nombre o músculo. Los del catálogo traen imágenes y un botón para buscar videos de cómo hacerlos.")
+                if (needExercise) Text("Agrega al menos un ejercicio para guardar la rutina.", color = RupioColors.Danger, style = MaterialTheme.typography.bodyMedium,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth()
+                        .semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
             }
             items(groups, key = { g -> g.first().key }) { g ->
                 val ss = g.first().supersetId
@@ -294,9 +306,10 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
     ssDialog?.let { keys ->
         val first = vm.items.firstOrNull { it.key in keys }
         val muscles = keys.mapNotNull { k -> vm.items.firstOrNull { it.key == k }?.let { byId[it.exerciseId]?.primaryMuscle } }
+        // v1.9: el descanso que ya tenía el ejercicio (antes volvía a 90 s sin avisar).
         SupersetRestDialog(
             "Nueva superserie", if (first?.supersetId != null) SupersetRestMode.of(first.ssMode) else SupersetRestMode.SHARED,
-            first?.ssRest ?: 90, sameMusclePair(muscles), { ssDialog = null },
+            first?.ssRest ?: first?.restSec ?: 90, sameMusclePair(muscles), { ssDialog = null },
         ) { mode, rest -> vm.createSuperset(keys, mode, rest); ssDialog = null; selecting = false; selected.clear() }
     }
     ssEdit?.let { ss ->

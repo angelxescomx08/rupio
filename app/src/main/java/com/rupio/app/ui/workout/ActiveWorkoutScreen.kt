@@ -98,18 +98,30 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
     // Si ya no hay entrenamiento activo (terminado o descartado), volver.
     LaunchedEffect(ui) { if (ui != null && ui?.workout == null) nav.safePop() }
 
+    // v1.9: el permiso de notificaciones se pide al marcar la PRIMERA serie (cuando arranca el primer descanso y se
+    // entiende para qué sirve), ya no al tocar "Empezar rutina" entre la guía y el entreno.
+    var askNotif by remember { mutableStateOf(false) }
+    val notifLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) {
+        notifOk = com.rupio.app.timer.canNotify(context)
+    }
+    fun maybeAskNotif() {
+        val s = settings ?: return
+        if (android.os.Build.VERSION.SDK_INT >= 33 && !s.notifAsked && !com.rupio.app.timer.canNotify(context)) askNotif = true
+    }
+
     LaunchedEffect(Unit) {
         vm.events.collect { e ->
             when (e) {
                 is WorkoutEvent.Message -> snackbar.showSnackbar(e.text)
                 is WorkoutEvent.Record -> {
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    maybeAskNotif()
                     snackbar.showSnackbar("🏆 ¡Nuevo récord en ${e.exercise}! " + e.kinds.joinToString(" · ") { it.label })
                 }
-                WorkoutEvent.Completed -> haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                WorkoutEvent.Completed -> { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); maybeAskNotif() }
                 is WorkoutEvent.Undoable -> {
-                    // 5 s para deshacer (en vez de borrar al instante sin aviso, o de un diálogo para algo reversible).
-                    val r = kotlinx.coroutines.withTimeoutOrNull(5_000) {
+                    // v1.9: 10 s para deshacer (con 5 s el aviso se iba mientras lo tocabas).
+                    val r = kotlinx.coroutines.withTimeoutOrNull(UNDO_MS) {
                         snackbar.showSnackbar(e.text, actionLabel = "Deshacer", duration = SnackbarDuration.Indefinite)
                     }
                     if (r == null) snackbar.currentSnackbarData?.dismiss()
@@ -123,18 +135,15 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
     val w = state.workout ?: return
     val items = state.items
 
-    // Tutorial del entrenamiento (una sola vez).
+    // Tutorial del entrenamiento (una sola vez). v1.9: solo 2 globos; lo demás lo explica cada control al tocarlo
+    // (el número de serie, el descanso y la recomendación abren su explicación). Antes eran 6 encima de las series.
     LaunchedEffect(settings?.tutorialWorkout, items.isNotEmpty()) {
         val s = settings ?: return@LaunchedEffect
         if (s.tutorialWorkout || items.isEmpty() || coach.active) return@LaunchedEffect
         delay(800)
         coach.start(listOf(
-            CoachStep("rec_0", "Te dice qué hacer hoy", "Rupio revisa tu última sesión: si llegaste al máximo de reps te pide subir el peso; si no, sumar una repetición."),
-            CoachStep("set_check", "Marca cada serie", "Escribe peso y reps (o deja el valor gris sugerido) y toca ✓. Arranca el descanso automáticamente."),
-            CoachStep("set_number", "Tipo de serie", "Toca el número para marcar calentamiento, drop set, al fallo o anotar tu RPE (qué tan difícil fue)."),
-            CoachStep("rest_chip", "Descanso", "Cambia el descanso de este ejercicio. Sonará una sola vez al terminar, aunque marques y desmarques."),
-            CoachStep("ex_menu", "Superseries y más", "Desde aquí unes este ejercicio con el siguiente en una superserie, cambias el orden o las repeticiones."),
-            CoachStep("finish", "Termina y guarda", "Al terminar se guardan tus récords y tu volumen. ¡A entrenar!"),
+            CoachStep("set_check", "Marca cada serie", "Escribe peso y reps (o deja el valor gris sugerido) y toca ✓. Arranca el descanso solo."),
+            CoachStep("finish", "Termina y guarda", "Al terminar se guardan tu volumen y tus marcas. ¡A entrenar!"),
         )) { scope.launch { c.settings.setTutorialWorkout(true) } }
     }
 
@@ -163,18 +172,25 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
             Column(Modifier.background(RupioColors.Background)) {
                 // Con letra muy grande el nombre va debajo de la barra (completo) en vez de cortarse junto a "Terminar".
                 val bigText = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
+                // v1.9: con letra grande o en horizontal el encabezado fijo ocupaba más de la mitad de la pantalla
+                // (3 tarjetas apiladas): ahí va una sola línea y las series tienen el resto.
+                val compactHeader = bigText || androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 480
                 val started = "Empezó a las " + Dates.formatTimeWithOrigin(w.startedAt, zone, w.timeZone)
-                RupioTopBar(if (bigText) "" else w.name, onBack = { nav.safePop() }, subtitle = if (bigText) null else started) {
+                RupioTopBar(if (bigText) "" else w.name, onBack = { nav.safePop() }, subtitle = if (compactHeader) null else started) {
                     IconButton(onClick = { renaming = true }) { Icon(Icons.Rounded.Edit, "Cambiar nombre", tint = RupioColors.TextDim) }
                     Button(onClick = { finishing = true }, shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(end = 8.dp).coachTarget("finish"),
                         colors = ButtonDefaults.buttonColors(containerColor = RupioColors.Success, contentColor = Color.Black)) { Text("Terminar", fontWeight = FontWeight.SemiBold) }
                 }
-                if (bigText) Column(Modifier.padding(horizontal = 16.dp)) {
-                    Text(w.name, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(started, style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
-                }
-                TileRow(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                    Tile("Duración", Fmt.duration(((now - w.startedAt) / 1000).coerceAtLeast(0)))
+                if (bigText) Text(w.name, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 16.dp))
+                val dur = Fmt.duration(((now - w.startedAt) / 1000).coerceAtLeast(0))
+                if (compactHeader) {
+                    FitText("$dur · ${Fmt.volume(volume, unit)} · ${Fmt.plural(doneSets, "serie", "series")}", MaterialTheme.typography.titleMedium.merge(Tabular),
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp)
+                            .semantics { contentDescription = "Duración $dur, volumen ${Fmt.volume(volume, unit)}, ${Fmt.plural(doneSets, "serie", "series")}" },
+                        color = RupioColors.TextDim, maxLines = 1)
+                } else TileRow(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    Tile("Duración", dur)
                     Tile("Volumen", Fmt.volume(volume, unit), sub = Fmt.volume(volume, unit.other))
                     Tile("Series", "$doneSets")
                 }
@@ -199,7 +215,8 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (!notifOk) item { NotificationsOffCard() }
+            // Solo si ya se pidió (y se negó) o si Android las tiene apagadas: antes de preguntar no se asusta a nadie.
+            if (!notifOk && (android.os.Build.VERSION.SDK_INT < 33 || settings?.notifAsked == true)) item { NotificationsOffCard() }
             // v1.8: si el aviso no se va a oír (volumen en 0, o "Como notificación" con el teléfono en vibración), se dice aquí.
             inaudible?.let { why -> item { InaudibleCard(why, settings?.restAlert ?: com.rupio.app.data.prefs.RestAlertMode.MEDIA) } }
             if (items.isEmpty()) item {
@@ -240,30 +257,39 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
 
     // ------------------------------------------------------------------ diálogos
     val bodyKg by produceState<Double?>(null, finishing) { if (finishing) value = vm.latestBodyKg() }
-    if (finishing) FinishDialog(w.name, items, doneSets, volume, unit, ((now - w.startedAt) / 1000).coerceAtLeast(0), bodyKg, { finishing = false },
-        onDiscard = { finishing = false; discarding = true }) { name, notes ->
-        finishing = false
-        scope.launch {
-            val prs = vm.finish(w.id, name, notes)
-            if (!c.auth.isLocalOnly) SyncEngine.now(context)
-            nav.navigate(Routes.detail(w.id, 1 + prs)) { popUpTo(Routes.WORKOUT) { inclusive = true } }
-        }
+    fun done(prs: Int) {
+        if (!c.auth.isLocalOnly) SyncEngine.now(context)
+        nav.navigate(Routes.detail(w.id, 1 + prs)) { popUpTo(Routes.WORKOUT) { inclusive = true } }
     }
-    if (discarding) ConfirmDialog("¿Descartar entrenamiento?", "Se borrará todo lo registrado en esta sesión. No se puede deshacer.", "Descartar", { discarding = false }, danger = true) {
+    if (finishing) FinishDialog(w.name, items, vm.unmarkedWithData(items), doneSets, volume, unit, ((now - w.startedAt) / 1000).coerceAtLeast(0), bodyKg, { finishing = false },
+        onDiscard = { finishing = false; discarding = true },
+        onMarkAndSave = { name, notes, sets -> finishing = false; scope.launch { vm.finishMarking(w.id, name, notes, sets)?.let { done(it) } } }) { name, notes ->
+        finishing = false
+        scope.launch { done(vm.finish(w.id, name, notes)) }
+    }
+    // v1.9: un entreno sin nada registrado se descarta sin preguntar (no hay nada que perder).
+    LaunchedEffect(discarding) { if (discarding && !vm.hasAnyData(items)) { discarding = false; scope.launch { vm.discard(w.id) } } }
+    if (discarding && vm.hasAnyData(items)) ConfirmDialog("¿Descartar entrenamiento?", "Se borrará todo lo registrado en esta sesión. No se puede deshacer.", "Descartar", { discarding = false }, danger = true) {
         discarding = false; scope.launch { vm.discard(w.id) }
     }
-    if (renaming) {
-        var text by remember { mutableStateOf(w.name) }
-        AlertDialog(onDismissRequest = { renaming = false }, title = { Text("Nombre del entrenamiento") },
-            text = { OutlinedTextField(text, { text = it }, singleLine = true) },
-            confirmButton = { TextButton(onClick = { vm.rename(w.id, text); renaming = false }) { Text("Guardar") } },
-            dismissButton = { TextButton(onClick = { renaming = false }) { Text("Cancelar") } })
-    }
+    if (renaming) RenameDialog("Nombre del entrenamiento", w.name, { renaming = false }) { vm.rename(w.id, it); renaming = false }
     restFor?.let { e ->
         RestPickerDialog("Descanso · ${e.name}", e.we.restSec, { restFor = null }, { vm.setRest(e, it); restFor = null }) {
-            Text("Más de 60–90 s entre series ayuda a rendir; en ejercicios pesados 2–3 min.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = Modifier.padding(top = 10.dp))
+            Text("Arranca solo al marcar ✓ y suena una sola vez al terminar, aunque marques y desmarques. Más de 60–90 s entre series ayuda a rendir; en ejercicios pesados 2–3 min.",
+                style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = Modifier.padding(top = 10.dp))
         }
     }
+    if (askNotif) AlertDialog(
+        onDismissRequest = { askNotif = false; scope.launch { c.settings.setNotifAsked(true) } },
+        icon = { Icon(Icons.Rounded.NotificationsActive, null, tint = RupioColors.Rest) },
+        title = { Text("¿Te avisamos al terminar el descanso?") },
+        text = { Text("Tu descanso ya empezó. Para avisarte cuando termine, aunque tengas la pantalla apagada, Rupio necesita mostrar notificaciones. Solo suena al final de cada descanso.", color = RupioColors.TextDim) },
+        confirmButton = { TextButton(onClick = {
+            askNotif = false; scope.launch { c.settings.setNotifAsked(true) }
+            notifLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }) { Text("Permitir") } },
+        dismissButton = { TextButton(onClick = { askNotif = false; scope.launch { c.settings.setNotifAsked(true) } }) { Text("Ahora no") } },
+    )
     repsFor?.let { e -> RepRangeDialog(e.we.repMin, e.we.repMax, { repsFor = null }) { lo, hi -> vm.setRepRange(e, lo, hi); repsFor = null } }
     notesFor?.let { e ->
         var text by remember(e.we.id) { mutableStateOf(e.we.notes.orEmpty()) }
@@ -276,9 +302,10 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
     ssCreate?.let { ids ->
         val members = items.filter { it.we.id in ids }
         val existing = members.firstOrNull { it.we.supersetId != null }?.we
+        // v1.9: el descanso que ya elegiste en este ejercicio (antes tomaba el mayor de los dos y volvía a 2 min sin avisar).
         SupersetRestDialog("Superserie: " + members.joinToString(" + ") { it.name.substringBefore(" con ") },
             existing?.let { SupersetRestMode.of(it.supersetRestMode) } ?: SupersetRestMode.SHARED,
-            existing?.supersetRestSec ?: members.maxOfOrNull { it.we.restSec } ?: 90,
+            existing?.supersetRestSec ?: members.firstOrNull()?.we?.restSec ?: 90,
             sameMusclePair(members.mapNotNull { it.ex?.primaryMuscle }), { ssCreate = null }) { mode, r ->
             vm.createSuperset(w.id, ids, mode, r); ssCreate = null
         }
@@ -317,7 +344,7 @@ private fun ExerciseCard(
                     Text("${Muscles.label(e.ex?.primaryMuscle ?: "")} · ${if (tr == Tracking.DURATION) "tiempo" else "${e.we.repMin}–${e.we.repMax} reps"}",
                         style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
                 }
-                Box(if (first) Modifier.coachTarget("ex_menu") else Modifier) {
+                Box {
                     IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, "Opciones del ejercicio") }
                     DropdownMenu(menu, { menu = false }) {
                         DropdownMenuItem(text = { Text("Unir en superserie con el siguiente") }, leadingIcon = { Icon(Icons.Rounded.Link, null) }, onClick = { menu = false; onSuperset() })
@@ -334,21 +361,21 @@ private fun ExerciseCard(
             e.we.notes?.let { Text("📝 $it", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = Modifier.padding(top = 6.dp)) }
             if (info != null) {
                 Spacer(Modifier.height(8.dp))
-                RecommendationCard(info.rec, unit, modifier = if (first) Modifier.coachTarget("rec_0") else Modifier)
+                RecommendationCard(info.rec, unit)
             }
             Spacer(Modifier.height(8.dp))
             var showChart by rememberSaveable(e.we.id) { mutableStateOf(false) }
             @OptIn(ExperimentalLayoutApi::class)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
+                // v1.9: con descanso compartido el descanso vive SOLO en la cabecera de la superserie (antes salía 3 veces).
+                if (!shared) Row(
                     Modifier.clip(RoundedCornerShape(10.dp)).background(RupioColors.Rest.copy(alpha = 0.12f)).clickable(onClick = onRest)
-                        .heightIn(min = 36.dp).padding(horizontal = 10.dp, vertical = 6.dp).then(if (first) Modifier.coachTarget("rest_chip") else Modifier),
+                        .heightIn(min = 36.dp).padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(Icons.Rounded.Timer, null, tint = RupioColors.Rest, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(if (shared) "Descanso compartido: ${Fmt.restLabel(e.we.supersetRestSec ?: 0)} tras la ronda" else "Descanso: ${Fmt.restLabel(e.we.restSec)}",
-                        color = RupioColors.Rest, style = MaterialTheme.typography.labelLarge)
+                    Text("Descanso: ${Fmt.restLabel(e.we.restSec)}", color = RupioColors.Rest, style = MaterialTheme.typography.labelLarge)
                 }
                 // v1.8: gráfica de cómo ha ido subiendo este ejercicio, sin salir del entreno.
                 Row(
@@ -366,12 +393,20 @@ private fun ExerciseCard(
             AnimatedVisibility(showChart) { ExerciseProgressPanel(e, vm, unit) }
             Spacer(Modifier.height(8.dp))
             val compact = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 360
-            SetHeader(tr, unit, compact)
+            val bigText = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
+            SetHeader(tr, unit, compact, bigText)
             e.sets.forEachIndexed { i, s ->
                 SetRow(e, s, i, vm, unit, first && i == 0, compact, onSetMenu)
             }
-            TextButton(onClick = { vm.addSet(e) }, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Rounded.Add, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Agregar serie")
+            // v1.9: "Agregar calentamiento" pone una serie C antes de la primera (convertir la serie 1 te quitaba una de trabajo).
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                TextButton(onClick = { vm.addSet(e) }) {
+                    Icon(Icons.Rounded.Add, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Agregar serie")
+                }
+                if (tr != Tracking.DURATION) TextButton(onClick = { vm.addWarmup(e) }, colors = ButtonDefaults.textButtonColors(contentColor = RupioColors.Warning)) {
+                    Icon(Icons.Rounded.Whatshot, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Agregar calentamiento")
+                }
             }
         }
     }
@@ -384,22 +419,27 @@ private val CELL_H = 50.dp
 private fun gap(compact: Boolean) = if (compact) 4.dp else 8.dp
 private fun rowPadH(compact: Boolean) = if (compact) 2.dp else 6.dp
 
+/** v1.9: con letra grande los números de la tabla crecen hasta 150 % (más no cabe en la fila: "45.4 …", "REP / S"). */
+private const val TABLE_MAX_SCALE = 1.5f
+
 @Composable
-private fun SetHeader(tr: Tracking, unit: WeightUnit, compact: Boolean) {
+private fun SetHeader(tr: Tracking, unit: WeightUnit, compact: Boolean, bigText: Boolean) {
     Row(Modifier.fillMaxWidth().padding(horizontal = rowPadH(compact), vertical = 4.dp), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(gap(compact))) {
-        val st = MaterialTheme.typography.labelSmall
-        Text("SERIE", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_SET), textAlign = TextAlign.Center, maxLines = 1)
-        FitText("ANTERIOR", st, Modifier.weight(1f), color = RupioColors.TextFaint, maxLines = 1)
+        val st = cappedScale(MaterialTheme.typography.labelSmall, TABLE_MAX_SCALE)
+        // Encabezados cortos donde no cabe el largo (letra grande o pantalla de 320 dp: "SE", "ANTERI…").
+        Text(if (bigText) "#" else "SERIE", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_SET), textAlign = TextAlign.Center, maxLines = 1, softWrap = false)
+        Text(if (compact || bigText) "ANTES" else "ANTERIOR", style = st, color = RupioColors.TextFaint, modifier = Modifier.weight(1f), maxLines = 1, softWrap = false,
+            overflow = TextOverflow.Clip)
         when (tr) {
-            Tracking.WEIGHT_REPS -> Text(unit.label.uppercase(), style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_VAL), textAlign = TextAlign.Center)
-            Tracking.WEIGHTED_BODYWEIGHT -> Text("+${unit.label.uppercase()}", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_VAL), textAlign = TextAlign.Center)
-            Tracking.ASSISTED_BODYWEIGHT -> Text("AYUDA", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_VAL), textAlign = TextAlign.Center)
+            Tracking.WEIGHT_REPS -> Text(unit.label.uppercase(), style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_VAL), textAlign = TextAlign.Center, maxLines = 1)
+            Tracking.WEIGHTED_BODYWEIGHT -> Text("+${unit.label.uppercase()}", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_VAL), textAlign = TextAlign.Center, maxLines = 1)
+            Tracking.ASSISTED_BODYWEIGHT -> Text("AYUDA", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_VAL), textAlign = TextAlign.Center, maxLines = 1, softWrap = false)
             else -> {}
         }
         when (tr) {
-            Tracking.DURATION -> Text("SEGUNDOS", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_VAL), textAlign = TextAlign.Center, maxLines = 1)
-            else -> Text("REPS", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_REPS), textAlign = TextAlign.Center)
+            Tracking.DURATION -> Text(if (bigText) "SEG" else "SEGUNDOS", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_VAL), textAlign = TextAlign.Center, maxLines = 1, softWrap = false)
+            else -> Text("REPS", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_REPS), textAlign = TextAlign.Center, maxLines = 1, softWrap = false)
         }
         Box(Modifier.width(W_CHECK), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Check, null, tint = RupioColors.TextFaint, modifier = Modifier.size(16.dp)) }
     }
@@ -443,25 +483,25 @@ private fun SetRow(e: ExUi, s: WorkoutSetEntity, index: Int, vm: ActiveWorkoutVM
             .padding(horizontal = rowPadH(compact), vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(gap(compact)),
     ) {
-        // Número / tipo de serie (TalkBack: "Serie 2, normal. Toca para cambiar el tipo")
-        val setNo = index + 1
-        val spokenSet = "Serie $setNo de ${e.name}, ${type.label.lowercase()}" + (s.rpe?.let { ", RPE ${Fmt.num(it)}" } ?: "")
+        // Número / tipo de serie (TalkBack: "Serie 2 de Press, normal"). v1.9: el número que se ve (los calentamientos
+        // no cuentan), igual que la barra del descanso y la notificación.
+        val setNo = com.rupio.app.domain.SetNumbering.spoken(e.sets.map { it.setType }, index)
+        val spokenSet = "${setNo.replaceFirstChar { it.uppercase() }} de ${e.name}, ${type.label.lowercase()}" + (s.rpe?.let { ", RPE ${Fmt.num(it)}" } ?: "")
         Box(
             Modifier.width(W_SET).heightIn(min = CELL_H).clip(RoundedCornerShape(8.dp))
                 .clickable(onClickLabel = "cambiar el tipo de serie o el RPE", role = Role.Button) { onSetMenu(s) }
-                .clearAndSetSemantics { contentDescription = spokenSet; role = Role.Button }
-                .then(if (coach) Modifier.coachTarget("set_number") else Modifier),
+                .clearAndSetSemantics { contentDescription = spokenSet; role = Role.Button },
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(if (type == SetType.NORMAL) "$workingNumber" else type.short, style = MaterialTheme.typography.titleSmall.merge(Tabular),
+                Text(if (type == SetType.NORMAL) "$workingNumber" else type.short, style = cappedScale(MaterialTheme.typography.titleSmall.merge(Tabular), TABLE_MAX_SCALE),
                     color = when (type) { SetType.WARMUP -> RupioColors.Warning; SetType.DROP -> RupioColors.Rest; SetType.FAILURE -> RupioColors.Danger; else -> RupioColors.Text })
-                s.rpe?.let { Text("@${Fmt.num(it)}", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint) }
+                s.rpe?.let { Text("@${Fmt.num(it)}", style = cappedScale(MaterialTheme.typography.labelSmall, TABLE_MAX_SCALE), color = RupioColors.TextFaint) }
             }
         }
         // Anterior
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Text(prev?.let { p -> prevText(p, tr, unit) } ?: "—", style = MaterialTheme.typography.labelMedium.merge(Tabular), color = RupioColors.TextFaint, maxLines = 2,
+            Text(prev?.let { p -> prevText(p, tr, unit) } ?: "—", style = cappedScale(MaterialTheme.typography.labelMedium.merge(Tabular), TABLE_MAX_SCALE), color = RupioColors.TextFaint, maxLines = 2,
                 modifier = Modifier.weight(1f, fill = false))
             if (s.isPr && s.completed) Text(" 🏆", style = MaterialTheme.typography.labelMedium)
         }
@@ -472,7 +512,7 @@ private fun SetRow(e: ExUi, s: WorkoutSetEntity, index: Int, vm: ActiveWorkoutVM
             val what = when (tr) { Tracking.WEIGHTED_BODYWEIGHT -> "Lastre"; Tracking.ASSISTED_BODYWEIGHT -> "Ayuda"; else -> "Peso" }
             val kg = shown ?: ph
             NumberCell(
-                label = "$what en ${if (unit == WeightUnit.LB) "libras" else "kilos"}, serie $setNo, ${e.name}" + (ph?.let { ", sugerido ${Fmt.num(unit.fromKg(it))}" } ?: "") +
+                label = "$what en ${if (unit == WeightUnit.LB) "libras" else "kilos"}, $setNo, ${e.name}" + (ph?.let { ", sugerido ${Fmt.num(unit.fromKg(it))}" } ?: "") +
                     (kg?.let { ", ${Fmt.weight(it, unit.other)}" } ?: ""),
                 value = shown?.let { Fmt.num(unit.fromKg(it)) } ?: "",
                 placeholder = ph?.let { Fmt.num(unit.fromKg(it)) } ?: if (tr == Tracking.WEIGHT_REPS) unit.label else "0",
@@ -481,20 +521,20 @@ private fun SetRow(e: ExUi, s: WorkoutSetEntity, index: Int, vm: ActiveWorkoutVM
                     vm.edit(s.id) { it.copy(weightKg = v?.let { kg -> if (tr == Tracking.ASSISTED_BODYWEIGHT) -kg else kg }) }
                 },
                 done = s.completed, modifier = Modifier.width(W_VAL),
-                sub = if (kg != null && kg != 0.0) Fmt.weight(kg, unit.other) else null, minHeight = CELL_H,
+                sub = if (kg != null && kg != 0.0) Fmt.weight(kg, unit.other) else null, minHeight = CELL_H, maxFontScale = TABLE_MAX_SCALE,
             )
         }
         // Reps o segundos
         if (tr == Tracking.DURATION) {
-            NumberCell(label = "Segundos, serie $setNo, ${e.name}" + (sug.durationSec?.let { ", sugerido $it" } ?: ""),
+            NumberCell(label = "Segundos, $setNo, ${e.name}" + (sug.durationSec?.let { ", sugerido $it" } ?: ""),
                 value = s.durationSec?.toString() ?: "", placeholder = sug.durationSec?.toString() ?: "seg", onValue =
                 { txt -> vm.edit(s.id) { it.copy(durationSec = txt.toIntOrNull()?.coerceIn(0, 86_400)) } }, decimal = false, done = s.completed,
-                modifier = Modifier.width(W_VAL), sub = (s.durationSec ?: sug.durationSec)?.let { Fmt.duration(it.toLong()) }, minHeight = CELL_H)
+                modifier = Modifier.width(W_VAL), sub = (s.durationSec ?: sug.durationSec)?.let { Fmt.duration(it.toLong()) }, minHeight = CELL_H, maxFontScale = TABLE_MAX_SCALE)
         } else {
-            NumberCell(label = "Repeticiones, serie $setNo, ${e.name}" + (sug.reps?.let { ", sugerido $it" } ?: ""),
+            NumberCell(label = "Repeticiones, $setNo, ${e.name}" + (sug.reps?.let { ", sugerido $it" } ?: ""),
                 value = s.reps?.toString() ?: "", placeholder = sug.reps?.toString() ?: "reps", onValue =
                 { txt -> vm.edit(s.id) { it.copy(reps = txt.toIntOrNull()?.coerceIn(0, 1000)) } }, decimal = false, done = s.completed,
-                modifier = Modifier.width(W_REPS), minHeight = CELL_H)
+                modifier = Modifier.width(W_REPS), minHeight = CELL_H, maxFontScale = TABLE_MAX_SCALE)
         }
         // ✓
         Box(
@@ -503,7 +543,7 @@ private fun SetRow(e: ExUi, s: WorkoutSetEntity, index: Int, vm: ActiveWorkoutVM
                 .clickable { vm.toggle(e, s) }
                 .then(if (coach) Modifier.coachTarget("set_check") else Modifier),
             contentAlignment = Alignment.Center,
-        ) { Icon(Icons.Rounded.Check, if (s.completed) "Desmarcar serie $setNo de ${e.name}" else "Completar serie $setNo de ${e.name}", tint = if (s.completed) Color.Black else RupioColors.TextDim) }
+        ) { Icon(Icons.Rounded.Check, if (s.completed) "Desmarcar $setNo de ${e.name}" else "Completar $setNo de ${e.name}", tint = if (s.completed) Color.Black else RupioColors.TextDim) }
     }
 }
 
@@ -651,15 +691,20 @@ private fun RestDoneBar(label: String, onClose: () -> Unit) {
 @Composable
 private fun SetOptionsSheet(e: ExUi, s: WorkoutSetEntity, vm: ActiveWorkoutVM, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = RupioColors.Surface) {
-        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Serie ${e.sets.indexOfFirst { it.id == s.id } + 1} · ${e.name}", style = MaterialTheme.typography.titleMedium)
+        // v1.9: con scroll y por encima de la barra de gestos (antes "Eliminar serie" quedaba debajo de la rayita de Android).
+        Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 20.dp).padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            val idx = e.sets.indexOfFirst { it.id == s.id }
+            Text(com.rupio.app.domain.SetNumbering.spoken(e.sets.map { it.setType }, idx).replaceFirstChar { it.uppercase() } + " · ${e.name}",
+                style = MaterialTheme.typography.titleMedium)
             Text("Tipo de serie", style = MaterialTheme.typography.labelLarge, color = RupioColors.TextDim)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SetType.entries.forEach { t ->
                     FilterChip(s.setType == t.code, { vm.setType(s, t) }, label = { Text(t.label) })
                 }
             }
-            Text("Calentamiento no cuenta para volumen ni récords. Drop set = bajas el peso y sigues sin descanso (no arranca el temporizador antes de él y no se usa para decidir cuándo subir).",
+            Text("Calentamiento: no cuenta para tu volumen ni tus récords y después descansas poco. Para sumar uno sin quitar una serie de trabajo, usa «Agregar calentamiento». " +
+                "Drop set: bajas el peso y sigues sin descansar.",
                 style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("¿Qué tan difícil fue? (RPE)", style = MaterialTheme.typography.labelLarge, color = RupioColors.TextDim)
@@ -685,11 +730,11 @@ private fun SetOptionsSheet(e: ExUi, s: WorkoutSetEntity, vm: ActiveWorkoutVM, o
  * teclado abierto quedaba apretado). Material indica diálogo de pantalla completa para tareas con teclado.
  */
 @Composable
-private fun FinishDialog(name: String, items: List<ExUi>, doneSets: Int, volumeKg: Double, unit: WeightUnit, durationSec: Long, bodyKg: Double?, onDismiss: () -> Unit,
-                         onDiscard: () -> Unit = {}, onSave: (String, String) -> Unit) {
+private fun FinishDialog(name: String, items: List<ExUi>, withData: List<Pair<ExUi, WorkoutSetEntity>>, doneSets: Int, volumeKg: Double, unit: WeightUnit,
+                         durationSec: Long, bodyKg: Double?, onDismiss: () -> Unit, onDiscard: () -> Unit = {},
+                         onMarkAndSave: (String, String, List<Pair<ExUi, WorkoutSetEntity>>) -> Unit, onSave: (String, String) -> Unit) {
     var n by remember { mutableStateOf(name) }
     var notes by remember { mutableStateOf("") }
-    val pending = items.sumOf { e -> e.sets.count { !it.completed } }
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(Modifier.fillMaxSize(), color = RupioColors.Background) {
             Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
@@ -714,11 +759,29 @@ private fun FinishDialog(name: String, items: List<ExUi>, doneSets: Int, volumeK
                         Spacer(Modifier.height(10.dp))
                         MuscleSplitBars(split)
                     }
-                    if (doneSets == 0) Text("Para guardar, marca con ✓ al menos una serie. Si no entrenaste, puedes descartarlo.", style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
-                    else if (pending > 0) Text("Hay $pending series sin marcar: no se guardarán.", color = RupioColors.Warning, style = MaterialTheme.typography.bodyMedium)
+                    // v1.9: las series vacías del plan no necesitan aviso; las que tienen peso o reps escritos sin ✓ sí
+                    // (antes se juntaban en "Hay 16 series sin marcar" y la que tenía datos se borraba igual).
+                    if (withData.isNotEmpty()) Surface(shape = RoundedCornerShape(14.dp), color = RupioColors.Warning.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, RupioColors.Warning.copy(alpha = 0.5f))) {
+                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(if (withData.size == 1) "1 serie tiene datos pero no la marcaste" else "${withData.size} series tienen datos pero no las marcaste",
+                                style = MaterialTheme.typography.titleSmall)
+                            Text(withData.groupBy { it.first.we.id }.values.joinToString(" · ") { l ->
+                                l.first().first.name + ": " + l.joinToString(", ") { (e, s) -> SetNumbering.spoken(e.sets.map { it.setType }, e.sets.indexOfFirst { it.id == s.id }) }
+                            }, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                            Text("Si guardas sin marcarlas, no se guardan.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                            Button(onClick = { onMarkAndSave(n, notes, withData) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = RupioColors.Success, contentColor = Color.Black)) {
+                                Text(if (withData.size == 1) "Marcar y guardar" else "Marcarlas y guardar", fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                    if (doneSets == 0 && withData.isEmpty()) Text("Para guardar, marca con ✓ al menos una serie. Si no entrenaste, puedes descartarlo.", style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
+                    else if (doneSets > 0 && items.any { e -> e.sets.any { !it.completed } }) Text("Las series vacías que no marcaste no se guardan.",
+                        style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
                     OutlinedTextField(n, { n = it }, label = { Text("Nombre") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(notes, { notes = it }, label = { Text("¿Cómo te sentiste? (opcional)") }, modifier = Modifier.fillMaxWidth(), minLines = 3, maxLines = 6)
-                    if (doneSets == 0) Button(onClick = onDiscard, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
+                    if (doneSets == 0 && withData.isEmpty()) Button(onClick = onDiscard, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = RupioColors.Danger, contentColor = Color.Black)) { Text("Descartar entrenamiento") }
                     TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Seguir entrenando") }
                     Spacer(Modifier.height(16.dp))

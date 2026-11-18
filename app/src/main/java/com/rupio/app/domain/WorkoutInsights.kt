@@ -58,11 +58,14 @@ data class MuscleShare(val muscle: String, val sets: Double, val share: Double)
 object MuscleSplit {
     data class Item(val primary: String, val secondary: List<String>, val sets: Int)
 
+    /** v1.9: grupos que no son un músculo: no cuentan para las series por músculo (una caminadora no es cuádriceps). */
+    val NOT_COUNTED = setOf("cardio", "cuerpo_completo")
+
     /** Los [max] músculos con más series y el resto junto en "otros" (código vacío). */
     fun compute(items: List<Item>, max: Int = 6): List<MuscleShare> {
         val acc = LinkedHashMap<String, Double>()
         for (it in items) {
-            if (it.sets <= 0 || it.primary.isBlank()) continue
+            if (it.sets <= 0 || it.primary.isBlank() || it.primary in NOT_COUNTED) continue
             acc[it.primary] = (acc[it.primary] ?: 0.0) + it.sets
             it.secondary.filter { m -> m.isNotBlank() && m != it.primary }.distinct().forEach { m -> acc[m] = (acc[m] ?: 0.0) + it.sets * 0.5 }
         }

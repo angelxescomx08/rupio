@@ -123,7 +123,7 @@ object Concepts {
             "Una serie ligera antes de las pesadas, para preparar el cuerpo.",
             "Con más o menos la mitad del peso, preparas músculos y articulaciones y practicas el movimiento.",
             "Si tu serie es de 165 lb, calienta con 80 lb × 12.",
-            "Toca el número de la serie y elige \"Calentamiento\" (C). No cuenta para tu volumen ni tus récords.",
+            "Toca \"Agregar calentamiento\" debajo de las series del ejercicio: va antes de la primera y no te quita una serie de trabajo (también puedes tocar el número de una serie y elegir \"Calentamiento\"). No cuenta para tu volumen ni tus récords, y después descansas poco.",
             emptyList()),
         Concept("drop_set", "Drop set (y otras técnicas avanzadas)",
             "Terminas una serie, bajas el peso y sigues sin descansar.",

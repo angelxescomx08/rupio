@@ -96,14 +96,27 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
         return info.prev?.sets?.filter { (it.type == SetType.WARMUP) == warm }?.getOrNull(sameIdx)
     }
 
+    /**
+     * La serie planeada en la rutina que corresponde a esta (la k-ésima efectiva con la k-ésima efectiva del plan, igual
+     * con los calentamientos): así agregar un calentamiento no recorre los pesos planeados una serie.
+     */
+    private fun plannedFor(item: ExUi, set: WorkoutSetEntity): PlanSet? {
+        val idx = item.sets.indexOfFirst { it.id == set.id }
+        val warm = set.setType == SetType.WARMUP.code
+        val sameIdx = item.sets.take(idx.coerceAtLeast(0)).count { (it.setType == SetType.WARMUP.code) == warm }
+        return item.plan.filter { (it.type == SetType.WARMUP) == warm }.getOrNull(sameIdx)
+    }
+
     fun suggestion(item: ExUi, set: WorkoutSetEntity): Suggestion {
         val prev = previousFor(item, set)
         val idx = item.sets.indexOfFirst { it.id == set.id }
-        val planned = item.plan.getOrNull(idx)
-        if (set.setType == SetType.WARMUP.code) return Suggestion(prev?.weightKg ?: planned?.w, prev?.reps ?: planned?.r, prev?.durationSec ?: planned?.d)
+        val planned = plannedFor(item, set)
+        val rec = infos[item.infoKey]?.rec
+        // v1.9: un calentamiento conserva la sugerencia de repeticiones (antes quedaba vacío y la ✓ pedía escribirlas).
+        if (set.setType == SetType.WARMUP.code) return Suggestion(prev?.weightKg ?: planned?.w, prev?.reps ?: planned?.r ?: rec?.targetReps ?: item.we.repMin,
+            prev?.durationSec ?: planned?.d)
         // Serie efectiva más cercana hacia arriba que ya tenga ese dato (como "igual que la anterior").
         val before = item.sets.take(idx.coerceAtLeast(0)).filter { it.setType != SetType.WARMUP.code }.asReversed()
-        val rec = infos[item.infoKey]?.rec
         // Sin historial todavía: manda el plan de tu rutina (tus pesos de siempre).
         val noHistory = infos[item.infoKey]?.prev == null
         if (noHistory && planned != null && (planned.w != null || planned.r != null || planned.d != null)) {
@@ -176,7 +189,13 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
                 val completedInRound = group.count { g -> g.we.id == item.we.id || g.sets.getOrNull(setIndex)?.completed == true }
                 // Drop set: si la siguiente serie es un drop set, se sigue sin descanso.
                 val nextIsDrop = item.sets.getOrNull(setIndex + 1)?.setType == SetType.DROP.code
-                val rest = if (nextIsDrop) 0 else RestPlanner.restAfterSet(item.planItem(), group.map { it.planItem() }, setIndex, completedInRound)
+                val planned = RestPlanner.restAfterSet(item.planItem(), group.map { it.planItem() }, setIndex, completedInRound)
+                // v1.9: tras un calentamiento, un descanso corto (antes era el completo de 2 min, como tras una serie pesada).
+                val rest = when {
+                    nextIsDrop -> 0
+                    fresh.setType == SetType.WARMUP.code -> minOf(planned, SetNumbering.WARMUP_REST_SEC)
+                    else -> planned
+                }
                 if (rest > 0) c.restTimer.start(rest, set.id, nextLabel(all, item, setIndex)) else c.restTimer.cancel()
                 _events.tryEmit(if (res.newRecords.isNotEmpty()) WorkoutEvent.Record(item.name, res.newRecords) else WorkoutEvent.Completed)
             } else {
@@ -190,16 +209,19 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
         return all.filter { it.we.supersetId == ss }
     }
 
+    /** v1.9: "serie 1" es la que en pantalla dice 1 (los calentamientos no cuentan), igual que la tabla. */
+    private fun setName(e: ExUi, index: Int) = SetNumbering.spoken(e.sets.map { it.setType }, index)
+
     private fun nextLabel(all: List<ExUi>, item: ExUi, setIndex: Int): String {
         val group = groupOf(all, item)
         if (group.size > 1) {
             group.dropWhile { it.we.id != item.we.id }.drop(1).firstOrNull { it.sets.getOrNull(setIndex)?.completed == false }
-                ?.let { return "Siguiente: ${it.name} · serie ${setIndex + 1}" }
+                ?.let { return "Siguiente: ${it.name} · ${setName(it, setIndex)}" }
             group.firstOrNull { it.sets.getOrNull(setIndex + 1)?.completed == false }
-                ?.let { return "Siguiente: ${it.name} · serie ${setIndex + 2}" }
+                ?.let { return "Siguiente: ${it.name} · ${setName(it, setIndex + 1)}" }
         } else {
             item.sets.withIndex().drop(setIndex + 1).firstOrNull { !it.value.completed }
-                ?.let { return "Siguiente: ${item.name} · serie ${it.index + 1}" }
+                ?.let { return "Siguiente: ${item.name} · ${setName(item, it.index)}" }
         }
         val lastOfGroup = all.indexOfLast { g -> group.any { it.we.id == g.we.id } }
         val next = all.drop(lastOfGroup + 1).firstOrNull { it.sets.any { s -> !s.completed } }
@@ -209,6 +231,52 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
 
     // ------------------------------------------------------------------ acciones simples
     fun addSet(item: ExUi) = viewModelScope.launch { c.workouts.addSet(item.we.id) }
+    /** v1.9: un calentamiento ANTES de la primera serie efectiva (no te quita una de trabajo). */
+    fun addWarmup(item: ExUi) = viewModelScope.launch { c.workouts.addWarmup(item.we.id) }
+
+    /**
+     * v1.9: series sin ✓ en las que sí escribiste algo (peso, reps o tiempo). Al terminar se borrarían: se avisa aparte
+     * de las series vacías del plan y se ofrece "Marcar y guardar".
+     */
+    fun unmarkedWithData(items: List<ExUi>): List<Pair<ExUi, WorkoutSetEntity>> = items.flatMap { e ->
+        e.sets.filter { s -> !s.completed && s.hasData() }.map { e to it }
+    }
+
+    private fun WorkoutSetEntity.hasData() = weightKg != null || reps != null || durationSec != null
+
+    /**
+     * Marca esas series (con lo escrito o lo sugerido) y termina. Si a alguna le falta algo que no se puede sugerir
+     * (el peso la primera vez), no termina: dice cuál completar, para no borrar lo que escribiste. null = no terminó.
+     */
+    suspend fun finishMarking(workoutId: String, name: String, notes: String, sets: List<Pair<ExUi, WorkoutSetEntity>>): Int? {
+        flushAll()
+        val ready = mutableListOf<Triple<WorkoutSetEntity, Tracking, Suggestion>>()
+        for ((e, s) in sets) {
+            val fresh = c.workouts.getSet(s.id) ?: continue
+            if (fresh.completed) continue
+            val sug = suggestion(e, fresh)
+            val tr = e.tracking
+            val missing = when {
+                tr == Tracking.WEIGHT_REPS && fresh.weightKg == null && sug.weightKg == null -> "el peso"
+                tr == Tracking.ASSISTED_BODYWEIGHT && fresh.weightKg == null && sug.weightKg == null -> "la ayuda"
+                tr.usesReps && fresh.reps == null && sug.reps == null -> "las repeticiones"
+                tr == Tracking.DURATION && fresh.durationSec == null && sug.durationSec == null -> "los segundos"
+                else -> null
+            }
+            if (missing != null) {
+                val label = SetNumbering.spoken(e.sets.map { it.setType }, e.sets.indexOfFirst { it.id == s.id })
+                val where = (if (label.startsWith("serie")) "la " else "el ") + label
+                _events.tryEmit(WorkoutEvent.Message("Escribe ${missing} en $where de ${e.name} (o bórrala) y vuelve a terminar."))
+                return null
+            }
+            ready += Triple(fresh, tr, sug)
+        }
+        ready.forEach { (s, tr, sug) -> c.workouts.toggleComplete(s.id, tr, sug.weightKg, sug.reps, sug.durationSec) }
+        return finish(workoutId, name, notes)
+    }
+
+    /** ¿Hay algo registrado? (para descartar sin preguntar un entreno que quedó vacío). */
+    fun hasAnyData(items: List<ExUi>): Boolean = items.any { e -> e.sets.any { it.completed || it.hasData() } }
     fun removeSet(set: WorkoutSetEntity) = viewModelScope.launch {
         c.restTimer.cancelIfSource(set.id)
         val before = c.workouts.snapshot(set.workoutId, null).let { snap -> snap.copy(exercises = emptyList(), sets = snap.sets.filter { it.id == set.id }) }

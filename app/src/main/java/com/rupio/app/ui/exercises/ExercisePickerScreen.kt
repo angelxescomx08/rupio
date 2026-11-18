@@ -54,14 +54,17 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
     val browse = mode == "browse"
 
     val filtered = remember(catalog, query, muscle, equipment) {
-        val tokens = query.searchKey().split(' ').filter { it.isNotBlank() }
+        // v1.9: con sinónimos ("desplante" → zancada, "gemelos" → pantorrilla, "caminadora", "cardio"…).
+        val tokens = com.rupio.app.domain.ExerciseSearch.tokens(query)
         catalog.filter { e ->
-            (muscle == null || e.primaryMuscle == muscle) &&
+            (muscle == null || e.primaryMuscle == muscle || (muscle == BACK_GROUP && e.primaryMuscle in Muscles.BACK)) &&
                 (equipment == null || e.equipment == equipment) &&
-                tokens.all { t -> e.searchKey.contains(t) || Muscles.label(e.primaryMuscle).searchKey().contains(t) }
+                com.rupio.app.domain.ExerciseSearch.matches(e.searchKey, Muscles.label(e.primaryMuscle).searchKey(), tokens)
         }.sortedWith(compareBy<ExerciseEntity>({ !it.isCustom }, { it.searchKey }))
     }
     val usedMuscles = remember(catalog) { Muscles.names.keys.filter { m -> catalog.any { it.primaryMuscle == m } } }
+    // v1.9: "Espalda" junta dorsales, espalda media, lumbar y trapecio; al elegirla aparecen las partes por si buscas una.
+    val backOpen = muscle == BACK_GROUP || muscle in Muscles.BACK
     val usedEquip = remember(catalog) { Muscles.equipment.keys.filter { q -> catalog.any { it.equipment == q } } }
 
     fun confirm() {
@@ -81,11 +84,26 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
             trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Rounded.Close, "Borrar") } },
             singleLine = true, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         )
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        // v1.9: cada fila dice qué filtra ("Músculo", "Equipo"): antes eran dos filas de chips sin título.
+        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            FilterRowTitle("Músculo")
             FilterChip(muscle == null, { muscle = null }, label = { Text("Todos") })
-            usedMuscles.forEach { m -> FilterChip(muscle == m, { muscle = if (muscle == m) null else m }, label = { Text(Muscles.label(m)) }) }
+            val back = usedMuscles.filter { it in Muscles.BACK }
+            usedMuscles.filter { it !in Muscles.BACK }.forEachIndexed { i, m ->
+                FilterChip(muscle == m, { muscle = if (muscle == m) null else m }, label = { Text(Muscles.label(m)) })
+                if (i == 0 && back.isNotEmpty()) {
+                    FilterChip(muscle == BACK_GROUP, { muscle = if (muscle == BACK_GROUP) null else BACK_GROUP }, label = { Text("Espalda") })
+                    if (backOpen) back.forEach { b ->
+                        FilterChip(muscle == b, { muscle = if (muscle == b) BACK_GROUP else b }, label = { Text(Muscles.label(b)) },
+                            colors = FilterChipDefaults.filterChipColors(containerColor = RupioColors.Surface2))
+                    }
+                }
+            }
         }
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            FilterRowTitle("Equipo")
             usedEquip.forEach { q ->
                 FilterChip(equipment == q, { equipment = if (equipment == q) null else q }, label = { Text(Muscles.equipmentLabel(q)) },
                     colors = FilterChipDefaults.filterChipColors(selectedContainerColor = RupioColors.Rest.copy(alpha = 0.25f)))
@@ -119,6 +137,14 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
             creating = false
         }
     }
+}
+
+/** Filtro de grupo: todos los músculos de la espalda. */
+private const val BACK_GROUP = "grupo:espalda"
+
+@Composable
+private fun FilterRowTitle(text: String) {
+    Text(text, style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim, modifier = Modifier.padding(end = 2.dp))
 }
 
 @Composable

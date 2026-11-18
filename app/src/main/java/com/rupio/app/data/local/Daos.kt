@@ -13,6 +13,18 @@ import kotlinx.coroutines.flow.Flow
  * REPLACE borra y reinserta la fila → dispararía el ON DELETE CASCADE y perderías las series.
  */
 
+/**
+ * v1.9: el récord `r` superó una marca ANTERIOR: hay una serie efectiva del mismo ejercicio en otro entreno, antes de la
+ * serie que lo logró. Sin eso es tu primera marca (se guarda para compararte, pero no es un récord). Si no se sabe qué
+ * serie lo logró (récord bajado de la nube sin sus series), cuenta. Busca por clave primaria y por el índice de
+ * (exercise_id, completed, performed_on): no recorre tu historial.
+ */
+const val BEATS_EARLIER = """(r.set_id IS NULL OR NOT EXISTS (SELECT 1 FROM workout_sets h WHERE h.id = r.set_id)
+    OR EXISTS (SELECT 1 FROM workout_sets h JOIN workout_sets p ON p.exercise_id = h.exercise_id AND p.completed = 1 AND p.deleted = 0
+        AND p.set_type != 1 AND p.workout_id != h.workout_id
+        AND (p.performed_on < h.performed_on OR (p.performed_on = h.performed_on AND p.completed_at < h.completed_at))
+      WHERE h.id = r.set_id))"""
+
 @Dao
 interface ExerciseDao {
     @Query("SELECT * FROM exercises WHERE deleted = 0 ORDER BY name COLLATE NOCASE")
@@ -149,6 +161,16 @@ interface WorkoutDao {
     suspend fun recordHolder(ex: String, kind: Int, value: Double): SetRef?
     @Query("SELECT workout_id FROM workout_exercises WHERE id = :id") suspend fun workoutIdOf(id: String): String?
 
+    /** v1.9: ¿hiciste este ejercicio antes (en otro entreno)? Si no, su mejor serie es tu primera marca, no un récord. */
+    @Query("""SELECT EXISTS(SELECT 1 FROM workout_sets WHERE exercise_id = :ex AND completed = 1 AND deleted = 0 AND set_type != 1
+              AND workout_id != :workoutId AND (performed_on < :day OR (performed_on = :day AND completed_at < :before)))""")
+    suspend fun hasEarlierSets(ex: String, workoutId: String, day: Int, before: Long): Boolean
+
+    /** v1.9: cuándo hiciste por última vez cada rutina (para "Te toca hoy" y "Última vez: hace 2 días"). */
+    @Query("""SELECT routine_id, MAX(local_date) AS last_day, MAX(ended_at) AS last_end FROM workouts
+              WHERE deleted = 0 AND ended_at IS NOT NULL AND routine_id IS NOT NULL GROUP BY routine_id""")
+    fun observeRoutineLastDone(): Flow<List<RoutineLastDone>>
+
     /** Historial con keyset pagination (sin OFFSET): siempre O(página), no O(página × n). */
     @Query("""SELECT * FROM workouts WHERE deleted = 0 AND ended_at IS NOT NULL
               AND (local_date < :beforeDay OR (local_date = :beforeDay AND started_at < :beforeStart))
@@ -232,8 +254,10 @@ interface RecordDao {
     @Query("SELECT * FROM personal_records WHERE exercise_id = :exerciseId")
     fun observeForExercise(exerciseId: String): Flow<List<PersonalRecordEntity>>
 
+    /** v1.9: "Récords recientes" sin las primeras marcas (la primera vez de un ejercicio no es un récord). */
     @Query("""SELECT r.exercise_id, r.kind, r.value, r.achieved_at, e.name, e.tracking FROM personal_records r
-              JOIN exercises e ON e.id = r.exercise_id ORDER BY r.achieved_at DESC LIMIT :limit""")
+              JOIN exercises e ON e.id = r.exercise_id WHERE r.kind != 3 AND """ + BEATS_EARLIER + """
+              ORDER BY r.achieved_at DESC LIMIT :limit""")
     fun observeRecent(limit: Int): Flow<List<RecordWithName>>
 
     @Upsert suspend fun upsert(items: List<PersonalRecordEntity>)
@@ -451,7 +475,8 @@ interface StatsDao {
               FROM workouts WHERE deleted = 0 AND ended_at IS NOT NULL AND local_date BETWEEN :from AND :to""")
     suspend fun workoutTotals(from: Int, to: Int): Totals2
 
-    @Query("SELECT COUNT(*) FROM personal_records WHERE achieved_at >= :sinceMs")
+    /** v1.9: récords que superaron una marca anterior (antes el primer día ya decía "Récords 4"). */
+    @Query("SELECT COUNT(*) FROM personal_records r WHERE r.achieved_at >= :sinceMs AND r.kind != 3 AND " + BEATS_EARLIER)
     suspend fun recordsSince(sinceMs: Long): Int
 
     @Query("SELECT MAX(local_date) FROM workouts WHERE deleted = 0 AND ended_at IS NOT NULL")

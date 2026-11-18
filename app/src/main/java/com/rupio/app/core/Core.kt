@@ -122,6 +122,9 @@ object Fmt {
         else -> String.format(Locale.US, "%d:%02d", sec / 60, sec % 60)
     }
 
+    /** "1 entreno", "3 entrenos": nunca "1 entrenos". */
+    fun plural(n: Int, one: String, many: String): String = "$n ${if (n == 1) one else many}"
+
     private fun Double.pow(n: Int): Double { var r = 1.0; repeat(n) { r *= this }; return r }
 }
 
@@ -181,13 +184,26 @@ object Dates {
     fun spokenDay(date: LocalDate): String = date.format(spokenFmt)
     private val spokenFmt = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Fmt.locale)
 
+    /** ¿Ese momento se vivió en otra hora que la de [current]? (entrenaste de viaje). */
+    fun isOtherZone(epochMs: Long, current: ZoneId, origin: String): Boolean {
+        val originZone = runCatching { ZoneId.of(origin) }.getOrNull() ?: return false
+        return Instant.ofEpochMilli(epochMs).atZone(current).offset != Instant.ofEpochMilli(epochMs).atZone(originZone).offset
+    }
+
+    /** "Hoy", "Ayer", "Hace 3 días", "Hace 2 semanas" (para "Última vez" de una rutina). */
+    fun daysAgo(day: Int, today: Int): String = when (val d = today - day) {
+        in Int.MIN_VALUE..0 -> "Hoy"
+        1 -> "Ayer"
+        in 2..13 -> "Hace $d días"
+        in 14..59 -> "Hace ${d / 7} semanas"
+        else -> "Hace ${d / 30} meses"
+    }
+
     /** "19:05" o "03:05 (19:05 hora de Ciudad de México)" si se entrenó en otra zona. */
     fun formatTimeWithOrigin(epochMs: Long, current: ZoneId, origin: String): String {
         val now = formatTime(epochMs, current)
         val originZone = runCatching { ZoneId.of(origin) }.getOrNull() ?: return now
-        val offNow = Instant.ofEpochMilli(epochMs).atZone(current).offset
-        val offOrigin = Instant.ofEpochMilli(epochMs).atZone(originZone).offset
-        if (offNow == offOrigin) return now
+        if (!isOtherZone(epochMs, current, origin)) return now
         val city = origin.substringAfterLast('/').replace('_', ' ')
         return "$now (${formatTime(epochMs, originZone)} hora de $city)"
     }

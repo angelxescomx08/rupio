@@ -84,10 +84,8 @@ fun ExerciseDetailScreen(nav: NavHostController, id: String) {
         if (ex == null) return@Column
         val tr = Tracking.of(ex.tracking)
         LazyColumn(contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item {
-                if (ex.image0 != null) AnimatedExerciseImage(ex.image0, ex.image1, Modifier.fillMaxWidth().aspectRatio(1.4f))
-                else SectionCard { Text("Ejercicio personalizado (sin imagen)", color = RupioColors.TextDim) }
-            }
+            if (ex.image0 != null) item { AnimatedExerciseImage(ex.image0, ex.image1, Modifier.fillMaxWidth().aspectRatio(1.4f)) }
+            else if (ex.isCustom) item { SectionCard { Text("Ejercicio personalizado (sin imagen)", color = RupioColors.TextDim) } }
             item {
                 Button(
                     onClick = { openVideo(context, ex.name) }, modifier = Modifier.fillMaxWidth().height(50.dp), shape = RoundedCornerShape(14.dp),
@@ -111,8 +109,8 @@ fun ExerciseDetailScreen(nav: NavHostController, id: String) {
                     if (ex.cue.isNotBlank()) {
                         Spacer(Modifier.height(12.dp))
                         Text("Técnica", style = MaterialTheme.typography.titleSmall)
-                        Spacer(Modifier.height(4.dp))
-                        Text(ex.cue, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(6.dp))
+                        TechniqueSteps(ex.cue)
                     }
                 }
             }
@@ -161,6 +159,35 @@ fun ExerciseDetailScreen(nav: NavHostController, id: String) {
     }
 }
 
+/**
+ * v1.9 · La técnica en pasos cortos (una línea por paso en el catálogo): posición, movimiento y el error más común,
+ * para aprender sin salir de la app. Antes era una sola frase. Un texto de una línea (ejercicio propio) se ve igual.
+ */
+@Composable
+fun TechniqueSteps(cue: String) {
+    val steps = techniqueSteps(cue)
+    if (steps.size <= 1) { Text(cue.trim(), style = MaterialTheme.typography.bodyMedium); return }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        var n = 0
+        steps.forEach { s ->
+            val warning = s.startsWith(COMMON_ERROR)
+            Row(verticalAlignment = Alignment.Top) {
+                Box(Modifier.width(24.dp), contentAlignment = Alignment.TopCenter) {
+                    if (warning) Icon(Icons.Rounded.WarningAmber, null, tint = RupioColors.Warning, modifier = Modifier.size(18.dp))
+                    else Text("${++n}.", style = MaterialTheme.typography.bodyMedium.merge(Tabular), color = RupioColors.Primary, fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(Modifier.width(6.dp))
+                Text(s, style = MaterialTheme.typography.bodyMedium, color = if (warning) RupioColors.Warning else RupioColors.Text)
+            }
+        }
+    }
+}
+
+private const val COMMON_ERROR = "Error común:"
+
+/** Pasos de la técnica: una línea cada uno, sin vacíos. */
+fun techniqueSteps(cue: String): List<String> = cue.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
+
 @Composable
 private fun SessionCard(rows: List<SessionSetRow>, tr: Tracking, unit: WeightUnit) {
     SectionCard(padding = 14.dp) {
@@ -194,7 +221,9 @@ fun RecommendationCard(r: Recommendation, unit: WeightUnit, expanded: Boolean = 
     val (color, icon) = when (r.kind) {
         RecKind.INCREASE_LOAD, RecKind.LESS_ASSISTANCE, RecKind.HARDER_VARIATION -> RupioColors.Warning to Icons.Rounded.ArrowUpward
         RecKind.DELOAD -> RupioColors.Danger to Icons.Rounded.ArrowDownward
-        RecKind.ADD_REPS, RecKind.ADD_TIME -> RupioColors.Primary to Icons.Rounded.Add
+        // v1.9: "Mantén 100 lb" ya no lleva un "+" que sugería subir: mismo peso, más repeticiones (o más tiempo).
+        RecKind.ADD_REPS -> RupioColors.Primary to Icons.Rounded.Repeat
+        RecKind.ADD_TIME -> RupioColors.Primary to Icons.Rounded.Timer
         RecKind.HOLD -> RupioColors.TextDim to Icons.Rounded.Pause
         RecKind.FIRST_TIME -> RupioColors.Success to Icons.Rounded.AutoAwesome
     }

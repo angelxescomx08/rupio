@@ -2,6 +2,8 @@ package com.rupio.app.ui.body
 
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.liveRegion
 import com.rupio.app.safePop
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -197,6 +199,7 @@ fun BodyWeightScreen(nav: NavHostController) {
     val v by vm.view.collectAsStateWithLifecycle()
     val latest by vm.latest.collectAsStateWithLifecycle()
     var logging by remember { mutableStateOf(false) }
+    var loggingOther by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<BodyWeightEntity?>(null) }
     var deleting by remember { mutableStateOf<BodyWeightEntity?>(null) }
     val st by c.settings.settings.collectAsStateWithLifecycle(initialValue = null)
@@ -221,7 +224,7 @@ fun BodyWeightScreen(nav: NavHostController) {
     ) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad), state = list, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { WeightHero(latest, v, unit, today) { if (latest?.measuredOn == today) editing = latest else logging = true } }
+            item { WeightHero(latest, v, unit, today, onOtherDay = { loggingOther = true }) { if (latest?.measuredOn == today) editing = latest else logging = true } }
             if (latest != null && consentLoaded && consentAt == null) item { HealthConsentCard() }
             item {
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
@@ -234,6 +237,10 @@ fun BodyWeightScreen(nav: NavHostController) {
                 SectionCard {
                     if (v.points.isEmpty() && !v.loading) {
                         Text(if (latest == null) "Aún no tienes registros. Toca \"Registrar peso\"." else "Sin registros en este rango.",
+                            style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim, modifier = Modifier.padding(vertical = 24.dp))
+                    } else if (v.points.size == 1) {
+                        // v1.9: con un solo registro la gráfica salía con el eje "81 · 81 · 80" y "18 nov … 18 nov".
+                        Text("Con un registro más verás aquí tu tendencia. Pésate 2 o 3 veces por semana.",
                             style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim, modifier = Modifier.padding(vertical = 24.dp))
                     } else if (v.points.isNotEmpty()) {
                         BodyWeightChart(v.points, v.trend, unit, Modifier.fillMaxWidth().height(200.dp), interactive = true)
@@ -253,7 +260,7 @@ fun BodyWeightScreen(nav: NavHostController) {
                 TileRow {
                     Tile("Tendencia hoy", Fmt.weight(t.last(), unit), Fmt.weight(t.last(), unit.other))
                     val change = t.last() - t.first()
-                    Tile("Cambio en el rango", (if (change >= 0) "+" else "−") + Fmt.weight(abs(change), unit), "${v.points.size} registros")
+                    Tile("Cambio en el rango", (if (change >= 0) "+" else "−") + Fmt.weight(abs(change), unit), Fmt.plural(v.points.size, "registro", "registros"))
                     Tile("Ritmo", v.ratePct?.let { (if (it >= 0) "+" else "−") + Fmt.num(abs(it), 1) + " %" } ?: "—",
                         if (v.ratePct != null) "por semana" else "faltan días")
                 }
@@ -293,6 +300,9 @@ fun BodyWeightScreen(nav: NavHostController) {
         }
     }
     if (logging) LogWeightDialog(latest?.weightKg, unit, onUnitChange = vm::setUnit, onDismiss = { logging = false }) { d, kg -> vm.log(d, kg); logging = false }
+    // v1.9: un día que se te olvidó, sin ir a Progreso (antes aquí solo estaba "Corregir el de hoy", con la fecha fija).
+    if (loggingOther) LogWeightDialog(latest?.weightKg, unit, initialDay = Dates.today(c.zone.value).minusDays(1), onUnitChange = vm::setUnit,
+        onDismiss = { loggingOther = false }) { d, kg -> vm.log(d, kg); loggingOther = false }
     editing?.let { e ->
         LogWeightDialog(e.weightKg, unit, LocalDate.ofEpochDay(e.measuredOn.toLong()), lockDate = true, onUnitChange = vm::setUnit, onDismiss = { editing = null }) { d, kg -> vm.log(d, kg); editing = null }
     }
@@ -309,7 +319,7 @@ fun BodyWeightScreen(nav: NavHostController) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun WeightHero(latest: BodyWeightEntity?, v: WeightView, unit: WeightUnit, today: Int, onLog: () -> Unit) {
+private fun WeightHero(latest: BodyWeightEntity?, v: WeightView, unit: WeightUnit, today: Int, onOtherDay: () -> Unit, onLog: () -> Unit) {
     SectionCard {
         if (latest == null) {
             Text("⚖️", style = MaterialTheme.typography.headlineMedium)
@@ -336,6 +346,9 @@ private fun WeightHero(latest: BodyWeightEntity?, v: WeightView, unit: WeightUni
             Icon(if (todayDone) Icons.Rounded.Edit else Icons.Rounded.Add, null); Spacer(Modifier.width(8.dp))
             Text(if (todayDone) "Corregir el de hoy" else "Registrar peso de hoy", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         }
+        if (latest != null) OutlinedButton(onClick = onOtherDay, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).heightIn(min = 48.dp), shape = RoundedCornerShape(14.dp)) {
+            Icon(Icons.Rounded.CalendarMonth, null); Spacer(Modifier.width(8.dp)); Text("Registrar otro día")
+        }
     }
 }
 
@@ -361,12 +374,18 @@ fun LogWeightDialog(
     var day by remember { mutableStateOf(initialDay ?: today) }
     var unit by remember { mutableStateOf(unit) }
     val start = lastKg?.let { unit.fromKg(it) } ?: if (unit == WeightUnit.LB) 160.0 else 72.0
-    var text by remember { mutableStateOf(Fmt.num(start, 1).replace(",", ".")) }
+    // v1.9: la primera vez el campo va vacío (antes traía 72 kg y era fácil guardar un número inventado);
+    // −/+ parten de ahí si los usas.
+    var text by remember { mutableStateOf(lastKg?.let { Fmt.num(start, 1).replace(",", ".") } ?: "") }
     var picking by remember { mutableStateOf(false) }
     // v1.7 (N2): el peso corporal es un dato de salud; la primera vez se pide permiso expreso con una casilla.
     val st by c.settings.settings.collectAsStateWithLifecycle(initialValue = null)
     val needConsent = st != null && st?.healthConsentAt == null
     var consent by remember { mutableStateOf(false) }
+    // v1.9: "Guardar" sin la casilla marcada ya no está gris sin explicación: resalta la casilla y dice por qué.
+    var consentNudge by remember { mutableStateOf(false) }
+    val focus = remember { androidx.compose.ui.focus.FocusRequester() }
+    LaunchedEffect(Unit) { if (lastKg == null) { kotlinx.coroutines.delay(150); runCatching { focus.requestFocus() } } }
     val value = text.replace(',', '.').toDoubleOrNull()
     val kg = value?.let { unit.toKg(it) }
     val valid = kg != null && kg in 20.0..400.0
@@ -396,17 +415,21 @@ fun LogWeightDialog(
                     val big = MaterialTheme.typography.headlineSmall
                     OutlinedTextField(
                         text, { t -> text = t.filter { it.isDigit() || it == '.' || it == ',' }.take(6) },
-                        modifier = Modifier.width(if (fs > 1.3f) 136.dp else 150.dp).padding(horizontal = 8.dp).semantics { contentDescription = "Peso en ${unit.label}" },
+                        modifier = Modifier.width(if (fs > 1.3f) 136.dp else 150.dp).padding(horizontal = 8.dp).focusRequester(focus).semantics { contentDescription = "Peso en ${unit.label}" },
                         textStyle = big.merge(Tabular).copy(textAlign = TextAlign.Center, fontSize = big.fontSize / maxOf(1f, fs / 1.15f)),
                         singleLine = true, suffix = if (fs > 1.3f) null else ({ Text(unit.label, style = MaterialTheme.typography.labelLarge) }),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        isError = !valid,
+                        isError = !valid && text.isNotEmpty(),
                     )
                     FilledTonalIconButton(onClick = { bump(0.1) }, Modifier.size(48.dp)) { Icon(Icons.Rounded.Add, "Más") }
                 }
                 // El error dice qué SÍ es válido (antes solo "Escribe un peso válido").
-                Text(if (valid) "= " + Fmt.weight(kg, unit.other) else if (unit == WeightUnit.KG) "Entre 20 y 400 kg (44–880 lb)" else "Entre 44 y 880 lb (20–400 kg)",
-                    style = MaterialTheme.typography.labelMedium, color = if (valid) RupioColors.TextFaint else RupioColors.Danger, modifier = Modifier.padding(top = 6.dp))
+                Text(when {
+                    valid -> "= " + Fmt.weight(kg, unit.other)
+                    text.isEmpty() -> "Escribe lo que marca tu báscula"
+                    unit == WeightUnit.KG -> "Entre 20 y 400 kg (44–880 lb)"
+                    else -> "Entre 44 y 880 lb (20–400 kg)"
+                }, style = MaterialTheme.typography.labelMedium, color = if (valid || text.isEmpty()) RupioColors.TextFaint else RupioColors.Danger, modifier = Modifier.padding(top = 6.dp))
                 if (!lockDate) {
                     Spacer(Modifier.height(12.dp))
                     // Con letra grande los chips bajan de renglón en vez de apretarse letra por letra.
@@ -420,11 +443,12 @@ fun LogWeightDialog(
                 } else {
                     Text(Dates.formatDay(day.toEpochDay().toInt()), style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim, modifier = Modifier.padding(top = 8.dp))
                 }
-                if (needConsent) HealthConsentCheckbox(consent) { consent = it }
+                if (needConsent) HealthConsentCheckbox(consent, nudge = consentNudge && !consent) { consent = it; if (it) consentNudge = false }
             }
         },
         confirmButton = {
-            TextButton(enabled = valid && st != null && (!needConsent || consent), onClick = {
+            TextButton(enabled = valid && st != null, onClick = {
+                if (needConsent && !consent) { consentNudge = true; return@TextButton }
                 if (needConsent) c.scope.launch { c.giveHealthConsent() }
                 onSave(day, kg!!)
             }) { Text("Guardar") }
@@ -457,10 +481,11 @@ const val HEALTH_CONSENT_TEXT = "Acepto que Rupio guarde mi peso corporal (dato 
 
 /** Casilla de consentimiento expreso del peso corporal. Toda la fila se puede tocar. */
 @Composable
-fun HealthConsentCheckbox(checked: Boolean, onChange: (Boolean) -> Unit) {
+fun HealthConsentCheckbox(checked: Boolean, nudge: Boolean = false, onChange: (Boolean) -> Unit) {
     Spacer(Modifier.height(12.dp))
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+            .then(if (nudge) Modifier.background(RupioColors.Danger.copy(alpha = 0.12f)) else Modifier)
             .toggleable(checked, role = Role.Checkbox, onValueChange = onChange).padding(vertical = 4.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -468,11 +493,16 @@ fun HealthConsentCheckbox(checked: Boolean, onChange: (Boolean) -> Unit) {
         Spacer(Modifier.width(8.dp))
         Column {
             Text(HEALTH_CONSENT_TEXT, style = MaterialTheme.typography.bodyMedium)
+            if (nudge) Text(HEALTH_CONSENT_NUDGE, style = MaterialTheme.typography.bodySmall, color = RupioColors.Danger,
+                modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
             Text("Puedes retirar tu permiso cuando quieras en Perfil; se borra tu historial de peso.",
                 style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
         }
     }
 }
+
+/** v1.9: lo que se dice al tocar "Guardar" sin marcar la casilla. */
+const val HEALTH_CONSENT_NUDGE = "Marca la casilla para poder guardar tu peso."
 
 /**
  * Pesos guardados con una versión anterior (antes de pedir permiso): se pide el permiso una vez, o se borran.

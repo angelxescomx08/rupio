@@ -105,7 +105,10 @@ class V17UiTest {
         var saved: Double? = null
         app { LogWeightDialog(80.0, WeightUnit.KG, onDismiss = {}) { _, kg -> saved = kg } }
         waitText(HEALTH_CONSENT_TEXT)
-        compose.onNodeWithText("Guardar").assertIsNotEnabled()
+        // v1.9: "Guardar" sin la casilla no guarda, pero ya no está gris sin explicación: dice que falta marcarla.
+        compose.onNodeWithText("Guardar").performClick(); settle()
+        assertNull("sin la casilla no se guarda", saved)
+        waitText(com.rupio.app.ui.body.HEALTH_CONSENT_NUDGE)
         settle(); captureScreenRoboImage("screenshots/71_consentimiento_peso.png")
         compose.onNode(hasText(HEALTH_CONSENT_TEXT, substring = true) and hasClickAction()).performClick(); settle()
         compose.onNodeWithText("Guardar").assertIsEnabled().performClick(); settle()
@@ -130,6 +133,8 @@ class V17UiTest {
         poll("se retiró y se borró el peso") { c.settings.current().healthConsentAt == null && c.db.admin().exportBodyWeights().isEmpty() }
         waitText("No lo has dado")
 
+        // FileProvider solo reconoce rutas con "/" (las de Android); en Windows Robolectric arma la caché con "\".
+        org.junit.Assume.assumeTrue("FileProvider necesita rutas con /: corre esta parte en Linux o en CI", java.io.File.separatorChar == '/')
         compose.onNode(hasText("Exportar mis datos") and hasClickAction()).performScrollTo().performClick()
         var started: Intent? = null
         // Los CSV se escriben en segundo plano (Dispatchers.IO) y luego se abre el menú de compartir.

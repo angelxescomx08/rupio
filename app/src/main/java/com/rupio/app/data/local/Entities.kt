@@ -259,3 +259,10 @@ data class RowLabel(val name: String?, val day: Int?)
 
 /** Meses con entrenos (selector de mes del Historial). ym = "2019-03". */
 data class MonthCount(val ym: String, val n: Int)
+
+/** v1.9: última vez que terminaste cada rutina. */
+data class RoutineLastDone(
+    @ColumnInfo(name = "routine_id") val routineId: String,
+    @ColumnInfo(name = "last_day") val lastDay: Int,
+    @ColumnInfo(name = "last_end") val lastEnd: Long,
+)

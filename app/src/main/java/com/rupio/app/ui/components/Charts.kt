@@ -65,7 +65,7 @@ fun VolumeBarChart(bars: List<Bar>, unit: WeightUnit, modifier: Modifier = Modif
             if (sel != null) {
                 Column(Modifier.weight(1f)) {
                     Text(Fmt.volume(sel.volumeKg, unit) + "  ·  " + Fmt.volume(sel.volumeKg, unit.other), style = MaterialTheme.typography.titleSmall.merge(Tabular))
-                    Text("${sel.label} · ${sel.workouts} entrenos · ${sel.sets} series", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim)
+                    Text("${sel.label} · ${Fmt.plural(sel.workouts, "entreno", "entrenos")} · ${Fmt.plural(sel.sets, "serie", "series")}", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim)
                 }
             }
         }
@@ -196,16 +196,19 @@ fun ProgressLineChart(
  * Más volumen sigue sumando, pero con rendimientos decrecientes. El estado va en texto (no solo color).
  */
 @Composable
-fun MuscleSetsChart(rows: List<MuscleLoad>, weeks: Double, modifier: Modifier = Modifier) {
+fun MuscleSetsChart(rows: List<MuscleLoad>, weeks: Double, modifier: Modifier = Modifier, judge: Boolean = true) {
     val perWeek = rows.map { it to it.sets / weeks.coerceAtLeast(1.0) }
     val maxV = max(20.0, perWeek.maxOfOrNull { it.second } ?: 0.0)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // v1.9: en tu primera semana solo el número: decir "poco" a quien acaba de empezar no ayuda.
+        if (!judge) Text("Llevas menos de una semana: aquí verás si cada músculo recibe lo que necesita.",
+            style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
         perWeek.forEach { (row, pw) ->
-            val status = when { pw < 4 -> "poco"; pw < 10 -> "moderado"; else -> "10+ ✓" }
+            val status = when { !judge -> null; pw < 4 -> "poco"; pw < 10 -> "moderado"; else -> "10+ ✓" }
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(Muscles.label(row.muscle), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text("${Fmt.num(pw, 1)} series/sem · $status", style = MaterialTheme.typography.labelMedium.merge(Tabular), color = RupioColors.TextDim)
+                    Text("${Fmt.num(pw, 1)} series/sem" + (status?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelMedium.merge(Tabular), color = RupioColors.TextDim)
                 }
                 Spacer(Modifier.height(4.dp))
                 Canvas(Modifier.fillMaxWidth().height(10.dp)) {
@@ -240,7 +243,7 @@ fun TrainingHeatmap(days: Map<Int, Int>, from: LocalDate, to: LocalDate, modifie
         }
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("${days.size} días entrenados en ${weeks} semanas", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim, modifier = Modifier.weight(1f))
+            Text("${Fmt.plural(days.size, "día entrenado", "días entrenados")} en ${Fmt.plural(weeks, "semana", "semanas")}", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim, modifier = Modifier.weight(1f))
             Text("Menos ", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
             (listOf(RupioColors.Surface3) + RupioColors.Heat.drop(2)).forEach {
                 Box(Modifier.padding(horizontal = 1.dp).size(10.dp).clip(RoundedCornerShape(2.dp)).background(it))
