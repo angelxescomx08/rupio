@@ -157,10 +157,10 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
     val groups = groupConsecutive(items) { it.we.supersetId }
 
     Scaffold(
-        containerColor = RupioColors.Black,
+        containerColor = RupioColors.Background,
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            Column(Modifier.background(RupioColors.Black)) {
+            Column(Modifier.background(RupioColors.Background)) {
                 // Con letra muy grande el nombre va debajo de la barra (completo) en vez de cortarse junto a "Terminar".
                 val bigText = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
                 val started = "Empezó a las " + Dates.formatTimeWithOrigin(w.startedAt, zone, w.timeZone)
@@ -691,7 +691,7 @@ private fun FinishDialog(name: String, items: List<ExUi>, doneSets: Int, volumeK
     var notes by remember { mutableStateOf("") }
     val pending = items.sumOf { e -> e.sets.count { !it.completed } }
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-        Surface(Modifier.fillMaxSize(), color = RupioColors.Black) {
+        Surface(Modifier.fillMaxSize(), color = RupioColors.Background) {
             Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, "Seguir entrenando") }

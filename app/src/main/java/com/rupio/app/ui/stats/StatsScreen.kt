@@ -86,6 +86,11 @@ fun StatsScreen(nav: NavHostController) {
     val records by c.stats.recentRecords(8).collectAsStateWithLifecycle(initialValue = emptyList())
     val unit = settings?.unit ?: WeightUnit.LB
     val s = vm.snapshot
+    // v1.9: "Tu liga". Lo guardado se ve al instante; al servidor solo si lo último tiene más de 5 min.
+    val auth by c.auth.state.collectAsStateWithLifecycle()
+    val leagueAccess = com.rupio.app.ui.support.wallAccess(auth)
+    val league by c.league.state.collectAsStateWithLifecycle()
+    LaunchedEffect(leagueAccess) { if (leagueAccess == com.rupio.app.ui.support.WallAccess.READY) { c.league.warmUp(); c.league.load(maxAgeMs = 5 * 60_000L) } }
 
     Column(Modifier.fillMaxSize()) {
         RupioTopBar("Progreso", onBack = null) {
@@ -127,6 +132,10 @@ fun StatsScreen(nav: NavHostController) {
                     Spacer(Modifier.height(8.dp))
                     VolumeBarChart(s.bars, unit)
                 }
+            }
+            // Debajo de tu volumen (lo que cuenta en la liga), no arriba: primero tu progreso, luego la comparación.
+            if (com.rupio.app.ui.support.showLeagueCard(leagueAccess, league.league)) item(key = "league") {
+                com.rupio.app.ui.support.LeagueCardContent(league.league, unit) { nav.navigate(Routes.LEAGUE) }
             }
             item {
                 SectionCard {

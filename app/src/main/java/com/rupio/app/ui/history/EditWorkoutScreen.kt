@@ -167,7 +167,7 @@ fun EditWorkoutScreen(nav: NavHostController, workoutId: String, focusSet: Strin
         if (idx >= 0) list.scrollToItem(idx + 1)
     }
 
-    Scaffold(containerColor = RupioColors.Black, topBar = {
+    Scaffold(containerColor = RupioColors.Background, topBar = {
         RupioTopBar("Editar entreno", onBack = { back() }, subtitle = vm.name.ifBlank { null }) {
             TextButton(enabled = vm.loaded && !vm.saving, onClick = {
                 scope.launch { if (vm.save()) nav.safePop() }

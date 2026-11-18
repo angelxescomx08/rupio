@@ -71,7 +71,7 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
         supportAsk = finished to c.db.admin().totalVolumeKg()
     }
 
-    Scaffold(containerColor = RupioColors.Black, snackbarHost = { SnackbarHost(snackbar) }, topBar = {
+    Scaffold(containerColor = RupioColors.Background, snackbarHost = { SnackbarHost(snackbar) }, topBar = {
         RupioTopBar(workout?.name ?: "Entrenamiento", onBack = { nav.safePop() }) {
             Box {
                 IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, "Opciones") }

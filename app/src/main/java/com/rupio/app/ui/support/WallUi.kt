@@ -4,7 +4,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,6 +54,7 @@ import com.rupio.app.safePop
 import com.rupio.app.ui.components.InitialsAvatar
 import com.rupio.app.ui.components.RupioTopBar
 import com.rupio.app.ui.components.SectionCard
+import com.rupio.app.ui.theme.Metals
 import com.rupio.app.ui.theme.RupioColors
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -60,28 +64,31 @@ import java.time.ZoneId
 // Pantalla del muro
 // ---------------------------------------------------------------------------------------------------------------
 
-/** Qué tan lista está la cuenta para el muro. */
+/** Qué tan lista está la cuenta para el muro (y las ligas). */
 enum class WallAccess { READY, LOCAL_ONLY, NOT_READY }
 
+fun wallAccess(auth: AuthState): WallAccess {
+    val signed = auth as? AuthState.SignedIn
+    return when {
+        signed == null -> WallAccess.NOT_READY
+        signed.localOnly -> WallAccess.LOCAL_ONLY
+        signed.needsVerification -> WallAccess.NOT_READY
+        else -> WallAccess.READY
+    }
+}
+
+/** Pestaña "Muro" de Apoya Rupio (v1.9: antes era su propia pantalla). */
 @Composable
-fun WallScreen(nav: NavHostController) {
+fun WallTab(nav: NavHostController, snackbar: SnackbarHostState, listState: LazyListState) {
     val c = container()
     val wall by c.wall.state.collectAsStateWithLifecycle()
     val support by c.support.state.collectAsStateWithLifecycle()
     val auth by c.auth.state.collectAsStateWithLifecycle()
     val activity = LocalContext.current.findActivity()
     val scope = rememberCoroutineScope()
-    val snackbar = remember { SnackbarHostState() }
     val signed = auth as? AuthState.SignedIn
-    val access = when {
-        signed == null -> WallAccess.NOT_READY
-        signed.localOnly -> WallAccess.LOCAL_ONLY
-        signed.needsVerification -> WallAccess.NOT_READY
-        else -> WallAccess.READY
-    }
+    val access = wallAccess(auth)
     LaunchedEffect(access) { if (access == WallAccess.READY) c.wall.load() }
-    LaunchedEffect(Unit) { c.support.refresh() }
-    DisposableEffect(Unit) { onDispose { c.support.clearMessage() } }
     // Se re-carga la lista cuando un aporte se registró (tu lugar cambia).
     LaunchedEffect(wall.me?.points) { if (access == WallAccess.READY && wall.loaded) c.wall.load() }
 
@@ -94,21 +101,15 @@ fun WallScreen(nav: NavHostController) {
         catch (e: Exception) { snackbar.showSnackbar(WallError.from(e).userText) }
     }
 
-    Scaffold(containerColor = RupioColors.Black, snackbarHost = { SnackbarHost(snackbar) }, topBar = {
-        RupioTopBar(WallCopy.TITLE, onBack = { nav.safePop() }) {
-            if (access == WallAccess.READY) IconButton(onClick = { scope.launch { c.wall.load() } }) { Icon(Icons.Rounded.Refresh, "Actualizar") }
-        }
-    }) { pad ->
-        WallContent(
-            wall = wall, support = support, access = access, modifier = Modifier.padding(pad),
-            onJoin = { joining = true },
-            onBoost = { b -> activity?.let { c.support.buyWall(it, b, null) } },
-            onRename = { renaming = true },
-            onHide = { h -> if (h) hiding = true else act { c.wall.setHidden(false) } },
-            onCreateAccount = { nav.navigate(Routes.ACCOUNT) },
-            onRetry = { scope.launch { c.wall.load() } },
-        )
-    }
+    WallContent(
+        wall = wall, support = support, access = access, listState = listState,
+        onJoin = { joining = true },
+        onBoost = { b -> activity?.let { c.support.buyWall(it, b, null) } },
+        onRename = { renaming = true },
+        onHide = { h -> if (h) hiding = true else act { c.wall.setHidden(false) } },
+        onCreateAccount = { nav.navigate(Routes.ACCOUNT) },
+        onRetry = { scope.launch { c.wall.load() } },
+    )
 
     val defaultName = wall.me?.name ?: signed?.name.orEmpty()
     if (joining) WallNameDialog(
@@ -135,11 +136,14 @@ fun WallScreen(nav: NavHostController) {
 fun WallContent(
     wall: WallState, support: SupportState, access: WallAccess, modifier: Modifier = Modifier,
     onJoin: () -> Unit, onBoost: (WallBoost) -> Unit, onRename: () -> Unit, onHide: (Boolean) -> Unit,
-    onCreateAccount: () -> Unit, onRetry: () -> Unit,
+    onCreateAccount: () -> Unit, onRetry: () -> Unit, listState: LazyListState = rememberLazyListState(),
 ) {
     val me = wall.me
-    LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp, 4.dp, 16.dp, 32.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item {
+    // Key estable = nombre + desde cuándo (no el lugar: si alguien sube, las demás filas no se vuelven a crear).
+    // Nunca repetida: LazyColumn falla con keys iguales.
+    val keys = remember(wall.entries) { stableKeys(wall.entries.map { it.name + "|" + it.sinceMs }) }
+    LazyColumn(modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 32.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item(key = "intro", contentType = "card") {
             SectionCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     InitialsAvatar(SupportCopy.DEV_NAME, 44.dp); Spacer(Modifier.width(12.dp))
@@ -188,9 +192,15 @@ fun WallContent(
                 Text("${wall.me?.total ?: wall.entries.size} ${if ((wall.me?.total ?: wall.entries.size) == 1) "persona" else "personas"} en el muro",
                     style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 6.dp).semantics { heading() })
             }
-            items(wall.entries, key = { "${it.rank}-${it.name}" }) { e -> WallRow(e) }
+            itemsIndexed(wall.entries, key = { i, _ -> keys[i] }, contentType = { _, _ -> "row" }) { _, e -> WallRow(e) }
         }
     }
+}
+
+/** Las mismas keys, con un sufijo en las repetidas (dos personas con el mismo nombre y el mismo milisegundo). */
+internal fun stableKeys(raw: List<String>): List<String> {
+    val seen = HashSet<String>(raw.size * 2)
+    return raw.mapIndexed { i, k -> if (seen.add(k)) k else "$k#$i" }
 }
 
 @Composable
@@ -209,12 +219,12 @@ private val sinceFmt = java.time.format.DateTimeFormatter.ofPattern("MMMM 'de' y
 /** "noviembre de 2026" (vacío si no hay fecha). */
 fun wallSince(ms: Long): String = if (ms <= 0) "" else Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate().format(sinceFmt)
 
-/** Gradiente del nivel Mecenas: lila a dorado. */
-val MecenasBrush = Brush.linearGradient(listOf(Color(0xFF8E6BFF), Color(0xFFF2C14E)))
+/** Degradado del nivel Mecenas: el metal Aurora (se crea una sola vez, en Metals). */
+val MecenasBrush: Brush get() = Metals.Aurora.brush
 
 @Composable
 private fun JoinCard(support: SupportState, onJoin: () -> Unit) {
-    Surface(shape = RoundedCornerShape(20.dp), color = RupioColors.Surface, border = BorderStroke(1.5.dp, Color(0xFFF2C14E).copy(alpha = 0.6f)),
+    Surface(shape = RoundedCornerShape(20.dp), color = RupioColors.Surface, border = BorderStroke(1.5.dp, Metals.Aurora.ink.copy(alpha = 0.6f)),
         modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -242,13 +252,13 @@ private fun JoinCard(support: SupportState, onJoin: () -> Unit) {
 
 @Composable
 private fun MyWallCard(me: WallMe, support: SupportState, onBoost: (WallBoost) -> Unit, onRename: () -> Unit, onHide: (Boolean) -> Unit) {
-    Surface(shape = RoundedCornerShape(20.dp), color = RupioColors.Surface, border = BorderStroke(1.5.dp, Color(0xFFF2C14E).copy(alpha = 0.6f)),
+    Surface(shape = RoundedCornerShape(20.dp), color = RupioColors.Surface, border = BorderStroke(1.5.dp, Metals.Aurora.ink.copy(alpha = 0.6f)),
         modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(48.dp).clip(CircleShape).background(MecenasBrush), contentAlignment = Alignment.Center) {
                     Text(if (me.hidden || me.rank == null) SupportTier.MECENAS.emoji else "#${me.rank}", style = MaterialTheme.typography.titleMedium,
-                        color = Color(0xFF1B1300), fontWeight = FontWeight.Bold)
+                        color = Metals.Aurora.on, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
@@ -291,8 +301,8 @@ private fun MyWallCard(me: WallMe, support: SupportState, onBoost: (WallBoost) -
 private fun BoostButton(b: WallBoost, price: String, highlighted: Boolean, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
     Surface(onClick = onClick, enabled = enabled, shape = shape, modifier = modifier.heightIn(min = 64.dp).semantics { contentDescription = "Aportar $price, suma ${b.points} puntos" },
-        color = if (highlighted) Color(0xFFF2C14E).copy(alpha = 0.16f) else RupioColors.Surface2,
-        border = BorderStroke(if (highlighted) 1.5.dp else 1.dp, if (highlighted) Color(0xFFF2C14E) else RupioColors.Outline)) {
+        color = if (highlighted) Metals.Aurora.ink.copy(alpha = 0.16f) else RupioColors.Surface2,
+        border = BorderStroke(if (highlighted) 1.5.dp else 1.dp, if (highlighted) Metals.Aurora.ink else RupioColors.Outline)) {
         Column(Modifier.padding(horizontal = 6.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Text("+${b.points}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
             Text(price, style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -306,8 +316,8 @@ private fun WallRow(e: WallEntry) {
     val since = remember(e.sinceMs) {
         wallSince(e.sinceMs)
     }
-    Surface(shape = RoundedCornerShape(14.dp), color = if (e.me) Color(0xFFF2C14E).copy(alpha = 0.12f) else RupioColors.Surface,
-        border = if (e.me) BorderStroke(1.dp, Color(0xFFF2C14E).copy(alpha = 0.6f)) else null, modifier = Modifier.fillMaxWidth()
+    Surface(shape = RoundedCornerShape(14.dp), color = if (e.me) Metals.Aurora.ink.copy(alpha = 0.12f) else RupioColors.Surface,
+        border = if (e.me) BorderStroke(1.dp, Metals.Aurora.ink.copy(alpha = 0.6f)) else null, modifier = Modifier.fillMaxWidth()
             .semantics(mergeDescendants = true) { contentDescription = "Lugar ${e.rank}, ${e.name}" + (if (e.me) ", eres tú" else "") + (if (since.isNotBlank()) ", desde $since" else "") }) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.width(40.dp), contentAlignment = Alignment.Center) {
@@ -333,7 +343,8 @@ private fun WallRow(e: WallEntry) {
  * publicar datos personales). Valida lo mismo que el servidor (2–30 caracteres, sin enlaces ni correos).
  */
 @Composable
-fun WallNameDialog(title: String, intro: String?, initial: String, confirm: String, askConsent: Boolean, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+fun WallNameDialog(title: String, intro: String?, initial: String, confirm: String, askConsent: Boolean, onDismiss: () -> Unit,
+                   label: String = "Nombre en el muro", consentText: String = WallCopy.CONSENT, onConfirm: (String) -> Unit) {
     var name by rememberSaveable { mutableStateOf(initial.take(WallName.MAX)) }
     var consent by rememberSaveable { mutableStateOf(false) }
     val error = WallName.problem(name)
@@ -343,7 +354,7 @@ fun WallNameDialog(title: String, intro: String?, initial: String, confirm: Stri
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 intro?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim) }
-                OutlinedTextField(name, { name = it.take(WallName.MAX) }, label = { Text("Nombre en el muro") }, singleLine = true,
+                OutlinedTextField(name, { name = it.take(WallName.MAX) }, label = { Text(label) }, singleLine = true,
                     isError = name.isNotEmpty() && error != null, supportingText = { Text(if (name.isNotEmpty() && error != null) error else "${WallName.clean(name).length}/${WallName.MAX} · puede ser un apodo") },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words), modifier = Modifier.fillMaxWidth())
                 if (askConsent) Row(
@@ -351,7 +362,7 @@ fun WallNameDialog(title: String, intro: String?, initial: String, confirm: Stri
                     verticalAlignment = Alignment.Top,
                 ) {
                     Checkbox(consent, onCheckedChange = null, modifier = Modifier.padding(top = 2.dp, end = 8.dp))
-                    Text(WallCopy.CONSENT, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                    Text(consentText, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
                 }
             }
         },
@@ -380,7 +391,7 @@ fun WallRaisedDialog(rank: Int?, previousRank: Int?, onSeeWall: () -> Unit, onCl
             Box {
                 Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(Modifier.size(88.dp).clip(CircleShape).background(MecenasBrush), contentAlignment = Alignment.Center) {
-                        Text(rank?.let { "#$it" } ?: "🌟", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF1B1300), fontWeight = FontWeight.Bold)
+                        Text(rank?.let { "#$it" } ?: "🌟", style = MaterialTheme.typography.headlineMedium, color = Metals.Aurora.on, fontWeight = FontWeight.Bold)
                     }
                     Spacer(Modifier.height(14.dp))
                     Text("¡Gracias otra vez! 🙌", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)

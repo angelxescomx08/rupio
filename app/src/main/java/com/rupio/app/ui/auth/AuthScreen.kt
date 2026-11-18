@@ -75,7 +75,7 @@ fun AuthScreen(upgrade: Boolean = false, onBack: (() -> Unit)? = null, onDone: (
     }
 
     Column(
-        Modifier.fillMaxSize().background(RupioColors.Black).systemBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
+        Modifier.fillMaxSize().background(RupioColors.Background).systemBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
     ) {
         if (onBack != null) {
             IconButton(onClick = onBack, modifier = Modifier.offset(x = (-12).dp)) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Atrás") }

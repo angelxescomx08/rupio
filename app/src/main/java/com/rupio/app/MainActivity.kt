@@ -79,7 +79,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK), navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK))
+        enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(0xFF0A0A0C.toInt()), navigationBarStyle = SystemBarStyle.dark(0xFF0A0A0C.toInt()))
         val container = (application as RupioApp).container
         setContent {
             RupioTheme {
@@ -146,9 +146,13 @@ object Routes {
     const val CONCEPT = "concept/{id}"; fun concept(id: String) = "concept/$id"
     const val TUTORIAL = "tutorial/{id}"; fun tutorial(id: String) = "tutorial/$id"
     const val BODY_WEIGHT = "body_weight"; const val PROGRESS = "progress"; const val GUIDE = "guide"
+    /** v1.9: Apoya Rupio con pestañas Apoyar · Muro · Ligas. "support" abre en Apoyar. */
     const val SUPPORT = "support"
-    /** v1.8: muro de agradecimientos (nivel Mecenas). */
-    const val WALL = "wall"
+    const val SUPPORT_ROUTE = "support?tab={tab}"
+    /** v1.8: muro de agradecimientos (nivel Mecenas). v1.9: es la pestaña Muro de Apoya Rupio. */
+    const val WALL = "support?tab=muro"
+    /** v1.9: ligas semanales por volumen (pestaña Ligas de Apoya Rupio). */
+    const val LEAGUE = "support?tab=ligas"
     /** Modo sin cuenta → crear cuenta (o entrar) conservando los datos del teléfono. */
     const val ACCOUNT = "account"
     const val DELETE_ACCOUNT = "delete_account"
@@ -223,7 +227,7 @@ fun MainShell() {
     CompositionLocalProvider(com.rupio.app.ui.components.LocalSyncUi provides syncUi) {
     CoachHost(coach) {
         Scaffold(
-            containerColor = RupioColors.Black,
+            containerColor = RupioColors.Background,
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 if (showBar) Column {
@@ -286,8 +290,9 @@ private fun NavGraph(nav: NavHostController, modifier: Modifier) {
         composable(Routes.BODY_WEIGHT) { BodyWeightScreen(nav) }
         composable(Routes.PROGRESS) { ProgressStoryScreen(nav) }
         composable(Routes.GUIDE) { RoutineGuideScreen(nav) }
-        composable(Routes.SUPPORT) { SupportScreen(nav) }
-        composable(Routes.WALL) { com.rupio.app.ui.support.WallScreen(nav) }
+        composable(Routes.SUPPORT_ROUTE, arguments = listOf(navArgument("tab") { type = NavType.StringType; nullable = true; defaultValue = null })) { e ->
+            SupportScreen(nav, com.rupio.app.ui.support.SupportTab.of(e.arguments?.getString("tab")))
+        }
         composable(Routes.ACCOUNT) { AuthScreen(upgrade = true, onBack = { nav.safePop() }, onDone = { nav.safePop() }) }
         composable(Routes.DELETE_ACCOUNT) { com.rupio.app.ui.legal.DeleteAccountScreen(nav) }
         composable(Routes.EDIT, arguments = listOf(navArgument("set") { type = NavType.StringType; nullable = true; defaultValue = null })) { e ->

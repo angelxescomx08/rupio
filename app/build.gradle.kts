@@ -33,8 +33,8 @@ android {
         minSdk = 26
         // Play exige Android 16 (API 36) para apps nuevas y actualizaciones desde el 31 ago 2026.
         targetSdk = 36
-        versionCode = 18
-        versionName = "1.8"
+        versionCode = 19
+        versionName = "1.9"
         // URLs públicas del proyecto Neon "Rupio" (no son secretos). Se pueden sobreescribir en local.properties.
         val authUrl = cfg("NEON_AUTH_URL").ifBlank { "https://ep-wild-art-bdlip6s4.neonauth.c-8.us-east-2.aws.neon.tech/neondb/auth" }
         val dataUrl = cfg("NEON_DATA_API_URL").ifBlank { "https://ep-wild-art-bdlip6s4.apirest.c-8.us-east-2.aws.neon.tech/neondb/rest/v1" }
@@ -58,6 +58,16 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.findByName("upload") ?: signingConfigs.getByName("debug")
         }
+        // Solo para medir rendimiento en un teléfono o emulador (docs/RENDIMIENTO_LIGAS.md): igual que release (R8, sin
+        // depuración), firmada con la llave de debug, con otro id para instalarse junto a la de Play y con una pantalla de
+        // medición con datos de ejemplo (src/benchmark). No se sube a Play: `assembleRelease` no la incluye.
+        create("benchmark") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            applicationIdSuffix = ".bench"
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -77,6 +87,11 @@ android {
 
 kotlin {
     compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
+}
+// Reportes de estabilidad de Compose (qué composables se saltan al recomponer). Solo con -PcomposeReports.
+if (project.hasProperty("composeReports")) composeCompiler {
+    reportsDestination = layout.buildDirectory.dir("compose_reports")
+    metricsDestination = layout.buildDirectory.dir("compose_reports")
 }
 
 ksp {

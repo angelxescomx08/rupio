@@ -165,13 +165,20 @@ class DataApiClient(private val http: OkHttpClient) {
     }
 
     /** Como [rpc], pero devuelve la respuesta (JSON). v1.8: muro de agradecimientos. */
-    suspend fun rpcJson(base: String, jwt: String, function: String, body: JsonObject = JsonObject(emptyMap())): kotlinx.serialization.json.JsonElement = withContext(Dispatchers.IO) {
+    suspend fun rpcJson(base: String, jwt: String, function: String, body: JsonObject = JsonObject(emptyMap())): kotlinx.serialization.json.JsonElement =
+        json.parseToJsonElement(rpcText(base, jwt, function, body).ifBlank { "null" })
+
+    /**
+     * Como [rpcJson], pero devuelve el texto tal cual: así se decodifica directo a clases @Serializable sin armar
+     * antes el árbol de JsonElement (v1.9, ligas: 2.2× menos memoria por respuesta, mismo tiempo; ver LeaguePerfTest).
+     */
+    suspend fun rpcText(base: String, jwt: String, function: String, body: JsonObject = JsonObject(emptyMap())): String = withContext(Dispatchers.IO) {
         val req = Request.Builder().url("$base/rpc/$function").post(body.toString().toRequestBody(media))
             .header("Authorization", "Bearer $jwt").header("Accept", "application/json").build()
         http.newCall(req).execute().use { r ->
             val text = r.body?.string().orEmpty()
             if (!r.isSuccessful) throw DataApiException(r.code, text.take(300))
-            json.parseToJsonElement(text.ifBlank { "null" })
+            text
         }
     }
 

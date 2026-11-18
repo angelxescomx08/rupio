@@ -204,8 +204,8 @@ class QaUiTest {
     @Test fun contrasteDeTextosAA() {
         val text = mapOf("Texto" to RupioColors.Text, "Texto secundario" to RupioColors.TextDim, "Texto tenue" to RupioColors.TextFaint,
             "Azul" to RupioColors.Primary, "Verde" to RupioColors.Success, "Ámbar" to RupioColors.Warning, "Rojo" to RupioColors.Danger, "Violeta" to RupioColors.Rest)
-        val bgs = mapOf("negro" to RupioColors.Black, "tarjeta" to RupioColors.Surface, "tarjeta 2" to RupioColors.Surface2, "tarjeta 3" to RupioColors.Surface3,
-            "aviso ámbar" to over(RupioColors.Warning.copy(alpha = 0.10f), RupioColors.Black), "chip azul" to over(RupioColors.Primary.copy(alpha = 0.18f), RupioColors.Surface))
+        val bgs = mapOf("negro" to RupioColors.Background, "tarjeta" to RupioColors.Surface, "tarjeta 2" to RupioColors.Surface2, "tarjeta 3" to RupioColors.Surface3,
+            "aviso ámbar" to over(RupioColors.Warning.copy(alpha = 0.10f), RupioColors.Background), "chip azul" to over(RupioColors.Primary.copy(alpha = 0.18f), RupioColors.Surface))
         val fails = mutableListOf<String>()
         for ((tn, t) in text) for ((bn, b) in bgs) {
             val r = contrast(t, b)
@@ -219,6 +219,21 @@ class QaUiTest {
         }
         RupioColors.Avatars.forEachIndexed { i, a -> val r = contrast(Color.White, a); if (r < 4.5) fails += "avatar $i: ${"%.2f".format(r)}:1" }
         RupioColors.Supersets.forEachIndexed { i, s -> val r = contrast(s, RupioColors.Surface); if (r < 3.0) fails += "superserie $i (letra/borde): ${"%.2f".format(r)}:1" }
+        // Bordes de controles (WCAG 1.4.11 pide 3:1) sobre todas las superficies.
+        listOf(RupioColors.Background, RupioColors.Surface, RupioColors.Surface2, RupioColors.Surface3).forEachIndexed { i, b ->
+            val r = contrast(RupioColors.ControlOutline, b); if (r < 3.0) fails += "borde de control sobre superficie $i: ${"%.2f".format(r)}:1"
+        }
         assertTrue("Contraste insuficiente (WCAG AA pide 4.5:1):\n" + fails.joinToString("\n"), fails.isEmpty())
+    }
+
+    /** v1.9: metales de los niveles (Bronce, Plata, Oro, Aurora). */
+    @Test fun contrasteDeMetales() {
+        val fails = mutableListOf<String>()
+        val bgs = listOf(RupioColors.Background, RupioColors.Surface, RupioColors.Surface2, RupioColors.Surface3)
+        for (m in com.rupio.app.ui.theme.Metals.all) {
+            (bgs + m.container).forEach { b -> val r = contrast(m.ink, b); if (r < 7.0) fails += "${m.name} (tinta) sobre $b: ${"%.2f".format(r)}:1" }
+            m.stops.forEach { s -> val r = contrast(m.on, s); if (r < 6.0) fails += "texto sobre el degradado ${m.name}: ${"%.2f".format(r)}:1" }
+        }
+        assertTrue("Contraste insuficiente en los metales:\n" + fails.joinToString("\n"), fails.isEmpty())
     }
 }

@@ -72,6 +72,9 @@ class AppContainer(val app: Application) {
     val wall = com.rupio.app.data.billing.WallRepository(app, dataApi, { settings.current().dataApiUrl },
         jwt = { if (wallAccount() == null) null else auth.validJwt() }, userId = ::wallAccount)
     val support = SupportRepository(app, scope, wall, ::wallAccount)
+    /** v1.9: ligas semanales por volumen (misma cuenta lista que el muro). No se piden al abrir la app, solo al verlas. */
+    val league = com.rupio.app.data.league.LeagueRepository(app, dataApi, { settings.current().dataApiUrl },
+        jwt = { if (wallAccount() == null) null else auth.validJwt() }, userId = ::wallAccount)
     val signOut = SignOutController(this)
 
     /** Pedidos de navegación desde fuera del NavHost (p. ej. "Ver el muro" en la pantalla de gracias). */
@@ -82,6 +85,7 @@ class AppContainer(val app: Application) {
         scope.launch {
             auth.state.map { wallAccount() }.distinctUntilChanged().collect { uid ->
                 wall.onAccountChanged()
+                league.onAccountChanged()
                 if (uid != null) runCatching { wall.load() }
             }
         }

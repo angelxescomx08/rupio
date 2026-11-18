@@ -88,6 +88,8 @@ fun ProfileScreen(nav: NavHostController) {
                     HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
                     SettingRow(Icons.Rounded.AutoAwesome, "Muro de agradecimientos", if (support.isPatron) "Tu lugar y aportes para subir" else "Quienes hacen posible Rupio",
                         onClick = { nav.navigate(Routes.WALL) })
+                    HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
+                    SettingRow(Icons.Rounded.EmojiEvents, "Ligas semanales", "Opcional: compite por volumen con personas de tu nivel", onClick = { nav.navigate(Routes.LEAGUE) })
                 }
             } else {
                 Surface(onClick = { nav.navigate(Routes.SUPPORT) }, shape = RoundedCornerShape(20.dp), color = RupioColors.Primary.copy(alpha = 0.10f),
@@ -109,6 +111,8 @@ fun ProfileScreen(nav: NavHostController) {
             SectionCard(padding = 4.dp) {
                 if (!support.isSupporter) {
                     SettingRow(Icons.Rounded.AutoAwesome, "Muro de agradecimientos", "Quienes hacen posible Rupio", onClick = { nav.navigate(Routes.WALL) })
+                    HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
+                    SettingRow(Icons.Rounded.EmojiEvents, "Ligas semanales", "Opcional: compite por volumen con personas de tu nivel", onClick = { nav.navigate(Routes.LEAGUE) })
                     HorizontalDivider(color = RupioColors.Outline.copy(alpha = 0.4f))
                 }
                 SettingRow(Icons.Rounded.School, "Aprende", "Tutoriales, glosario con estudios y beneficios del ejercicio", onClick = { nav.navigate(Routes.LEARN) })

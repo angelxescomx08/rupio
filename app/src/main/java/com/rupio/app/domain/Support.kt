@@ -17,19 +17,19 @@ enum class SupportTier(
     val badge: String,
     val perks: List<String>,
 ) {
-    CAFE("rupio_apoyo_cafe", 1, "☕", "Un café", "$49 MXN", "Apoyo · Café",
-        listOf("Se quita el mensaje de apoyo", "Insignia ☕ en tu perfil")),
-    LICUADO("rupio_apoyo_licuado", 2, "💪", "Un licuado", "$99 MXN", "Apoyo · Licuado",
-        listOf("Se quita el mensaje de apoyo", "Insignia 💪 en tu perfil", "4 colores para la app")),
-    FAN("rupio_apoyo_fan", 3, "🏆", "Fan de Rupio", "$199 MXN", "Fan de Rupio",
-        listOf("Se quita el mensaje de apoyo", "Insignia 🏆 animada", "Todos los colores, con dorado exclusivo", "Ícono dorado de la app")),
+    CAFE("rupio_apoyo_cafe", 1, "☕", "Un café", "$49 MXN", "Café · Bronce",
+        listOf("Se quita el mensaje de apoyo", "Insignia Bronce ☕ en tu perfil")),
+    LICUADO("rupio_apoyo_licuado", 2, "💪", "Un licuado", "$99 MXN", "Licuado · Plata",
+        listOf("Se quita el mensaje de apoyo", "Insignia Plata 💪 en tu perfil", "4 colores para la app")),
+    FAN("rupio_apoyo_fan", 3, "🏆", "Fan de Rupio", "$199 MXN", "Fan · Oro",
+        listOf("Se quita el mensaje de apoyo", "Insignia Oro 🏆 animada", "Todos los colores, con dorado exclusivo", "Ícono dorado de la app")),
     /**
      * v1.8: el nivel más alto. Tu nombre en el muro de agradecimientos (orden por aportes) y todo lo de Fan.
      * Es CONSUMIBLE (se puede volver a comprar para sumar puntos): Google Play no lo recuerda, lo recuerda el servidor
      * (tabla wall_entries). Ver db/migrations/007_supporters_wall.sql.
      */
-    MECENAS("rupio_mecenas", 4, "🌟", "Mecenas", "$499 MXN", "Mecenas de Rupio",
-        listOf("Todo lo de Fan de Rupio", "Tu nombre en el muro de agradecimientos", "Subes de lugar con cada aporte extra"));
+    MECENAS("rupio_mecenas", 4, "🌟", "Mecenas", "$499 MXN", "Mecenas · Aurora",
+        listOf("Todo lo de Fan de Rupio", "Insignia Aurora 🌟 animada", "Tu nombre en el muro de agradecimientos", "Subes de lugar con cada aporte extra"));
 
     /** Insignia animada, dorado e ícono dorado: desde Fan. */
     val hasGoldPerks: Boolean get() = rank >= FAN.rank

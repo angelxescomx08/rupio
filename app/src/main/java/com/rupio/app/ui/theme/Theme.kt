@@ -16,28 +16,32 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Paleta: negro puro (ahorra batería en OLED) con acentos vivos y buen contraste (WCAG AA). */
+/**
+ * Paleta v2. Fondo casi negro (#0A0A0C, no #000): en OLED sigue ahorrando batería, pero evita el "smearing" (los
+ * píxeles apagados tardan en encender al desplazar) y el halo del texto blanco puro sobre negro puro. Texto #ECECEF
+ * (no blanco) por la misma razón. Todo medido con WCAG 2.2 (4.5:1 texto, 3:1 bordes de controles) en QaUiTest.
+ */
 object RupioColors {
-    val Black = Color(0xFF000000)
-    val Surface = Color(0xFF0F0F12)
-    val Surface2 = Color(0xFF17171C)
-    val Surface3 = Color(0xFF212128)
-    /** Solo para divisores y bordes decorativos de tarjetas (1.5:1: no identifica controles). */
-    val Outline = Color(0xFF2C2C35)
-    /** Borde de controles (campos de texto, botones con borde, chips): 3.9:1 sobre negro y 3.4:1 sobre los diálogos (WCAG 1.4.11 pide 3:1). */
-    val ControlOutline = Color(0xFF6A6A76)
-    val Text = Color(0xFFF4F4F6)
-    val TextDim = Color(0xFFA1A1AA)
-    val TextFaint = Color(0xFF8E8E98)   // ≥ 4.5:1 sobre todas las tarjetas (WCAG AA)
+    val Background = Color(0xFF0A0A0C)
+    val Surface = Color(0xFF131317)
+    val Surface2 = Color(0xFF1B1B21)
+    val Surface3 = Color(0xFF25252D)
+    /** Solo para divisores y bordes decorativos de tarjetas (no identifica controles). */
+    val Outline = Color(0xFF30303A)
+    /** Borde de controles (campos de texto, botones con borde, chips): ≥ 3:1 sobre todas las superficies (WCAG 1.4.11). */
+    val ControlOutline = Color(0xFF6E6E7A)
+    val Text = Color(0xFFECECEF)
+    val TextDim = Color(0xFFA6A6B0)
+    val TextFaint = Color(0xFF94949E)   // ≥ 5:1 sobre todas las tarjetas (WCAG AA pide 4.5:1)
     /** Color de acento (acciones). Azul eléctrico por defecto; quien apoya Rupio puede elegir otro (ver Accent).
      *  Es estado de Compose: al cambiarlo, toda la app se repinta con el nuevo color. */
     private val accent = mutableStateOf(Color(0xFF5B8CFF))
     val Primary: Color get() = accent.value
     fun applyAccent(c: Color) { if (accent.value != c) accent.value = c }
     val Success = Color(0xFF3DDC97)     // verde: serie completada
-    val Warning = Color(0xFFFFB547)     // ámbar: sube peso / récords
+    val Warning = Color(0xFFFF9A3D)     // naranja: sube peso / récords (más separado del dorado de los metales)
     val Danger = Color(0xFFFF5C6C)
-    val Rest = Color(0xFF8B7CFF)        // violeta: descansos
+    val Rest = Color(0xFFB3A6FF)        // lila: descansos (7:1 sobre las tarjetas; el anterior daba 4.6:1)
     /** Colores de superseries (A, B, C…), validados para daltonismo sobre la superficie oscura (ΔE CVD ≥ 8).
      *  Cada grupo lleva además letra + corchete → nunca depende solo del color. */
     val Supersets = listOf(Color(0xFF9085E9), Color(0xFFD95926), Color(0xFF199E70), Color(0xFFC98500), Color(0xFFD55181), Color(0xFF0CA30C))
@@ -55,20 +59,20 @@ object RupioColors {
 /** Esquema de color para un acento dado (el contenedor se deriva del acento mezclado con negro). */
 fun rupioScheme(primary: Color) = darkColorScheme(
     primary = primary, onPrimary = RupioColors.OnPrimary,
-    primaryContainer = lerp(RupioColors.Black, primary, 0.28f), onPrimaryContainer = lerp(Color.White, primary, 0.2f),
+    primaryContainer = lerp(RupioColors.Background, primary, 0.28f), onPrimaryContainer = lerp(Color.White, primary, 0.2f),
     secondary = RupioColors.Success, onSecondary = Color.Black,
     secondaryContainer = Color(0xFF123A2B), onSecondaryContainer = Color(0xFFB8F5DA),
     tertiary = RupioColors.Warning, onTertiary = Color.Black,
     tertiaryContainer = Color(0xFF3D2C10), onTertiaryContainer = Color(0xFFFFE2B5),
-    background = RupioColors.Black, onBackground = RupioColors.Text,
-    surface = RupioColors.Black, onSurface = RupioColors.Text,
+    background = RupioColors.Background, onBackground = RupioColors.Text,
+    surface = RupioColors.Background, onSurface = RupioColors.Text,
     surfaceVariant = RupioColors.Surface2, onSurfaceVariant = RupioColors.TextDim,
-    surfaceContainerLowest = RupioColors.Black, surfaceContainerLow = RupioColors.Surface,
+    surfaceContainerLowest = RupioColors.Background, surfaceContainerLow = RupioColors.Surface,
     surfaceContainer = RupioColors.Surface, surfaceContainerHigh = RupioColors.Surface2, surfaceContainerHighest = RupioColors.Surface3,
     // Los componentes de Material usan `outline` para el borde de campos, botones con borde, chips y switches.
     outline = RupioColors.ControlOutline, outlineVariant = RupioColors.Outline,
     error = RupioColors.Danger, onError = Color.Black,
-    inverseSurface = RupioColors.Text, inverseOnSurface = RupioColors.Black,
+    inverseSurface = RupioColors.Text, inverseOnSurface = RupioColors.Background,
 )
 
 /** Esquema con el acento por defecto (azul). */

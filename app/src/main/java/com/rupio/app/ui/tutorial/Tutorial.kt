@@ -137,7 +137,7 @@ private fun CoachOverlay(c: CoachController) {
 fun OnboardingScreen(name: String, onDone: () -> Unit) {
     val pager = rememberPagerState { 4 }
     val scope = rememberCoroutineScope()
-    Column(Modifier.fillMaxSize().background(RupioColors.Black).systemBarsPadding().padding(20.dp)) {
+    Column(Modifier.fillMaxSize().background(RupioColors.Background).systemBarsPadding().padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Rupio", style = MaterialTheme.typography.titleLarge, color = RupioColors.Primary)
             Spacer(Modifier.weight(1f))

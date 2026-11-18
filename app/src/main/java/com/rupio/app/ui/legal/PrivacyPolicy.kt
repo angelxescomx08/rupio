@@ -42,12 +42,14 @@ object PrivacyPolicy {
             "• Compras de apoyo: las procesa Google Play. Rupio solo recibe qué nivel compraste, nunca tus datos de pago.\n" +
             "• Muro de agradecimientos (nivel Mecenas, solo si lo compras y lo aceptas): el nombre que elijas para el muro, tu lugar, la fecha en que llegaste, la fecha en que aceptaste publicarlo y tus puntos de aporte. " +
             "Para verificar cada compra se guarda el comprobante que firma Google Play (número de orden y token de la compra, sin datos de pago).\n" +
+            "• Ligas semanales (opcional, solo si aceptas participar): el apodo que elijas, tu liga, tu grupo de la semana, tu volumen y número de entrenos de cada semana (los calcula el servidor con tus entrenos terminados), la fecha en que aceptaste y, si tienes un nivel de apoyo, su insignia.\n" +
             "• Datos técnicos mínimos: al conectarse con el servidor, este recibe la dirección IP de tu teléfono, como cualquier conexión a internet.",
         "Para qué se usan" to
             "Para guardar y respaldar tu progreso, sincronizarlo entre tus teléfonos y calcular cuándo te conviene subir de peso. " +
             "Rupio no tiene anuncios, no vende ni comparte tus datos y no los usa para hacer perfiles de publicidad. " +
             "Única excepción, porque tú lo pides: si eres Mecenas, el nombre que elegiste para el muro, tu lugar y la fecha en que llegaste los ven las demás personas que usan Rupio con cuenta. " +
-            "Nunca se muestran tu correo ni cuánto pagaste; el orden del muro sí deja ver quién aportó más.",
+            "Nunca se muestran tu correo ni cuánto pagaste; el orden del muro sí deja ver quién aportó más. " +
+            "Si participas en las ligas semanales, tu apodo, tu liga, tu insignia de apoyo y tu volumen y entrenos de la semana los ven las demás personas que participan; nunca tu correo ni tu nombre de cuenta (a menos que lo uses como apodo).",
         "Dónde se guardan" to
             "En tu teléfono y, si tienes cuenta, en la nube con Neon (servidores de Amazon Web Services en Estados Unidos). " +
             "Al usar la nube aceptas que tus datos se guarden fuera de México con ese proveedor, que solo los almacena por encargo de Rupio. " +
@@ -64,6 +66,7 @@ object PrivacyPolicy {
             "Puedes descargar una copia de tus entrenamientos, series y peso corporal desde Perfil → Exportar mis datos. " +
             "Puedes retirar tu consentimiento para guardar tu peso corporal desde Perfil → Permiso de peso corporal: se borra todo tu historial de peso del teléfono y de tu cuenta. " +
             "Puedes cambiar tu nombre del muro de agradecimientos o quitarlo (deja de verse y conservas tu nivel) desde Perfil → Muro de agradecimientos. Al eliminar tu cuenta se borra tu lugar; los comprobantes de compra se quedan sin ligarse a ti, para que no se puedan volver a usar. " +
+            "Puedes cambiar tu apodo de las ligas o salirte (deja de verse y sales del grupo de la semana) desde Perfil → Ligas semanales. Al eliminar tu cuenta se borra también todo lo de las ligas. " +
             "Puedes eliminar tu cuenta y todos tus datos desde Perfil → Eliminar mi cuenta, o desde la página $DELETE_SHORT si ya no tienes la app. " +
             "Para cambiar el correo de tu cuenta, escríbenos desde tu correo actual. " +
             "También puedes pedir acceso, rectificación, cancelación u oposición (derechos ARCO) o revocar tu consentimiento escribiendo a $CONTACT_EMAIL; " +
@@ -79,7 +82,7 @@ object PrivacyPolicy {
 @Composable
 fun PrivacyPolicyDialog(onClose: () -> Unit) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxSize(), color = RupioColors.Black) {
+        Surface(Modifier.fillMaxSize(), color = RupioColors.Background) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
                 Row(Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onClose) { Icon(Icons.Rounded.Close, "Cerrar") }

@@ -206,7 +206,7 @@ fun BodyWeightScreen(nav: NavHostController) {
     LaunchedEffect(nearEnd) { if (nearEnd) vm.loadMore() }
 
     Scaffold(
-        containerColor = RupioColors.Black,
+        containerColor = RupioColors.Background,
         // Es una pestaña de la barra de abajo: sin flecha de atrás. Arriba a la derecha, kg | lb.
         topBar = { RupioTopBar("Peso corporal", onBack = null) { BodyUnitToggle(unit, vm::setUnit, Modifier.padding(end = 12.dp)) } },
         // El botón grande está en el resumen de arriba; el flotante solo aparece cuando ya bajaste (historial).

@@ -69,7 +69,7 @@ fun VerifyEmailScreen(email: String, newAccount: Boolean = true) {
     }
 
     Column(
-        Modifier.fillMaxSize().background(RupioColors.Black).systemBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
+        Modifier.fillMaxSize().background(RupioColors.Background).systemBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
     ) {
         Spacer(Modifier.height(32.dp))
         Box(Modifier.size(64.dp).clip(RoundedCornerShape(18.dp)).background(RupioColors.Primary.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {

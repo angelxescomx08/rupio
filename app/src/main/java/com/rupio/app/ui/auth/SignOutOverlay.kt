@@ -38,7 +38,7 @@ fun SignOutOverlay(s: SignOutState, onRetry: () -> Unit, onExitAnyway: () -> Uni
     if (!s.active) return
     BackHandler { if (s.uploadFailed) onCancel() }
     Box(
-        Modifier.fillMaxSize().background(RupioColors.Black.copy(alpha = 0.97f))
+        Modifier.fillMaxSize().background(RupioColors.Background.copy(alpha = 0.97f))
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { }   // bloquea toques
             .systemBarsPadding().padding(24.dp),
         contentAlignment = Alignment.Center,

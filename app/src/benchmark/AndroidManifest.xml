@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solo en la compilación "benchmark" (medir rendimiento). Nunca en la de Play. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Permite medir cuadros con dumpsys gfxinfo / perfetto sin que la app sea depurable. -->
+        <profileable android:shell="true" />
+        <activity
+            android:name="com.rupio.app.bench.LeagueBenchActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Rupio" />
+    </application>
+</manifest>
