@@ -53,3 +53,19 @@ Respuesta a `docs/QA_V19_HALLAZGOS.md`. Cada punto tiene su prueba en `V19QaTest
 ## Pendiente
 - Probar en un teléfono real: el permiso de notificaciones en la primera ✓, la notificación cada segundo con la pantalla apagada y la hoja de la serie con navegación por gestos.
 - El catálogo del servidor (`002_seed_exercises.sql`) no tiene los ejercicios de cardio. La sincronización no lo necesita (`exercise_id` es texto sin llave foránea), pero `rupio_muscle_sets` del servidor no los contaría.
+
+## Segunda vuelta (docs/QA_V19_VERIFICACION.md)
+Las pruebas están en `V19QaTest.kt` (las que empiezan con `n`).
+- **N1 Cardio**: se anota en minutos ("20", abajo "20:00"; encabezado "MIN"), trae 1 serie, no arranca descanso y tiene su consejo ("Anota cuántos minutos hiciste…", luego "Intenta 22 min"). También en el editor del entreno y en el de la rutina. Es cardio lo que está en el grupo Cardio y se registra por tiempo (`Cardio.isCardio`).
+- **N2 Duración y calorías**: el entreno dura al menos lo que anotaste de cardio. Las calorías separan pesas (3.5 MET por el reloj menos el cardio) y cardio (MET de cada máquina a esfuerzo moderado, Compendio 2024: caminadora 3.8, bicicleta fija 5.8, elíptica 5.0, escaladora 9.3, remo 5.0, cuerda 11.0). Sin pesas no sale "0 lb" ni "0 repeticiones" (Historial, detalle y resumen).
+- **N3 Gráficas**: solo el arrastre horizontal es de la gráfica; el vertical mueve la página (Progreso, 1RM, ejercicio y peso).
+- **#6 Hoja de la serie**: se abre completa (`skipPartiallyExpanded`).
+- **#21/N4 Otro día**: si ese día ya tiene peso, lo dice ("Ya registraste 80.5 kg el 18 nov. Si guardas, se reemplaza.") y el botón dice "Reemplazar".
+- **#8/N5 Trofeos viejos**: una vez al actualizar se recalculan con la regla nueva el 🏆 de cada serie y los récords de cada entreno (`recomputeTrophies`). Recorre el historial en orden, ejercicio por ejercicio, y solo cambia y sube lo que no cuadra. También corre después de pasar los datos sin cuenta a una cuenta.
+- **N6 Búsqueda**: primero los nombres que empiezan con lo que escribiste, luego los que lo contienen y al final los sinónimos y el músculo.
+- **N7 Guardar como rutina**: pide el nombre y propone "Pierna casa (2)" si ya existe.
+- **N8 Miniatura**: la foto del ejercicio se anuncia como "Ver técnica de …" (en el entreno y en el editor de rutinas). `QaUiTest.pantallasEnElPeorCaso` pasa en la suite completa.
+- **N9 Horizontal**: en pantallas bajas los filtros del selector se van con el scroll y el botón de abajo es más bajo.
+- **N10 Registro**: desde el modo sin cuenta, el campo Nombre ya trae tu nombre.
+- **Plurales**: "1 ejercicio · 1 serie", "1 semana seguida", "1 serie/sem", "Rompiste 1 récord personal", "Si guardas sin marcarla".
+- **Pruebas**: 195 con `--rerun` (sin caché): 192 pasan y 3 se omiten (las mismas de antes).

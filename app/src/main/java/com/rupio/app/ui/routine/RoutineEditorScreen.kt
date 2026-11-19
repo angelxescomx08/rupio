@@ -17,6 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,6 +39,7 @@ import com.rupio.app.data.local.ExerciseEntity
 import com.rupio.app.data.local.Muscles
 import com.rupio.app.data.local.RoutineEntity
 import com.rupio.app.data.local.RoutineExerciseEntity
+import com.rupio.app.data.repo.isCardio
 import com.rupio.app.domain.*
 import com.rupio.app.ui.components.*
 import com.rupio.app.ui.theme.RupioColors
@@ -351,7 +355,8 @@ private fun ItemCard(
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (selecting) { Checkbox(isSelected, null); Spacer(Modifier.width(4.dp)) }
-                Box(Modifier.clickable(onClick = onOpen)) { ExerciseThumb(ex?.image0, 44.dp) }
+                Box(Modifier.clickable(onClickLabel = "ver técnica", onClick = onOpen)
+                    .clearAndSetSemantics { contentDescription = "Ver técnica de ${ex?.name ?: "el ejercicio"}"; role = androidx.compose.ui.semantics.Role.Button }) { ExerciseThumb(ex?.image0, 44.dp) }
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f).clickable(onClick = onOpen)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {

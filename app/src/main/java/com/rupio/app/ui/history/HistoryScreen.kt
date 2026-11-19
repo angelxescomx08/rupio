@@ -225,7 +225,8 @@ private fun WorkoutCard(w: WorkoutEntity, ex: List<WorkoutExerciseSummary>, unit
             // Con letra grande las métricas bajan de renglón en vez de partirse letra por letra.
             FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Metric(Icons.Rounded.Schedule, Fmt.durationHuman((w.durationSec ?: 0).toLong()))
-                Metric(Icons.Rounded.FitnessCenter, Fmt.volume(w.totalVolumeKg, unit), Fmt.volume(w.totalVolumeKg, unit.other))
+                // v1.9: sin "0 lb" en un entreno de cardio o de peso corporal.
+                if (w.totalVolumeKg > 0) Metric(Icons.Rounded.FitnessCenter, Fmt.volume(w.totalVolumeKg, unit), Fmt.volume(w.totalVolumeKg, unit.other))
                 Metric(Icons.Rounded.Repeat, Fmt.plural(w.totalSets, "serie", "series"))
             }
             if (ex.isNotEmpty()) {

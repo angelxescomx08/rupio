@@ -260,6 +260,19 @@ data class RowLabel(val name: String?, val day: Int?)
 /** Meses con entrenos (selector de mes del Historial). ym = "2019-03". */
 data class MonthCount(val ym: String, val n: Int)
 
+/** v1.9 (N5): una serie hecha, para recalcular los trofeos con la regla nueva. */
+data class TrophyRow(
+    val id: String,
+    @ColumnInfo(name = "workout_id") val workoutId: String,
+    @ColumnInfo(name = "weight_kg") val weightKg: Double?,
+    val reps: Int?,
+    @ColumnInfo(name = "duration_sec") val durationSec: Int?,
+    @ColumnInfo(name = "set_type") val setType: Int,
+    @ColumnInfo(name = "is_pr") val isPr: Boolean,
+)
+
+data class PrCountRow(val id: String, @ColumnInfo(name = "pr_count") val prCount: Int)
+
 /** v1.9: última vez que terminaste cada rutina. */
 data class RoutineLastDone(
     @ColumnInfo(name = "routine_id") val routineId: String,

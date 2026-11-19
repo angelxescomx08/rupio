@@ -60,7 +60,7 @@ class AppContainer(val app: Application) {
     val bodyWeight = BodyWeightRepository(db, uid)
     private val dataApi = DataApiClient(http)
     val sync = SyncEngine(app, db, dataApi, auth, settings, pendingDeletes, onRemoteSetDeletes = { workouts.rebuildRecords(it) },
-        onRebuildRecords = { workouts.rebuildAllRecords() },
+        onRebuildRecords = { workouts.rebuildAllRecords(); workouts.recomputeTrophies() },
         onConsentWithdrawnElsewhere = { db.admin().clearBodyWeights() })
     val restTimer = RestTimerController { SystemClock.elapsedRealtime() }.also {
         // Si Android cerró la app a media pausa, el descanso sigue y suena a su hora.
@@ -295,9 +295,10 @@ class RupioApp : Application() {
                         val prefs = getSharedPreferences("rupio_app", MODE_PRIVATE)
                         // Una vez: re-descarga todo para traer columnas nuevas (planes por serie) y el peso corporal.
                         if (prefs.getInt("pull_reset", 0) < 3) { container.sync.resetPullCursors(); prefs.edit().putInt("pull_reset", 3).apply() }
-                        if (prefs.getInt("records_rebuilt", 0) < 2) {
-                            runCatching { container.workouts.rebuildAllRecords() }
-                            prefs.edit().putInt("records_rebuilt", 2).apply()
+                        // v1.9 (N5): y los trofeos de los entrenos guardados antes (la primera vez ya no es récord).
+                        if (prefs.getInt("records_rebuilt", 0) < 3) {
+                            runCatching { container.workouts.rebuildAllRecords(); container.workouts.recomputeTrophies() }
+                            prefs.edit().putInt("records_rebuilt", 3).apply()
                         }
                         if (!s.localOnly) { SyncEngine.schedule(this@RupioApp); SyncEngine.now(this@RupioApp) }
                     }

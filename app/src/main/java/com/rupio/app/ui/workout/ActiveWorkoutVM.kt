@@ -24,6 +24,8 @@ data class ExUi(val we: WorkoutExerciseEntity, val ex: ExerciseEntity?, val sets
     val tracking get() = Tracking.of(ex?.tracking ?: "weight_reps")
     val name get() = ex?.name ?: "Ejercicio"
     val infoKey get() = "${we.id}:${we.repMin}:${we.repMax}"
+    /** v1.9: cardio por tiempo: se anota en minutos. */
+    val isCardio get() = ex?.let { Cardio.isCardio(it.primaryMuscle, it.tracking) } == true
     val plan: List<PlanSet> by lazy { SetPlans.decode(we.setPlan) }
     fun planItem() = PlanItem(we.id, sets.size, we.restSec, we.supersetId, SupersetRestMode.of(we.supersetRestMode), we.supersetRestSec)
 }
@@ -176,7 +178,8 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
                     tr == Tracking.WEIGHT_REPS && fresh.weightKg == null && sug.weightKg == null -> "Escribe el peso antes de marcar la serie."
                     tr == Tracking.ASSISTED_BODYWEIGHT && fresh.weightKg == null && sug.weightKg == null -> "Escribe cuánta ayuda usaste (0 si fue sin ayuda)."
                     tr.usesReps && fresh.reps == null && sug.reps == null -> "Escribe las repeticiones antes de marcar la serie."
-                    tr == Tracking.DURATION && fresh.durationSec == null && sug.durationSec == null -> "Escribe los segundos antes de marcar la serie."
+                    tr == Tracking.DURATION && fresh.durationSec == null && sug.durationSec == null ->
+                        if (item.isCardio) "Escribe los minutos antes de marcar." else "Escribe los segundos antes de marcar la serie."
                     else -> null
                 }
                 if (missing != null) { _events.tryEmit(WorkoutEvent.Message(missing)); return@withLock }
@@ -260,7 +263,7 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
                 tr == Tracking.WEIGHT_REPS && fresh.weightKg == null && sug.weightKg == null -> "el peso"
                 tr == Tracking.ASSISTED_BODYWEIGHT && fresh.weightKg == null && sug.weightKg == null -> "la ayuda"
                 tr.usesReps && fresh.reps == null && sug.reps == null -> "las repeticiones"
-                tr == Tracking.DURATION && fresh.durationSec == null && sug.durationSec == null -> "los segundos"
+                tr == Tracking.DURATION && fresh.durationSec == null && sug.durationSec == null -> if (e.isCardio) "los minutos" else "los segundos"
                 else -> null
             }
             if (missing != null) {

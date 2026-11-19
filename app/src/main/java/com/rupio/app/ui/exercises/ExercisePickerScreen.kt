@@ -60,7 +60,7 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
             (muscle == null || e.primaryMuscle == muscle || (muscle == BACK_GROUP && e.primaryMuscle in Muscles.BACK)) &&
                 (equipment == null || e.equipment == equipment) &&
                 com.rupio.app.domain.ExerciseSearch.matches(e.searchKey, Muscles.label(e.primaryMuscle).searchKey(), tokens)
-        }.sortedWith(compareBy<ExerciseEntity>({ !it.isCustom }, { it.searchKey }))
+        }.sortedWith(compareBy<ExerciseEntity>({ com.rupio.app.domain.ExerciseSearch.rank(it.searchKey, query) }, { !it.isCustom }, { it.searchKey }))
     }
     val usedMuscles = remember(catalog) { Muscles.names.keys.filter { m -> catalog.any { it.primaryMuscle == m } } }
     // v1.9: "Espalda" junta dorsales, espalda media, lumbar y trapecio; al elegirla aparecen las partes por si buscas una.
@@ -85,31 +85,37 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
             singleLine = true, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         )
         // v1.9: cada fila dice qué filtra ("Músculo", "Equipo"): antes eran dos filas de chips sin título.
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            FilterRowTitle("Músculo")
-            FilterChip(muscle == null, { muscle = null }, label = { Text("Todos") })
-            val back = usedMuscles.filter { it in Muscles.BACK }
-            usedMuscles.filter { it !in Muscles.BACK }.forEachIndexed { i, m ->
-                FilterChip(muscle == m, { muscle = if (muscle == m) null else m }, label = { Text(Muscles.label(m)) })
-                if (i == 0 && back.isNotEmpty()) {
-                    FilterChip(muscle == BACK_GROUP, { muscle = if (muscle == BACK_GROUP) null else BACK_GROUP }, label = { Text("Espalda") })
-                    if (backOpen) back.forEach { b ->
-                        FilterChip(muscle == b, { muscle = if (muscle == b) BACK_GROUP else b }, label = { Text(Muscles.label(b)) },
-                            colors = FilterChipDefaults.filterChipColors(containerColor = RupioColors.Surface2))
+        // En horizontal (o con poca altura) los filtros se van con el scroll: fijos solo dejaban ver un ejercicio (N9).
+        val short = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 480
+        val filters: @Composable (androidx.compose.ui.unit.Dp) -> Unit = { hPad ->
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = hPad, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                FilterRowTitle("Músculo")
+                FilterChip(muscle == null, { muscle = null }, label = { Text("Todos") })
+                val back = usedMuscles.filter { it in Muscles.BACK }
+                usedMuscles.filter { it !in Muscles.BACK }.forEachIndexed { i, m ->
+                    FilterChip(muscle == m, { muscle = if (muscle == m) null else m }, label = { Text(Muscles.label(m)) })
+                    if (i == 0 && back.isNotEmpty()) {
+                        FilterChip(muscle == BACK_GROUP, { muscle = if (muscle == BACK_GROUP) null else BACK_GROUP }, label = { Text("Espalda") })
+                        if (backOpen) back.forEach { b ->
+                            FilterChip(muscle == b, { muscle = if (muscle == b) BACK_GROUP else b }, label = { Text(Muscles.label(b)) },
+                                colors = FilterChipDefaults.filterChipColors(containerColor = RupioColors.Surface2))
+                        }
                     }
                 }
             }
-        }
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            FilterRowTitle("Equipo")
-            usedEquip.forEach { q ->
-                FilterChip(equipment == q, { equipment = if (equipment == q) null else q }, label = { Text(Muscles.equipmentLabel(q)) },
-                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = RupioColors.Rest.copy(alpha = 0.25f)))
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = hPad), horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                FilterRowTitle("Equipo")
+                usedEquip.forEach { q ->
+                    FilterChip(equipment == q, { equipment = if (equipment == q) null else q }, label = { Text(Muscles.equipmentLabel(q)) },
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = RupioColors.Rest.copy(alpha = 0.25f)))
+                }
             }
         }
+        if (!short) filters(16.dp)
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (short) item(key = "filtros") { Column { filters(0.dp) } }
             if (filtered.isEmpty()) item {
                 EmptyState(Icons.Rounded.SearchOff, "Sin resultados", "Prueba con otra palabra o crea tu propio ejercicio.") {
                     Button(onClick = { creating = true }) { Text("Crear ejercicio") }
@@ -125,7 +131,8 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
         if (!browse && selected.isNotEmpty()) Surface(color = RupioColors.Surface) {
             Button(
                 onClick = { confirm() },
-                modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp).height(54.dp), shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = if (short) 6.dp else 16.dp).height(if (short) 46.dp else 54.dp),
+                shape = RoundedCornerShape(16.dp),
             ) { Text(if (selected.size == 1) "Agregar 1 ejercicio" else "Agregar ${selected.size} ejercicios", style = MaterialTheme.typography.titleMedium) }
         }
     }

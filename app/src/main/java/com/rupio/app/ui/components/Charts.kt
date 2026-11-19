@@ -2,7 +2,7 @@ package com.rupio.app.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,7 +40,8 @@ import kotlin.math.roundToInt
 /*
  * Gráficas propias en Canvas (sin dependencias): una sola serie por gráfica → sin leyenda,
  * el título la nombra. Marcas delgadas, extremos redondeados de 4 dp anclados a la base,
- * 2 dp de separación, rejilla tenue, toque/arrastre para ver el valor exacto.
+ * 2 dp de separación, rejilla tenue, toque/arrastre para ver el valor exacto. v1.9: solo el arrastre HORIZONTAL es de la
+ * gráfica; el vertical mueve la página (antes, con el dedo sobre una gráfica, Progreso no bajaba).
  * El texto usa colores de texto, nunca el color de la serie.
  */
 
@@ -80,7 +81,7 @@ fun VolumeBarChart(bars: List<Bar>, unit: WeightUnit, modifier: Modifier = Modif
                     Modifier.fillMaxSize().padding(bottom = 20.dp).pointerInput(bars) {
                         detectTapGestures { o -> selected = ((o.x / size.width) * bars.size).toInt().coerceIn(0, bars.lastIndex) }
                     }.pointerInput(bars) {
-                        detectDragGestures { change, _ -> selected = ((change.position.x / size.width) * bars.size).toInt().coerceIn(0, bars.lastIndex) }
+                        detectHorizontalDragGestures { change, _ -> selected = ((change.position.x / size.width) * bars.size).toInt().coerceIn(0, bars.lastIndex) }
                     },
                 ) {
                     val gap = with(density) { 2.dp.toPx() }
@@ -167,7 +168,7 @@ fun ProgressLineChart(
             Modifier.fillMaxWidth().height(chartHeight).pointerInput(points) {
                 detectTapGestures { o -> selected = ((o.x / size.width) * (points.size - 1)).roundToInt().coerceIn(0, points.lastIndex) }
             }.pointerInput(points) {
-                detectDragGestures { c, _ -> selected = ((c.position.x / size.width) * (points.size - 1)).roundToInt().coerceIn(0, points.lastIndex) }
+                detectHorizontalDragGestures { c, _ -> selected = ((c.position.x / size.width) * (points.size - 1)).roundToInt().coerceIn(0, points.lastIndex) }
             },
         ) {
             fun px(i: Int) = size.width * i / (points.size - 1)
@@ -208,7 +209,7 @@ fun MuscleSetsChart(rows: List<MuscleLoad>, weeks: Double, modifier: Modifier = 
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(Muscles.label(row.muscle), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text("${Fmt.num(pw, 1)} series/sem" + (status?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelMedium.merge(Tabular), color = RupioColors.TextDim)
+                    Text("${Fmt.num(pw, 1)} ${if (Fmt.num(pw, 1) == "1") "serie" else "series"}/sem" + (status?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelMedium.merge(Tabular), color = RupioColors.TextDim)
                 }
                 Spacer(Modifier.height(4.dp))
                 Canvas(Modifier.fillMaxWidth().height(10.dp)) {

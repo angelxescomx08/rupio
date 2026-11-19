@@ -24,6 +24,8 @@ import com.rupio.app.core.WeightUnit
 import com.rupio.app.data.local.Muscles
 import com.rupio.app.domain.SetType
 import com.rupio.app.domain.CalorieEstimate
+import com.rupio.app.domain.Cardio
+import com.rupio.app.data.repo.isCardio
 import com.rupio.app.domain.MuscleSplit
 import com.rupio.app.domain.SupersetRestMode
 import com.rupio.app.domain.Tracking
@@ -53,8 +55,18 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
     // v1.8: peso corporal más reciente para estimar calorías (si no hay, se usa 70 kg y se dice).
     val bodyKg by c.bodyWeight.recent(1).collectAsStateWithLifecycle(initialValue = emptyList())
     var menu by remember { mutableStateOf(false) }
+    var routineName by remember { mutableStateOf<String?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val workout = w
+    routineName?.let { suggested ->
+        RenameDialog("Nombre de la rutina", suggested, { routineName = null }) { name ->
+            routineName = null
+            scope.launch {
+                if (c.routines.saveFromWorkout(id, name.ifBlank { suggested }) != null)
+                    snackbar.showSnackbar("Rutina «${name.ifBlank { suggested }.trim()}» creada. La encuentras en Entrenar.")
+            }
+        }
+    }
 
     // Mensaje "Apoya Rupio": solo al terminar (celebrate > 0), en hitos (entreno 3, 10, 25, 50, 100…), máximo una vez
     // cada 30 días y nunca después de 3 "Ahora no" (SupportPolicy). Es una tarjeta dentro del resumen que se puede
@@ -83,9 +95,10 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
                     DropdownMenuItem(text = { Text("Editar") }, leadingIcon = { Icon(Icons.Rounded.Edit, null) }, enabled = workout?.endedAt != null, onClick = {
                         menu = false; celebrating = false; supportAsk = null; nav.navigate(com.rupio.app.Routes.edit(id))
                     })
+                    // v1.9 (N7): pide el nombre (propone "Pierna casa (2)" si ya existe) en vez de crear otra con el mismo.
                     DropdownMenuItem(text = { Text("Guardar como rutina") }, leadingIcon = { Icon(Icons.Rounded.BookmarkAdd, null) }, onClick = {
                         menu = false
-                        scope.launch { if (c.routines.saveFromWorkout(id) != null) snackbar.showSnackbar("Rutina creada. La encuentras en Entrenar.") }
+                        scope.launch { routineName = c.routines.suggestedName(workout?.name.orEmpty()) }
                     })
                     DropdownMenuItem(text = { Text("Eliminar entrenamiento", color = RupioColors.Danger) }, leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = RupioColors.Danger) },
                         onClick = {
@@ -113,7 +126,7 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
                         Text("🎉", style = MaterialTheme.typography.displaySmall)
                         Text("¡Entrenamiento guardado!", style = MaterialTheme.typography.titleLarge, color = RupioColors.Success)
                         val prs = celebrate - 1
-                        Text(if (prs > 0) "Rompiste $prs ${if (prs == 1) "récord" else "récords"} personales. ¡Así se progresa!" else "Cada sesión cuenta. La próxima vez Rupio te dirá cuánto subir.",
+                        Text(if (prs > 0) "Rompiste ${Fmt.plural(prs, "récord personal", "récords personales")}. ¡Así se progresa!" else "Cada sesión cuenta. La próxima vez Rupio te dirá cuánto subir.",
                             style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim, textAlign = TextAlign.Center)
                     }
                 }
@@ -132,18 +145,22 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
                         (workout.endedAt?.let { " · terminó a las " + Dates.formatTime(it, zone) } ?: ""),
                         style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
                     Spacer(Modifier.height(12.dp))
+                    // v1.9: sin "0 lb" cuando no hubo pesas (cardio o solo peso corporal).
                     TileRow {
                         Tile("Duración", Fmt.durationHuman((workout.durationSec ?: 0).toLong()))
-                        Tile("Volumen", Fmt.volume(workout.totalVolumeKg, unit), sub = Fmt.volume(workout.totalVolumeKg, unit.other))
+                        if (workout.totalVolumeKg > 0) Tile("Volumen", Fmt.volume(workout.totalVolumeKg, unit), sub = Fmt.volume(workout.totalVolumeKg, unit.other))
                     }
                     Spacer(Modifier.height(8.dp))
                     TileRow {
                         Tile("Series", "${workout.totalSets}")
-                        Tile("Repeticiones", "${workout.totalReps}")
+                        if (workout.totalReps > 0) Tile("Repeticiones", "${workout.totalReps}")
                         Tile("Récords", "${workout.prCount}")
                     }
-                    // v1.8: calorías estimadas (método MET, ver CalorieEstimate).
-                    CalorieEstimate.estimate((workout.durationSec ?: 0).toLong(), workout.totalSets, bodyKg.firstOrNull()?.weightKg)?.let { kcal ->
+                    // v1.8: calorías estimadas (método MET, ver CalorieEstimate). v1.9: el cardio con su MET y sus minutos.
+                    val parts = exercises.filter { byId[it.exerciseId]?.isCardio == true }.flatMap { we ->
+                        setsBy[we.id].orEmpty().filter { it.completed }.map { CalorieEstimate.CardioPart(Cardio.met(we.exerciseId), it.durationSec ?: 0) }
+                    }
+                    CalorieEstimate.estimate((workout.durationSec ?: 0).toLong(), workout.totalSets - parts.size, bodyKg.firstOrNull()?.weightKg, parts)?.let { kcal ->
                         Spacer(Modifier.height(8.dp)); TileRow { CaloriesTile(kcal) }
                     }
                     workout.notes?.let { Spacer(Modifier.height(10.dp)); Text("📝 $it", style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim) }

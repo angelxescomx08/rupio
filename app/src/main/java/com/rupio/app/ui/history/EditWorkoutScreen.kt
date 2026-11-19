@@ -35,6 +35,7 @@ import com.rupio.app.data.remote.SyncEngine
 import com.rupio.app.data.repo.EditedSet
 import com.rupio.app.domain.SetType
 import com.rupio.app.domain.Tracking
+import com.rupio.app.domain.Cardio
 import com.rupio.app.safePop
 import com.rupio.app.ui.components.ConfirmDialog
 import com.rupio.app.ui.components.ExerciseThumb
@@ -50,7 +51,7 @@ import kotlinx.coroutines.launch
  * recalculan, el entreno se marca para subir y se sincroniza. También se abre desde "Revisar" → "Corregir" ([focusSet]).
  */
 class EditWorkoutVM(private val c: AppContainer, private val workoutId: String) : ViewModel() {
-    data class Ex(val weId: String, val exerciseId: String, val name: String, val image: String?, val tracking: Tracking)
+    data class Ex(val weId: String, val exerciseId: String, val name: String, val image: String?, val tracking: Tracking, val cardio: Boolean = false)
     /** Una fila del editor; los números van como texto mientras escribes. [origKg]: peso guardado (para no redondearlo). */
     data class Row(val key: String, val id: String?, val weId: String, val exerciseId: String, val setType: Int,
                    val weight: String, val reps: String, val seconds: String, val rpe: Double?, val origKg: Double?, val origWeight: String)
@@ -74,12 +75,16 @@ class EditWorkoutVM(private val c: AppContainer, private val workoutId: String) 
             name = c.workouts.get(workoutId)?.name.orEmpty()
             val exs = c.db.workouts().exercises(workoutId)
             val catalog = c.db.exercises().getMany(exs.map { it.exerciseId }.distinct()).associateBy { it.id }
-            exercises += exs.map { Ex(it.id, it.exerciseId, catalog[it.exerciseId]?.name ?: "Ejercicio", catalog[it.exerciseId]?.image0, Tracking.of(catalog[it.exerciseId]?.tracking ?: "weight_reps")) }
+            exercises += exs.map { Ex(it.id, it.exerciseId, catalog[it.exerciseId]?.name ?: "Ejercicio", catalog[it.exerciseId]?.image0, Tracking.of(catalog[it.exerciseId]?.tracking ?: "weight_reps"),
+                cardio = catalog[it.exerciseId]?.let { e -> Cardio.isCardio(e.primaryMuscle, e.tracking) } == true) }
             val sets = c.db.workouts().sets(workoutId).filter { it.completed }
             rows += sets.map { s ->
-                val tr = exercises.firstOrNull { it.weId == s.workoutExerciseId }?.tracking ?: Tracking.WEIGHT_REPS
+                val ex = exercises.firstOrNull { it.weId == s.workoutExerciseId }
+                val tr = ex?.tracking ?: Tracking.WEIGHT_REPS
                 val w = shownWeight(s.weightKg, tr)
-                Row("k${nextKey++}", s.id, s.workoutExerciseId, s.exerciseId, s.setType, w, s.reps?.toString().orEmpty(), s.durationSec?.toString().orEmpty(), s.rpe, s.weightKg, w)
+                // v1.9: el cardio se corrige en minutos, como se anotó.
+                val time = if (ex?.cardio == true) Cardio.minutesText(s.durationSec) else s.durationSec?.toString().orEmpty()
+                Row("k${nextKey++}", s.id, s.workoutExerciseId, s.exerciseId, s.setType, w, s.reps?.toString().orEmpty(), time, s.rpe, s.weightKg, w)
             }
             original = rows.toList()
             loaded = true
@@ -109,11 +114,12 @@ class EditWorkoutVM(private val c: AppContainer, private val workoutId: String) 
     }
 
     private fun trackingOf(r: Row) = exercises.firstOrNull { it.weId == r.weId }?.tracking ?: Tracking.WEIGHT_REPS
+    private fun secondsOf(r: Row): Int? = if (exercises.firstOrNull { it.weId == r.weId }?.cardio == true) Cardio.parseMinutes(r.seconds) else r.seconds.toIntOrNull()
 
     /** Lo que cada tipo de ejercicio necesita para contar como serie hecha. */
     private fun problem(r: Row): Boolean {
         val tr = trackingOf(r)
-        val w = r.weight.toDoubleOrNull(); val reps = r.reps.toIntOrNull(); val sec = r.seconds.toIntOrNull()
+        val w = r.weight.toDoubleOrNull(); val reps = r.reps.toIntOrNull(); val sec = secondsOf(r)
         return when (tr) {
             Tracking.DURATION -> sec == null || sec !in 1..86_400
             Tracking.WEIGHT_REPS -> w == null || w < 0 || reps == null || reps !in 1..1000
@@ -135,7 +141,7 @@ class EditWorkoutVM(private val c: AppContainer, private val workoutId: String) 
             }
             EditedSet(r.id, r.weId, r.exerciseId, r.setType, kg,
                 if (tr == Tracking.DURATION) null else r.reps.toIntOrNull(),
-                if (tr == Tracking.DURATION) r.seconds.toIntOrNull() else null, r.rpe)
+                if (tr == Tracking.DURATION) secondsOf(r) else null, r.rpe)
         }
         val res = c.workouts.saveEdits(workoutId, edited)
         // Lo que el servidor había rechazado: corregido se vuelve a intentar; quitado deja de intentarse.
@@ -215,7 +221,7 @@ private fun ExerciseEditor(ex: EditWorkoutVM.Ex, vm: EditWorkoutVM, focusSet: St
                 Text("SERIE", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_TYPE), textAlign = TextAlign.Center)
                 if (tr.usesWeight) Text(when (tr) { Tracking.ASSISTED_BODYWEIGHT -> "AYUDA"; Tracking.WEIGHTED_BODYWEIGHT -> "+" + unit.label.uppercase(); else -> unit.label.uppercase() },
                     style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_W), textAlign = TextAlign.Center)
-                Text(if (tr == Tracking.DURATION) "SEGUNDOS" else "REPS", style = st, color = RupioColors.TextFaint,
+                Text(if (ex.cardio) "MIN" else if (tr == Tracking.DURATION) "SEGUNDOS" else "REPS", style = st, color = RupioColors.TextFaint,
                     modifier = Modifier.width(if (tr == Tracking.DURATION) W_W else W_R), textAlign = TextAlign.Center)
                 Spacer(Modifier.weight(1f))
             }
@@ -260,7 +266,10 @@ private fun EditSetRow(ex: EditWorkoutVM.Ex, r: EditWorkoutVM.Row, index: Int, a
             NumberCell(r.weight, unit.label, { t -> vm.update(r.key) { it.copy(weight = t.replace("-", "")) } },
                 Modifier.width(W_W), label = "$what en ${if (unit == WeightUnit.LB) "libras" else "kilos"}, $spoken, ${ex.name}", sub = other, minHeight = 50.dp)
         }
-        if (tr == Tracking.DURATION) {
+        if (ex.cardio) {
+            NumberCell(r.seconds, "min", { t -> vm.update(r.key) { it.copy(seconds = t.replace("-", "")) } }, Modifier.width(W_W),
+                decimal = true, label = "Minutos, $spoken, ${ex.name}", minHeight = 50.dp)
+        } else if (tr == Tracking.DURATION) {
             NumberCell(r.seconds, "seg", { t -> vm.update(r.key) { it.copy(seconds = t.filter(Char::isDigit)) } }, Modifier.width(W_W),
                 decimal = false, label = "Segundos, $spoken, ${ex.name}", minHeight = 50.dp)
         } else {

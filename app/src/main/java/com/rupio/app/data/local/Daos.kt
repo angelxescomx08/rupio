@@ -166,6 +166,22 @@ interface WorkoutDao {
               AND workout_id != :workoutId AND (performed_on < :day OR (performed_on = :day AND completed_at < :before)))""")
     suspend fun hasEarlierSets(ex: String, workoutId: String, day: Int, before: Long): Boolean
 
+    /** v1.9 (N5): las series hechas de un ejercicio en entrenos terminados, del entreno más viejo al más nuevo. */
+    @Query("""SELECT s.id, s.workout_id, s.weight_kg, s.reps, s.duration_sec, s.set_type, s.is_pr FROM workout_sets s
+              JOIN workouts w ON w.id = s.workout_id
+              WHERE s.exercise_id = :ex AND s.completed = 1 AND s.deleted = 0 AND w.deleted = 0 AND w.ended_at IS NOT NULL
+              ORDER BY w.started_at, w.id, s.position""")
+    suspend fun trophyRows(ex: String): List<TrophyRow>
+
+    @Query("SELECT id, pr_count FROM workouts WHERE deleted = 0 AND ended_at IS NOT NULL")
+    suspend fun finishedPrCounts(): List<PrCountRow>
+
+    @Query("UPDATE workout_sets SET is_pr = :pr, dirty = 1, updated_at = :t WHERE id = :id")
+    suspend fun setPr(id: String, pr: Boolean, t: Long)
+
+    @Query("UPDATE workouts SET pr_count = :n, dirty = 1, updated_at = :t WHERE id = :id")
+    suspend fun setPrCount(id: String, n: Int, t: Long)
+
     /** v1.9: cuándo hiciste por última vez cada rutina (para "Te toca hoy" y "Última vez: hace 2 días"). */
     @Query("""SELECT routine_id, MAX(local_date) AS last_day, MAX(ended_at) AS last_end FROM workouts
               WHERE deleted = 0 AND ended_at IS NOT NULL AND routine_id IS NOT NULL GROUP BY routine_id""")

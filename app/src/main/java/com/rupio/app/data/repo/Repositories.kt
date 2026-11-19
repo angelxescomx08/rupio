@@ -9,6 +9,7 @@ import androidx.room.withTransaction
 import com.rupio.app.domain.OneRepMax
 import com.rupio.app.domain.SetType
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
@@ -28,6 +29,17 @@ class ExerciseRepository(private val db: RupioDatabase, private val userId: () -
     }
 }
 
+/** "Pierna casa" → "Pierna casa (2)", "(3)"… si ya hay una con ese nombre (sin distinguir mayúsculas ni acentos). */
+fun uniqueName(base: String, taken: Collection<String>): String {
+    val name = base.trim().ifBlank { "Mi rutina" }
+    val keys = taken.map { it.trim().searchKey() }.toSet()
+    if (name.searchKey() !in keys) return name
+    val clean = name.replace(Regex("\\s*\\(\\d+\\)$"), "")
+    var n = 2
+    while ("$clean ($n)".searchKey() in keys) n++
+    return "$clean ($n)"
+}
+
 class RoutineRepository(private val db: RupioDatabase, private val userId: () -> String?) {
     val routines: Flow<List<RoutineEntity>> = db.routines().observeRoutines()
     val allExercises: Flow<List<RoutineExerciseEntity>> = db.routines().observeAllExercises()
@@ -43,14 +55,17 @@ class RoutineRepository(private val db: RupioDatabase, private val userId: () ->
 
     suspend fun count() = db.routines().count()
 
+    /** v1.9 (N7): el nombre que se propone al guardar un entreno como rutina: "Pierna casa (2)" si ya existe "Pierna casa". */
+    suspend fun suggestedName(base: String): String = uniqueName(base, routines.first().map { it.name })
+
     /** "Guardar como rutina" desde un entrenamiento del historial (series completadas = series objetivo). */
-    suspend fun saveFromWorkout(workoutId: String): String? {
+    suspend fun saveFromWorkout(workoutId: String, name: String? = null): String? {
         val uid = userId() ?: return null
         val w = db.workouts().get(workoutId) ?: return null
         val ex = db.workouts().exercises(workoutId)
         val sets = db.workouts().sets(workoutId).filter { it.completed }
         val t = System.currentTimeMillis()
-        val r = RoutineEntity(Ids.uuidV7(t), uid, w.name, null, db.routines().count(), t, t)
+        val r = RoutineEntity(Ids.uuidV7(t), uid, name?.trim()?.take(120)?.ifBlank { null } ?: suggestedName(w.name), null, db.routines().count(), t, t)
         val ssMap = ex.mapNotNull { it.supersetId }.distinct().associateWith { Ids.uuidV7(t) }
         save(r, ex.map { e ->
             val done = sets.filter { it.workoutExerciseId == e.id }.sortedBy { it.position }
@@ -113,6 +128,9 @@ data class StatsSnapshot(
     val topExercises: List<ExerciseUsage>,
 )
 
+/** v1.9: ¿es cardio por tiempo? (se anota en minutos, 1 serie, sin descanso). */
+val ExerciseEntity.isCardio: Boolean get() = com.rupio.app.domain.Cardio.isCardio(primaryMuscle, tracking)
+
 /** Peso corporal: una fila por día; registrar de nuevo ese día la actualiza. */
 class BodyWeightRepository(private val db: RupioDatabase, private val userId: () -> String?) {
     private val dao get() = db.bodyWeights()
@@ -129,6 +147,9 @@ class BodyWeightRepository(private val db: RupioDatabase, private val userId: ()
     suspend fun page(before: Int, limit: Int = 60): List<BodyWeightEntity> = userId()?.let { dao.page(it, before, limit) } ?: emptyList()
 
     suspend fun firstDay(): LocalDate? = userId()?.let { dao.firstDay(it) }?.let { LocalDate.ofEpochDay(it.toLong()) }
+
+    /** v1.9 (N4): el peso que ya tienes ese día (para avisar antes de reemplazarlo), o null. */
+    suspend fun on(day: LocalDate): BodyWeightEntity? = userId()?.let { dao.get(it, day.toEpochDay().toInt()) }?.takeIf { !it.deleted }
 
     /** Tendencia completa (para "Tu progreso"): agrupada para que nunca pase de ~150 puntos. */
     suspend fun trendAll(today: LocalDate): List<Double> {

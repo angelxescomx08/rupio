@@ -153,7 +153,7 @@ fun StatsScreen(nav: NavHostController) {
                         HelpIcon("constancia")
                         Spacer(Modifier.weight(1f))
                         val streak = weekStreak(s)
-                        if (streak > 0) Pill("🔥 $streak ${if (streak == 1) "semana" else "semanas"} seguidas", RupioColors.Warning)
+                        if (streak > 0) Pill("🔥 " + (if (streak == 1) "1 semana seguida" else "$streak semanas seguidas"), RupioColors.Warning)
                     }
                     Spacer(Modifier.height(10.dp))
                     TrainingHeatmap(s.trainingDays, s.heatFrom, s.to)

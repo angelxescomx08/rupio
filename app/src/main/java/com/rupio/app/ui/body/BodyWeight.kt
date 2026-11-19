@@ -8,7 +8,7 @@ import com.rupio.app.safePop
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -384,6 +384,8 @@ fun LogWeightDialog(
     var consent by remember { mutableStateOf(false) }
     // v1.9: "Guardar" sin la casilla marcada ya no está gris sin explicación: resalta la casilla y dice por qué.
     var consentNudge by remember { mutableStateOf(false) }
+    // El peso que ya tiene el día elegido (al corregir uno con la fecha fija no hace falta avisar).
+    val existing by produceState<BodyWeightEntity?>(null, day, lockDate) { value = if (lockDate) null else c.bodyWeight.on(day) }
     val focus = remember { androidx.compose.ui.focus.FocusRequester() }
     LaunchedEffect(Unit) { if (lastKg == null) { kotlinx.coroutines.delay(150); runCatching { focus.requestFocus() } } }
     val value = text.replace(',', '.').toDoubleOrNull()
@@ -440,6 +442,12 @@ fun LogWeightDialog(
                             { Text(if (day != today && day != today.minusDays(1)) Dates.formatDayShort(day) else "Otro día") },
                             leadingIcon = { Icon(Icons.Rounded.CalendarMonth, null, Modifier.size(16.dp)) })
                     }
+                    // v1.9 (N4): si ese día ya tiene peso, se dice antes de reemplazarlo (antes desaparecía sin aviso).
+                    existing?.let { e ->
+                        Text("Ya registraste ${Fmt.weight(e.weightKg, unit)} el ${Dates.formatDayShort(day)}. Si guardas, se reemplaza.",
+                            style = MaterialTheme.typography.bodySmall, color = RupioColors.Warning, textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 8.dp).semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
+                    }
                 } else {
                     Text(Dates.formatDay(day.toEpochDay().toInt()), style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim, modifier = Modifier.padding(top = 8.dp))
                 }
@@ -451,7 +459,7 @@ fun LogWeightDialog(
                 if (needConsent && !consent) { consentNudge = true; return@TextButton }
                 if (needConsent) c.scope.launch { c.giveHealthConsent() }
                 onSave(day, kg!!)
-            }) { Text("Guardar") }
+            }) { Text(if (existing != null) "Reemplazar" else "Guardar") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
     )
@@ -578,7 +586,7 @@ fun BodyWeightChart(points: List<WeightPoint>, trend: List<Double>, unit: Weight
                 Modifier.weight(1f).fillMaxHeight().then(if (interactive) Modifier.pointerInput(points) {
                     detectTapGestures { o -> selected = idxAt(o.x, size.width.toFloat()) }
                 }.pointerInput(points) {
-                    detectDragGestures { ch, _ -> selected = idxAt(ch.position.x, size.width.toFloat()) }
+                    detectHorizontalDragGestures { ch, _ -> selected = idxAt(ch.position.x, size.width.toFloat()) }
                 } else Modifier),
             ) {
                 fun px(day: Int) = size.width * (day - d0) / (d1 - d0).toFloat()

@@ -290,8 +290,8 @@ private fun RoutineCard(
         if (groups.size > 5) Text("y ${groups.drop(5).sumOf { it.size }} más…", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
         Spacer(Modifier.height(10.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Pill("${items.size} ejercicios", RupioColors.TextDim)
-            Pill("${summary.totalSets} series", RupioColors.TextDim)
+            Pill(Fmt.plural(items.size, "ejercicio", "ejercicios"), RupioColors.TextDim)
+            Pill(Fmt.plural(summary.totalSets, "serie", "series"), RupioColors.TextDim)
             Pill("≈ ${Fmt.durationHuman(summary.estimatedSec.toLong())}", RupioColors.Primary)
         }
         Spacer(Modifier.height(6.dp))

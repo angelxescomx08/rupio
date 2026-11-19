@@ -263,6 +263,89 @@ class V19QaTest {
         assertFalse("zona desconocida: no se menciona", Dates.isOtherZone(t, ZoneId.of("UTC"), "no/existe"))
     }
 
+    // ------------------------------------------------------------------ segunda vuelta (docs/QA_V19_VERIFICACION.md)
+
+    @Test fun n1_cardio_en_minutos_una_serie_sin_descanso_y_consejo_propio() = runBlocking {
+        assertEquals(1200, Cardio.parseMinutes("20")); assertEquals(750, Cardio.parseMinutes("12,5")); assertNull(Cardio.parseMinutes("x"))
+        assertEquals("20", Cardio.minutesText(1200)); assertEquals("12.5", Cardio.minutesText(750)); assertEquals("", Cardio.minutesText(null))
+        val w = c.workouts.startEmpty()
+        c.workouts.addExercises(w, listOf("caminadora", bench))
+        val ex = c.db.workouts().exercises(w); val sets = c.db.workouts().sets(w)
+        val walk = ex.first { it.exerciseId == "caminadora" }; val press = ex.first { it.exerciseId == bench }
+        assertEquals("sin descanso automático", 0, walk.restSec)
+        assertEquals("1 serie", 1, sets.count { it.workoutExerciseId == walk.id })
+        assertEquals("las pesas siguen con 3", 3, sets.count { it.workoutExerciseId == press.id })
+        val first = c.workouts.recommendation(c.db.exercises().get("caminadora")!!, 1, 1, w)
+        assertTrue(first.detail, first.detail.contains("minutos") && !first.detail.contains("Aguanta"))
+        val next = Progression.recommend(ProgressionInput(Tracking.DURATION, 1, 1, false, "maquina", com.rupio.app.core.WeightUnit.KG,
+            listOf(SessionData(1, listOf(SetData(null, null, 1200)))), cardio = true))
+        assertEquals("Intenta 22 min", next.title); assertEquals(22 * 60, next.targetDurationSec)
+        c.workouts.discard(w)
+    }
+
+    @Test fun n2_el_cardio_cuenta_en_la_duracion_y_en_las_calorias() = runBlocking {
+        val w = c.workouts.startEmpty()
+        c.workouts.addExercises(w, listOf("caminadora"))
+        val s = c.db.workouts().sets(w).single()
+        c.workouts.editSet(s.id) { it.copy(durationSec = 1200) }
+        c.workouts.toggleComplete(s.id, Tracking.DURATION, null, null, null)
+        c.workouts.finish(w, null, null)
+        assertTrue("20 min anotados: el entreno dura al menos eso (antes «2 min»)", c.db.workouts().get(w)!!.durationSec!! >= 1200)
+        // 3.8 MET × 80 kg × 20 min = 101 → 100 kcal (antes «≈ 10 kcal» con el reloj y 3.5 MET).
+        CalorieEstimate.estimate(120, 0, 80.0, listOf(CalorieEstimate.CardioPart(Cardio.met("caminadora"), 1200)))!!.let {
+            assertEquals(100, it.kcal); assertEquals(20, it.cardioMinutes); assertEquals(0, it.strengthMinutes)
+        }
+        // Mixto: 60 min de reloj, 20 de cardio y 10 series → 40 min de pesas (187) + cardio (101) = 290.
+        assertEquals(290, CalorieEstimate.estimate(3600, 10, 80.0, listOf(CalorieEstimate.CardioPart(3.8, 1200)))!!.kcal)
+        assertEquals("sin cardio, igual que antes", 280, CalorieEstimate.estimate(3600, 20, 80.0)!!.kcal)
+    }
+
+    @Test fun n4_se_sabe_si_el_dia_ya_tiene_peso() = runBlocking {
+        val today = Dates.today(c.zone.value)
+        c.bodyWeight.log(today.minusDays(1), 80.5)
+        assertEquals(80.5, c.bodyWeight.on(today.minusDays(1))!!.weightKg, 1e-9)
+        assertNull(c.bodyWeight.on(today))
+    }
+
+    @Test fun n5_trofeos_de_antes_de_actualizar_se_recalculan() = runBlocking {
+        val user = c.auth.currentUserId!!; val zone = c.zone.value
+        suspend fun seed(daysAgo: Int, kg: Double, pr: Boolean, prCount: Int): Pair<String, String> {
+            val start = System.currentTimeMillis() - daysAgo * 86_400_000L; val day = Dates.localEpochDay(start, zone)
+            val w = com.rupio.app.data.local.WorkoutEntity(Ids.uuidV7(start), user, null, "Pecho", start, start + 3_000_000, zone.id, day, 3000,
+                totalVolumeKg = kg * 8, totalSets = 1, totalReps = 8, prCount = prCount, updatedAt = start, dirty = false)
+            val we = WorkoutExerciseEntity(Ids.uuidV7(start), w.id, user, bench, 0, updatedAt = start, dirty = false)
+            val s = WorkoutSetEntity(Ids.uuidV7(start), we.id, w.id, user, bench, 0, weightKg = kg, reps = 8, completed = true, completedAt = start,
+                performedOn = day, isPr = pr, updatedAt = start, dirty = false)
+            c.db.workouts().insertFull(w, listOf(we), listOf(s)); return w.id to s.id
+        }
+        // Como los dejaba la versión anterior: la primera vez con 🏆 3, la segunda sin trofeo.
+        val (w1, s1) = seed(3, 60.0, pr = true, prCount = 3)
+        val (w2, s2) = seed(1, 70.0, pr = false, prCount = 0)
+        assertEquals("cambian los dos entrenos", 2, c.workouts.recomputeTrophies())
+        assertEquals(0, c.db.workouts().get(w1)!!.prCount); assertFalse(c.db.workouts().getSet(s1)!!.isPr)
+        assertEquals("peso máximo y 1RM", 2, c.db.workouts().get(w2)!!.prCount); assertTrue(c.db.workouts().getSet(s2)!!.isPr)
+        assertTrue("se suben a la nube", c.db.workouts().get(w1)!!.dirty && c.db.workouts().getSet(s1)!!.dirty)
+        assertEquals("la segunda vez no hay nada que cambiar", 0, c.workouts.recomputeTrophies())
+    }
+
+    @Test fun n6_primero_el_nombre_exacto_y_luego_los_sinonimos() = runBlocking {
+        val catalog = c.db.exercises().observeAll().first()
+        fun search(q: String) = catalog.filter { ExerciseSearch.matches(it.searchKey, Muscles.label(it.primaryMuscle).searchKey(), ExerciseSearch.tokens(q)) }
+            .sortedWith(compareBy({ ExerciseSearch.rank(it.searchKey, q) }, { !it.isCustom }, { it.searchKey }))
+        assertEquals("lagartijas", search("lagartijas").first().id)
+        assertTrue("los sinónimos siguen saliendo, después", search("lagartijas").any { it.searchKey.startsWith("flexion") })
+        assertEquals(0, ExerciseSearch.rank("lagartijas con pies elevados", "lagartijas"))
+        assertEquals(1, ExerciseSearch.rank("press de banca con mancuernas", "banca manc"))
+        assertEquals(2, ExerciseSearch.rank("flexiones de pino", "lagartijas"))
+    }
+
+    @Test fun n7_guardar_como_rutina_no_repite_el_nombre() {
+        assertEquals("Pierna casa", com.rupio.app.data.repo.uniqueName("Pierna casa", listOf("Torso")))
+        assertEquals("Pierna casa (2)", com.rupio.app.data.repo.uniqueName("Pierna casa", listOf("Pierna casa")))
+        assertEquals("sin distinguir mayúsculas", "pierna CASA (3)", com.rupio.app.data.repo.uniqueName("pierna CASA", listOf("Pierna casa", "Pierna casa (2)")))
+        assertEquals("Plan (2)", com.rupio.app.data.repo.uniqueName("Plan (2)", listOf("Plan")))
+    }
+
     @Test fun pulido_la_recomendacion_habla_de_la_vez_pasada() {
         val r = Progression.recommend(ProgressionInput(Tracking.WEIGHT_REPS, 8, 12, false, "barra", com.rupio.app.core.WeightUnit.KG,
             listOf(SessionData(1, listOf(SetData(60.0, 9), SetData(60.0, 8))))))

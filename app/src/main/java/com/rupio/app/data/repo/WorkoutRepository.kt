@@ -111,9 +111,11 @@ class WorkoutRepository(
             for (id in exerciseIds) {
                 val tr = Tracking.of(catalog[id]?.tracking ?: "weight_reps")
                 val (mn, mx) = defaultsFor(tr)
-                val we = WorkoutExerciseEntity(Ids.uuidV7(), workoutId, user, id, pos++, restSec = s.defaultRestSec, repMin = mn, repMax = mx, updatedAt = t)
+                // v1.9 (N1): el cardio trae 1 serie y no arranca descanso (antes 3 series con 1:30 entre ellas, como una plancha).
+                val cardio = catalog[id]?.isCardio == true
+                val we = WorkoutExerciseEntity(Ids.uuidV7(), workoutId, user, id, pos++, restSec = if (cardio) 0 else s.defaultRestSec, repMin = mn, repMax = mx, updatedAt = t)
                 dao.upsertExercise(we)
-                dao.upsertSets((0 until 3).map { k -> WorkoutSetEntity(Ids.uuidV7(), we.id, workoutId, user, id, k, performedOn = w.localDate, updatedAt = t) })
+                dao.upsertSets((0 until if (cardio) 1 else 3).map { k -> WorkoutSetEntity(Ids.uuidV7(), we.id, workoutId, user, id, k, performedOn = w.localDate, updatedAt = t) })
             }
         }
     }
@@ -404,10 +406,13 @@ class WorkoutRepository(
 
             val working = done.filter { it.setType != SetType.WARMUP.code }
             val volume = working.sumOf { (it.weightKg ?: 0.0).coerceAtLeast(0.0) * (it.reps ?: 0) }
+            // v1.9 (N2): si anotaste 20 min de caminadora al terminarla, el entreno dura al menos eso (antes "2 min").
+            val cardioSec = done.filter { catalog[it.exerciseId]?.isCardio == true }.sumOf { (it.durationSec ?: 0).toLong() }
+            val clockSec = ((t - w.startedAt) / 1000).coerceIn(0, 86_400 * 2)
             dao.upsertWorkout(w.copy(
                 name = name?.takeIf { it.isNotBlank() } ?: w.name, notes = notes?.ifBlank { null } ?: w.notes,
                 // Si el reloj del teléfono se atrasó a media sesión, nunca termina antes de empezar.
-                endedAt = maxOf(t, w.startedAt), durationSec = ((t - w.startedAt) / 1000).coerceIn(0, 86_400 * 2).toInt(),
+                endedAt = maxOf(t, w.startedAt), durationSec = maxOf(clockSec, cardioSec.coerceAtMost(86_400L * 2)).toInt(),
                 totalVolumeKg = volume, totalSets = working.size, totalReps = working.sumOf { it.reps ?: 0 },
                 prCount = prCount, updatedAt = t, dirty = true,
             ))
@@ -479,6 +484,44 @@ class WorkoutRepository(
     /** Una sola vez tras actualizar la app: deja los récords consistentes con el historial. */
     suspend fun rebuildAllRecords() = rebuildRecords(db.records().allExerciseIds())
 
+    /**
+     * v1.9 (N5) · Una vez al actualizar: trofeos 🏆 de cada serie y "récords" de cada entreno con la regla nueva (la
+     * primera vez de un ejercicio no es récord). Recorre tu historial en orden, ejercicio por ejercicio: un tipo de
+     * récord cuenta cuando un entreno supera lo mejor de los entrenos anteriores. Solo toca (y sube) lo que cambia.
+     * Devuelve cuántos entrenos cambiaron.
+     */
+    suspend fun recomputeTrophies(): Int {
+        val ids = db.stats().trainedExerciseIds()
+        val catalog = db.exercises().getMany(ids).associateBy { it.id }
+        val prSets = HashSet<String>(); val prCount = HashMap<String, Int>(); val stored = HashMap<String, Boolean>()
+        for (ex in ids) {
+            val tracking = Tracking.of(catalog[ex]?.tracking ?: "weight_reps")
+            val best = HashMap<RecordKind, Double>()
+            // groupBy conserva el orden en que aparecen: los entrenos del más viejo al más nuevo.
+            for ((wid, rows) in dao.trophyRows(ex).groupBy { it.workoutId }) {
+                val top = HashMap<RecordKind, Pair<Double, String>>()
+                for (r in rows) {
+                    stored[r.id] = r.isPr
+                    for ((k, v) in Records.candidates(tracking, SetData(r.weightKg, r.reps, r.durationSec, null, SetType.of(r.setType))))
+                        if (v > (top[k]?.first ?: 0.0) + 1e-6) top[k] = v to r.id
+                }
+                for ((k, p) in top) {
+                    val prev = best[k]
+                    if (prev != null && p.first > prev + 1e-6 && k in Records.HEADLINE) { prSets += p.second; prCount[wid] = (prCount[wid] ?: 0) + 1 }
+                    if (prev == null || p.first > prev) best[k] = p.first
+                }
+            }
+        }
+        val t = now()
+        val counts = dao.finishedPrCounts()
+        val changedWorkouts = counts.filter { (prCount[it.id] ?: 0) != it.prCount }
+        db.withTransaction {
+            stored.forEach { (id, was) -> val now = id in prSets; if (now != was) dao.setPr(id, now, t) }
+            changedWorkouts.forEach { dao.setPrCount(it.id, prCount[it.id] ?: 0, t) }
+        }
+        return changedWorkouts.size
+    }
+
     suspend fun renameActive(workoutId: String, name: String) {
         val w = dao.get(workoutId) ?: return
         dao.upsertWorkout(w.copy(name = name, updatedAt = now()))
@@ -495,7 +538,7 @@ class WorkoutRepository(
         val s = settings.current()
         return Progression.recommend(ProgressionInput(
             Tracking.of(exercise.tracking), repMin, repMax, exercise.isLowerBody, exercise.equipment, s.unit,
-            previousSessions(exercise.id, excludeWorkout),
+            previousSessions(exercise.id, excludeWorkout), cardio = exercise.isCardio,
         ))
     }
 }

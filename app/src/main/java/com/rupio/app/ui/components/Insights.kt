@@ -33,11 +33,15 @@ fun CaloriesInfoDialog(r: CalorieEstimate.Result, onClose: () -> Unit) {
         title = { Text("¿Cómo se calculan?") },
         text = {
             Text(buildString {
-                append("Con el método MET: ${Fmt.num(CalorieEstimate.MET)} MET × ${Fmt.num(r.bodyKg, 1)} kg × ${r.minutesCounted} min. ")
-                append("3.5 MET es el valor para pesas con varios ejercicios de 8 a 15 repeticiones (Compendio de Actividades Físicas 2024, código ${CalorieEstimate.COMPENDIUM_CODE}). ")
+                if (r.strengthMinutes > 0) {
+                    append("Con el método MET: ${Fmt.num(CalorieEstimate.MET)} MET × ${Fmt.num(r.bodyKg, 1)} kg × ${r.strengthMinutes} min de pesas. ")
+                    append("3.5 MET es el valor para pesas con varios ejercicios de 8 a 15 repeticiones (Compendio de Actividades Físicas 2024, código ${CalorieEstimate.COMPENDIUM_CODE}). ")
+                }
+                if (r.cardioMinutes > 0) append("Tus ${r.cardioMinutes} min de cardio cuentan con el MET de cada máquina a esfuerzo moderado " +
+                    "(caminadora 3.8, bicicleta fija 5.8, elíptica 5.0, escaladora 9.3; mismo Compendio). ")
                 append("Incluye lo que gastarías en reposo y puede variar ±20–30 % según tu músculo, la intensidad y los descansos.")
                 if (r.assumedWeight) append("\n\nNo tienes tu peso registrado: se usó 70 kg. Regístralo en la pestaña Peso para afinarla.")
-                if (r.capped) append("\n\nSe contaron ${r.minutesCounted} min (máximo 5 por serie) porque el entreno quedó abierto más tiempo.")
+                if (r.capped) append("\n\nSe contaron ${r.strengthMinutes} min de pesas (máximo 5 por serie) porque el entreno quedó abierto más tiempo.")
             }, style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
         },
         confirmButton = { TextButton(onClick = onClose) { Text("Entendido") } },

@@ -334,7 +334,9 @@ private fun ExerciseCard(
     Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = RupioColors.Surface) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.clickable(onClick = onOpen)) { ExerciseThumb(e.ex?.image0, 46.dp) }
+                // v1.9 (N8): la foto es un botón con nombre (TalkBack decía solo "botón").
+                Box(Modifier.clickable(onClickLabel = "ver técnica", role = Role.Button, onClick = onOpen)
+                    .clearAndSetSemantics { contentDescription = "Ver técnica de ${e.name}"; role = Role.Button }) { ExerciseThumb(e.ex?.image0, 46.dp) }
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f).clickable(onClick = onOpen)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -394,7 +396,7 @@ private fun ExerciseCard(
             Spacer(Modifier.height(8.dp))
             val compact = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 360
             val bigText = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
-            SetHeader(tr, unit, compact, bigText)
+            SetHeader(tr, unit, compact, bigText, cardio = e.isCardio)
             e.sets.forEachIndexed { i, s ->
                 SetRow(e, s, i, vm, unit, first && i == 0, compact, onSetMenu)
             }
@@ -423,7 +425,7 @@ private fun rowPadH(compact: Boolean) = if (compact) 2.dp else 6.dp
 private const val TABLE_MAX_SCALE = 1.5f
 
 @Composable
-private fun SetHeader(tr: Tracking, unit: WeightUnit, compact: Boolean, bigText: Boolean) {
+private fun SetHeader(tr: Tracking, unit: WeightUnit, compact: Boolean, bigText: Boolean, cardio: Boolean = false) {
     Row(Modifier.fillMaxWidth().padding(horizontal = rowPadH(compact), vertical = 4.dp), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(gap(compact))) {
         val st = cappedScale(MaterialTheme.typography.labelSmall, TABLE_MAX_SCALE)
@@ -438,7 +440,7 @@ private fun SetHeader(tr: Tracking, unit: WeightUnit, compact: Boolean, bigText:
             else -> {}
         }
         when (tr) {
-            Tracking.DURATION -> Text(if (bigText) "SEG" else "SEGUNDOS", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_VAL), textAlign = TextAlign.Center, maxLines = 1, softWrap = false)
+            Tracking.DURATION -> Text(if (cardio) "MIN" else if (bigText) "SEG" else "SEGUNDOS", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_VAL), textAlign = TextAlign.Center, maxLines = 1, softWrap = false)
             else -> Text("REPS", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_REPS), textAlign = TextAlign.Center, maxLines = 1, softWrap = false)
         }
         Box(Modifier.width(W_CHECK), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.Check, null, tint = RupioColors.TextFaint, modifier = Modifier.size(16.dp)) }
@@ -524,8 +526,15 @@ private fun SetRow(e: ExUi, s: WorkoutSetEntity, index: Int, vm: ActiveWorkoutVM
                 sub = if (kg != null && kg != 0.0) Fmt.weight(kg, unit.other) else null, minHeight = CELL_H, maxFontScale = TABLE_MAX_SCALE,
             )
         }
-        // Reps o segundos
-        if (tr == Tracking.DURATION) {
+        // Reps, segundos o (cardio) minutos
+        if (e.isCardio) {
+            // v1.9 (N1): 20 minutos de caminadora se escriben "20", no "1200"; abajo sigue "20:00".
+            val sugMin = sug.durationSec?.let { Cardio.minutesText(it) }
+            NumberCell(label = "Minutos, $setNo, ${e.name}" + (sugMin?.let { ", sugerido $it" } ?: ""),
+                value = Cardio.minutesText(s.durationSec), placeholder = sugMin ?: "min", onValue =
+                { txt -> vm.edit(s.id) { it.copy(durationSec = Cardio.parseMinutes(txt)) } }, decimal = true, done = s.completed,
+                modifier = Modifier.width(W_VAL), sub = (s.durationSec ?: sug.durationSec)?.let { Fmt.duration(it.toLong()) }, minHeight = CELL_H, maxFontScale = TABLE_MAX_SCALE)
+        } else if (tr == Tracking.DURATION) {
             NumberCell(label = "Segundos, $setNo, ${e.name}" + (sug.durationSec?.let { ", sugerido $it" } ?: ""),
                 value = s.durationSec?.toString() ?: "", placeholder = sug.durationSec?.toString() ?: "seg", onValue =
                 { txt -> vm.edit(s.id) { it.copy(durationSec = txt.toIntOrNull()?.coerceIn(0, 86_400)) } }, decimal = false, done = s.completed,
@@ -690,7 +699,9 @@ private fun RestDoneBar(label: String, onClose: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun SetOptionsSheet(e: ExUi, s: WorkoutSetEntity, vm: ActiveWorkoutVM, onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = RupioColors.Surface) {
+    // v1.9 (#6): se abre completa; a media altura "Eliminar serie" quedaba debajo de la barra de gestos.
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = RupioColors.Surface,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         // v1.9: con scroll y por encima de la barra de gestos (antes "Eliminar serie" quedaba debajo de la rayita de Android).
         Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 20.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -735,6 +746,9 @@ private fun FinishDialog(name: String, items: List<ExUi>, withData: List<Pair<Ex
                          onMarkAndSave: (String, String, List<Pair<ExUi, WorkoutSetEntity>>) -> Unit, onSave: (String, String) -> Unit) {
     var n by remember { mutableStateOf(name) }
     var notes by remember { mutableStateOf("") }
+    // v1.9 (N2): el cardio que anotaste cuenta en la duración (si es más que el reloj) y en las calorías con su MET.
+    val cardio = remember(items) { items.filter { it.isCardio }.flatMap { e -> e.sets.filter { it.completed }.map { CalorieEstimate.CardioPart(Cardio.met(e.we.exerciseId), it.durationSec ?: 0) } } }
+    val shownSec = maxOf(durationSec, cardio.sumOf { it.sec.toLong() })
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(Modifier.fillMaxSize(), color = RupioColors.Background) {
             Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
@@ -747,12 +761,12 @@ private fun FinishDialog(name: String, items: List<ExUi>, withData: List<Pair<Ex
                 }
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     TileRow {
-                        Tile("Duración", Fmt.durationHuman(durationSec))
+                        Tile("Duración", Fmt.durationHuman(shownSec))
                         Tile("Series", "$doneSets")
-                        Tile("Volumen", Fmt.volume(volumeKg, unit), sub = Fmt.volume(volumeKg, unit.other))
+                        if (volumeKg > 0) Tile("Volumen", Fmt.volume(volumeKg, unit), sub = Fmt.volume(volumeKg, unit.other))
                     }
                     // v1.8: calorías estimadas y reparto de músculos de lo que marcaste.
-                    CalorieEstimate.estimate(durationSec, doneSets, bodyKg)?.let { kcal -> TileRow { CaloriesTile(kcal) } }
+                    CalorieEstimate.estimate(shownSec, doneSets - cardio.size, bodyKg, cardio)?.let { kcal -> TileRow { CaloriesTile(kcal) } }
                     val split = remember(items) { muscleSplitOf(items) }
                     if (split.isNotEmpty()) SectionCard {
                         Text("Reparto de músculos", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
@@ -769,7 +783,7 @@ private fun FinishDialog(name: String, items: List<ExUi>, withData: List<Pair<Ex
                             Text(withData.groupBy { it.first.we.id }.values.joinToString(" · ") { l ->
                                 l.first().first.name + ": " + l.joinToString(", ") { (e, s) -> SetNumbering.spoken(e.sets.map { it.setType }, e.sets.indexOfFirst { it.id == s.id }) }
                             }, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
-                            Text("Si guardas sin marcarlas, no se guardan.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                            Text(if (withData.size == 1) "Si guardas sin marcarla, no se guarda." else "Si guardas sin marcarlas, no se guardan.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
                             Button(onClick = { onMarkAndSave(n, notes, withData) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = RupioColors.Success, contentColor = Color.Black)) {
                                 Text(if (withData.size == 1) "Marcar y guardar" else "Marcarlas y guardar", fontWeight = FontWeight.SemiBold)

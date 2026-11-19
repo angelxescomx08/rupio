@@ -55,7 +55,10 @@ fun AuthScreen(upgrade: Boolean = false, onBack: (() -> Unit)? = null, onDone: (
     val scope = rememberCoroutineScope()
     val count by c.workouts.observeCount().collectAsStateWithLifecycle(initialValue = 0)
     var signUp by rememberSaveable { mutableStateOf(upgrade) }
-    var name by rememberSaveable { mutableStateOf("") }
+    // v1.9 (N10): desde el modo sin cuenta ya sabemos cómo te llamas (antes el campo salía vacío).
+    val localName = (c.auth.state.value as? com.rupio.app.data.auth.AuthState.SignedIn)?.takeIf { upgrade && it.localOnly }?.name
+        ?.takeIf { it.isNotBlank() && it != "Atleta" }.orEmpty()
+    var name by rememberSaveable { mutableStateOf(localName) }
     var email by rememberSaveable { mutableStateOf("") }
     // La contraseña NO va en rememberSaveable: Android guardaría su texto en el estado de la actividad.
     var pass by remember { mutableStateOf("") }

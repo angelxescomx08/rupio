@@ -32,18 +32,32 @@ object CalorieEstimate {
         val assumedWeight: Boolean,
         /** true si se recortó la duración (entreno que quedó abierto). */
         val capped: Boolean,
+        /** v1.9: minutos de pesas (a 3.5 MET) y de cardio (cada uno con su MET). */
+        val strengthMinutes: Int = minutesCounted,
+        val cardioMinutes: Int = 0,
     )
 
-    fun estimate(durationSec: Long, effectiveSets: Int, bodyKg: Double?): Result? {
-        if (effectiveSets <= 0 || durationSec <= 0) return null
-        val minutes = durationSec / 60.0
-        val cap = min(effectiveSets * MAX_MIN_PER_SET, MAX_MINUTES)
-        val used = min(minutes, cap)
-        if (used < 1.0) return null                                    // menos de un minuto: nada que estimar
+    /** v1.9: un bloque de cardio registrado (su MET y sus segundos). */
+    data class CardioPart(val met: Double, val sec: Int)
+
+    /**
+     * [effectiveSets] = series efectivas de PESAS. [cardio] = lo que anotaste de cardio: cuenta con su propio MET y con
+     * sus minutos, aunque lo anotes al final (antes 20 min de caminadora daban "≈ 10 kcal" con el reloj de 2 min).
+     */
+    fun estimate(durationSec: Long, effectiveSets: Int, bodyKg: Double?, cardio: List<CardioPart> = emptyList()): Result? {
+        val parts = cardio.filter { it.sec > 0 && it.met.isFinite() && it.met > 0 }
+        val cardioSec = parts.sumOf { it.sec.coerceAtMost(86_400).toLong() }
+        // Pesas: el reloj menos lo que fue cardio, con el tope de 5 min por serie (entreno que quedó abierto).
+        val clockMin = (durationSec - cardioSec).coerceAtLeast(0) / 60.0
+        val cap = min(effectiveSets.coerceAtLeast(0) * MAX_MIN_PER_SET, MAX_MINUTES)
+        val strengthMin = if (effectiveSets > 0) min(clockMin, cap) else 0.0
+        val cardioMin = cardioSec / 60.0
+        if (strengthMin + cardioMin < 1.0) return null                  // menos de un minuto: nada que estimar
         val kg = bodyKg?.takeIf { it in 25.0..350.0 }
         val w = kg ?: DEFAULT_BODY_KG
-        val kcal = MET * w * used / 60.0
-        return Result((kcal / 5).roundToInt() * 5, used.roundToInt(), w, kg == null, minutes > cap + 0.5)
+        val kcal = MET * w * strengthMin / 60.0 + parts.sumOf { it.met * w * it.sec.coerceAtMost(86_400) / 3600.0 }
+        return Result((kcal / 5).roundToInt() * 5, (strengthMin + cardioMin).roundToInt(), w, kg == null,
+            effectiveSets > 0 && clockMin > cap + 0.5, strengthMin.roundToInt(), cardioMin.roundToInt())
     }
 }
 

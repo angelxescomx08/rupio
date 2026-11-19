@@ -88,7 +88,37 @@ data class ProgressionInput(
     val unit: WeightUnit,
     /** Sesiones previas, la MÁS RECIENTE primero. */
     val history: List<SessionData>,
+    /** v1.9: cardio por tiempo (caminadora, bici…): consejo en minutos, no el de aguantar una plancha. */
+    val cardio: Boolean = false,
 )
+
+/**
+ * v1.9 · Cardio por tiempo (caminadora, bicicleta, elíptica…): se anota en MINUTOS (20 min, no "1200" segundos), trae
+ * 1 serie y no arranca descanso. Cuenta en la duración del entreno y en las calorías con su propio MET.
+ */
+object Cardio {
+    const val MUSCLE = "cardio"
+
+    fun isCardio(primaryMuscle: String?, tracking: String?): Boolean =
+        primaryMuscle == MUSCLE && tracking == Tracking.DURATION.code
+
+    /** Minutos como se ven en la cajita: "20", "12.5". */
+    fun minutesText(sec: Int?): String = sec?.let { Fmt.num(it / 60.0, 1) }.orEmpty()
+
+    /** Lo que escribiste en minutos → segundos (hasta 24 h). null si no es un número. */
+    fun parseMinutes(text: String): Int? = text.replace(',', '.').toDoubleOrNull()
+        ?.takeIf { it.isFinite() && it >= 0 }?.let { (it * 60).roundToInt().coerceAtMost(86_400) }
+
+    /**
+     * MET de esfuerzo moderado, 2024 Adult Compendium of Physical Activities (Herrmann et al.): caminadora 4.8–5.5 km/h
+     * (17355) 3.8 · bicicleta fija 70–80 W (01218) 5.8 · elíptica moderada (02048) 5.0 · escaladora (02065) 9.3 ·
+     * remo de cardio < 100 W moderado (02071) 5.0 · saltar la cuerda (02068) 11.0. Un cardio propio usa 5.0.
+     */
+    private val MET = mapOf("caminadora" to 3.8, "bicicleta_fija" to 5.8, "eliptica" to 5.0, "escaladora" to 9.3,
+        "remo_ergometro" to 5.0, "saltar_la_cuerda" to 11.0)
+    const val DEFAULT_MET = 5.0
+    fun met(exerciseId: String): Double = MET[exerciseId] ?: DEFAULT_MET
+}
 
 object Sources {
     const val ACSM = "ACSM 2009 · Med Sci Sports Exerc 41(3):687-708"
@@ -151,11 +181,23 @@ object Progression {
             Tracking.WEIGHT_REPS, Tracking.WEIGHTED_BODYWEIGHT -> weighted(input, sessions)
             Tracking.REPS_ONLY -> repsOnly(input, sessions)
             Tracking.ASSISTED_BODYWEIGHT -> assisted(input, sessions)
-            Tracking.DURATION -> duration(sessions)
+            Tracking.DURATION -> if (input.cardio) cardio(sessions) else duration(sessions)
         }
     }
 
-    private fun firstTime(i: ProgressionInput) = when (i.tracking) {
+    /** v1.9: cardio en minutos: un poco más de tiempo o de velocidad, nunca "+5 s". */
+    private fun cardio(sessions: List<SessionData>): Recommendation {
+        val best = sessions.first().straight.maxOf { it.durationSec ?: 0 }
+        val minutes = (best / 60.0).roundToInt().coerceAtLeast(1)
+        val target = max(minutes + 1, (minutes * 1.1).roundToInt())
+        return Recommendation(RecKind.ADD_TIME, "Intenta $target min",
+            "La vez pasada hiciste $minutes min. Suma un par de minutos o sube un poco la velocidad o la inclinación, si te sentiste bien.",
+            targetDurationSec = target * 60)
+    }
+
+    private fun firstTime(i: ProgressionInput) = if (i.cardio) Recommendation(RecKind.FIRST_TIME, "Primera vez",
+        "Anota cuántos minutos hiciste. La próxima vez, si te sentiste bien, sube un poco la velocidad o la inclinación.")
+    else when (i.tracking) {
         Tracking.DURATION -> Recommendation(RecKind.FIRST_TIME, "Primera vez", "Aguanta con buena técnica y anota tu tiempo; la próxima intentarás superarlo.")
         Tracking.REPS_ONLY -> Recommendation(RecKind.FIRST_TIME, "Primera vez", "Haz las reps que puedas con buena técnica, dejando 1–2 en reserva.", targetReps = i.repMin, sources = listOf(Sources.HELMS))
         else -> Recommendation(
@@ -485,4 +527,18 @@ object ExerciseSearch {
     /** Todas las palabras deben coincidir (o una de sus equivalentes) con el nombre o el músculo. */
     fun matches(nameKey: String, muscleKey: String, tokens: List<List<String>>): Boolean =
         tokens.all { alts -> alts.any { a -> nameKey.contains(a) || muscleKey.contains(a) } }
+
+    /**
+     * v1.9 · Orden de los resultados: 0 = el nombre empieza con lo que escribiste, 1 = el nombre trae todas tus
+     * palabras, 2 = entró por un sinónimo o por el músculo. Antes "lagartijas" mostraba primero "Flexión lateral".
+     */
+    fun rank(nameKey: String, query: String): Int {
+        val q = query.searchKey().trim().replace(Regex("\\s+"), " ")
+        if (q.isEmpty()) return 0
+        return when {
+            nameKey.startsWith(q) -> 0
+            q.split(' ').all { nameKey.contains(it) } -> 1
+            else -> 2
+        }
+    }
 }
