@@ -227,8 +227,15 @@ fun ProfileScreen(nav: NavHostController) {
                 Icon(if (me.localOnly) Icons.Rounded.DeleteForever else Icons.Rounded.Logout, null); Spacer(Modifier.width(6.dp))
                 Text(if (me.localOnly) LOCAL_EXIT else "Cerrar sesión")
             }
-            Text("Rupio ${com.rupio.app.BuildConfig.VERSION_NAME} · hecho con datos abiertos de free-exercise-db (dominio público)", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint,
-                modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 16.dp))
+            Text("Rupio ${com.rupio.app.BuildConfig.VERSION_NAME} · lista de ejercicios basada en free-exercise-db (dominio público)", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint,
+                modifier = Modifier.align(Alignment.CenterHorizontally))
+            // Crédito que pide la licencia gratuita de RepDB: enlace visible en créditos (docs/IMAGENES_REPDB.md). No quitar.
+            val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+            Text("Imágenes de ejercicios: Exercise data by RepDB (repdb.co)", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim,
+                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+                    .clickable(onClickLabel = "Abrir repdb.co") { runCatching { uriHandler.openUri("https://repdb.co") } }
+                    .padding(top = 4.dp, bottom = 16.dp).heightIn(min = 32.dp))
         }
     }
 

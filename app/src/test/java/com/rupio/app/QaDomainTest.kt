@@ -234,8 +234,15 @@ class QaDomainTest {
             assertTrue("consejo de $id", e.s("cue").length >= 10)
             assertFalse("inglés en $id: ${e.s("name")}", Regex("\\b(Press|Curl|Row|Squat|Raise|Fly|Pulldown|Extension|Lunge|Deadlift)\\b").containsMatchIn(e.s("name"))
                 && Regex("\\b(with|the|and|on|machine|barbell|dumbbell)\\b", RegexOption.IGNORE_CASE).containsMatchIn(e.s("name")))
-            assertTrue("imágenes de $id", e["images"]!!.jsonArray.size in 1..2)
+            // v1.9: imágenes de RepDB; un ejercicio sin equivalente queda sin imagen (lista en docs/IMAGENES_REPDB.md).
+            val imgs = e["images"]!!.jsonArray.map { it.jsonPrimitive.content }
+            assertTrue("imágenes de $id", imgs.size in 0..2)
+            imgs.forEach { u ->
+                assertTrue("ruta de $id: $u", u.startsWith("file:///android_asset/ex/"))
+                assertTrue("falta el archivo $u (corre tools/repdb/instalar_imagenes.py)", File("src/main/assets/" + u.removePrefix("file:///android_asset/")).isFile)
+            }
         }
+        assertTrue("casi todos con imagen", catalog.count { it["images"]!!.jsonArray.isNotEmpty() } >= 220)
     }
 
     // ------------------------------------------------------------------ guía de rutinas: TODAS las combinaciones

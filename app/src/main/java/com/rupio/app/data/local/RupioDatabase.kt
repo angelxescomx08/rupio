@@ -61,14 +61,17 @@ abstract class RupioDatabase : RoomDatabase() {
 }
 
 /**
- * Catálogo de ejercicios en español (assets/exercises_es.json), con imágenes de dominio público (free-exercise-db).
- * Desde la v1.6 las 512 imágenes vienen DENTRO de la app (assets/ex, WebP): antes se bajaban de
- * raw.githubusercontent.com (repositorio de un tercero), con huecos si GitHub limitaba y enviándole la IP de cada usuario.
+ * Catálogo de ejercicios en español (assets/exercises_es.json). La lista parte de free-exercise-db (Unlicense).
+ * Imágenes: desde la v1.9 son ilustraciones de RepDB (licencia gratuita con crédito, ver docs/IMAGENES_REPDB.md); las
+ * fotos de free-exercise-db se quitaron porque su origen y licencia no están claros. Van DENTRO de la app (assets/ex,
+ * WebP) y NO se suben a git: se regeneran con tools/repdb/instalar_imagenes.py. Un ejercicio sin equivalente tiene
+ * "images": [] y la app muestra el ícono de pesa.
  */
 object CatalogSeeder {
     /** Súbelo cuando cambie el catálogo (nombres, imágenes…): se vuelve a escribir aunque ya esté completo. */
     // v3 (v1.9): técnica en pasos (posición, movimiento y error común) y ejercicios de cardio por tiempo.
-    private const val VERSION = 3
+    // v4 (v1.9): imágenes de RepDB; 35 ejercicios quedan sin imagen y 9 con una sola pose.
+    private const val VERSION = 4
     @Serializable
     private data class Item(
         val id: String, val src: String, val name: String, val primary: String, val secondary: List<String>,

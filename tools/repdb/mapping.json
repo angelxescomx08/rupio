@@ -1,0 +1,945 @@
+{
+ "Barbell_Bench_Press_-_Medium_Grip": {
+  "repdb": "bench-press",
+  "tipo": "exacta"
+ },
+ "Barbell_Incline_Bench_Press_-_Medium_Grip": {
+  "repdb": "incline-bench-press",
+  "tipo": "exacta"
+ },
+ "Decline_Barbell_Bench_Press": {
+  "repdb": "decline-bench-press-barbell",
+  "tipo": "exacta"
+ },
+ "Wide-Grip_Barbell_Bench_Press": {
+  "repdb": "wide-grip-bench-press",
+  "tipo": "exacta"
+ },
+ "Dumbbell_Bench_Press": {
+  "repdb": "db-bench-press",
+  "tipo": "exacta"
+ },
+ "Incline_Dumbbell_Press": {
+  "repdb": "incline-db-press",
+  "tipo": "exacta"
+ },
+ "Decline_Dumbbell_Bench_Press": {
+  "repdb": "decline-bench-press",
+  "tipo": "exacta"
+ },
+ "Dumbbell_Bench_Press_with_Neutral_Grip": {
+  "repdb": "close-grip-db-bench-press",
+  "tipo": "aproximada"
+ },
+ "Hammer_Grip_Incline_DB_Bench_Press": null,
+ "Machine_Bench_Press": {
+  "repdb": "chest-press-machine",
+  "tipo": "exacta"
+ },
+ "Leverage_Chest_Press": {
+  "repdb": "chest-press-machine",
+  "tipo": "exacta"
+ },
+ "Leverage_Incline_Chest_Press": null,
+ "Leverage_Decline_Chest_Press": null,
+ "Smith_Machine_Bench_Press": {
+  "repdb": "smith-machine-bench-press",
+  "tipo": "exacta"
+ },
+ "Smith_Machine_Incline_Bench_Press": {
+  "repdb": "smith-machine-incline-bench-press",
+  "tipo": "exacta"
+ },
+ "Smith_Machine_Decline_Press": {
+  "repdb": "smith-machine-decline-bench-press",
+  "tipo": "exacta"
+ },
+ "Dumbbell_Flyes": {
+  "repdb": "db-fly",
+  "tipo": "exacta"
+ },
+ "Incline_Dumbbell_Flyes": {
+  "repdb": "incline-dumbbell-fly",
+  "tipo": "exacta"
+ },
+ "Decline_Dumbbell_Flyes": {
+  "repdb": "decline-db-fly",
+  "tipo": "exacta"
+ },
+ "Butterfly": {
+  "repdb": "pec-deck",
+  "tipo": "exacta"
+ },
+ "Cable_Crossover": {
+  "repdb": "cable-fly",
+  "tipo": "exacta"
+ },
+ "Low_Cable_Crossover": null,
+ "Flat_Bench_Cable_Flyes": null,
+ "Incline_Cable_Flye": null,
+ "Single-Arm_Cable_Crossover": null,
+ "Cable_Chest_Press": {
+  "repdb": "cable-chest-press",
+  "tipo": "exacta"
+ },
+ "Incline_Cable_Chest_Press": null,
+ "Pushups": {
+  "repdb": "push-up",
+  "tipo": "exacta"
+ },
+ "Push-Up_Wide": {
+  "repdb": "wide-grip-push-ups",
+  "tipo": "exacta"
+ },
+ "Incline_Push-Up": {
+  "repdb": "incline-push-ups",
+  "tipo": "exacta"
+ },
+ "Decline_Push-Up": {
+  "repdb": "decline-push-up",
+  "tipo": "exacta"
+ },
+ "Push-Ups_With_Feet_Elevated": {
+  "repdb": "decline-push-up",
+  "tipo": "exacta"
+ },
+ "Dips_-_Chest_Version": {
+  "repdb": "dips",
+  "tipo": "exacta"
+ },
+ "Straight-Arm_Dumbbell_Pullover": {
+  "repdb": "db-pullover",
+  "tipo": "exacta"
+ },
+ "Svend_Press": {
+  "repdb": "svend-press",
+  "tipo": "exacta"
+ },
+ "Floor_Press": {
+  "repdb": "floor-press",
+  "tipo": "exacta"
+ },
+ "Pullups": {
+  "repdb": "pull-up",
+  "tipo": "exacta"
+ },
+ "Chin-Up": {
+  "repdb": "chin-ups",
+  "tipo": "exacta"
+ },
+ "Band_Assisted_Pull-Up": {
+  "repdb": "band-assisted-pull-ups",
+  "tipo": "exacta"
+ },
+ "Weighted_Pull_Ups": {
+  "repdb": "weighted-pull-up",
+  "tipo": "exacta"
+ },
+ "V-Bar_Pullup": {
+  "repdb": "neutral-grip-pull-ups",
+  "tipo": "aproximada"
+ },
+ "Wide-Grip_Lat_Pulldown": {
+  "repdb": "lat-pulldown",
+  "tipo": "exacta"
+ },
+ "Close-Grip_Front_Lat_Pulldown": {
+  "repdb": "close-grip-lat-pulldown",
+  "tipo": "exacta"
+ },
+ "V-Bar_Pulldown": {
+  "repdb": "v-bar-lat-pulldown",
+  "tipo": "exacta"
+ },
+ "Underhand_Cable_Pulldowns": {
+  "repdb": "reverse-grip-lat-pulldown",
+  "tipo": "exacta"
+ },
+ "One_Arm_Lat_Pulldown": {
+  "repdb": "one-arm-lat-pulldown",
+  "tipo": "exacta"
+ },
+ "Full_Range-Of-Motion_Lat_Pulldown": {
+  "repdb": "lat-pulldown",
+  "tipo": "exacta"
+ },
+ "Straight-Arm_Pulldown": {
+  "repdb": "straight-arm-pulldown",
+  "tipo": "exacta"
+ },
+ "Rope_Straight-Arm_Pulldown": {
+  "repdb": "straight-arm-pulldown",
+  "tipo": "aproximada"
+ },
+ "Bent_Over_Barbell_Row": {
+  "repdb": "barbell-row",
+  "tipo": "exacta"
+ },
+ "Reverse_Grip_Bent-Over_Rows": {
+  "repdb": "reverse-grip-bent-over-row",
+  "tipo": "exacta"
+ },
+ "One-Arm_Dumbbell_Row": {
+  "repdb": "single-arm-db-row",
+  "tipo": "exacta"
+ },
+ "Bent_Over_Two-Dumbbell_Row": {
+  "repdb": "bent-over-db-row",
+  "tipo": "exacta"
+ },
+ "Dumbbell_Incline_Row": {
+  "repdb": "chest-supported-db-row",
+  "tipo": "exacta"
+ },
+ "Seated_Cable_Rows": {
+  "repdb": "seated-cable-row",
+  "tipo": "exacta"
+ },
+ "Seated_One-arm_Cable_Pulley_Rows": {
+  "repdb": "one-arm-seated-cable-row",
+  "tipo": "exacta"
+ },
+ "Elevated_Cable_Rows": null,
+ "T-Bar_Row_with_Handle": {
+  "repdb": "t-bar-row",
+  "tipo": "exacta"
+ },
+ "Lying_T-Bar_Row": {
+  "repdb": "chest-supported-machine-row",
+  "tipo": "aproximada"
+ },
+ "Leverage_High_Row": null,
+ "Leverage_Iso_Row": {
+  "repdb": "chest-supported-machine-row",
+  "tipo": "aproximada"
+ },
+ "Smith_Machine_Bent_Over_Row": {
+  "repdb": "smith-machine-bent-over-row",
+  "tipo": "exacta"
+ },
+ "Inverted_Row": {
+  "repdb": "inverted-row",
+  "tipo": "exacta"
+ },
+ "Incline_Bench_Pull": null,
+ "Bent_Over_One-Arm_Long_Bar_Row": null,
+ "Barbell_Deadlift": {
+  "repdb": "deadlift",
+  "tipo": "exacta"
+ },
+ "Sumo_Deadlift": {
+  "repdb": "sumo-deadlift",
+  "tipo": "exacta"
+ },
+ "Trap_Bar_Deadlift": {
+  "repdb": "hex-bar-deadlift",
+  "tipo": "exacta"
+ },
+ "Deficit_Deadlift": {
+  "repdb": "deficit-deadlift",
+  "tipo": "exacta"
+ },
+ "Rack_Pulls": {
+  "repdb": "rack-pull",
+  "tipo": "exacta"
+ },
+ "Hyperextensions_Back_Extensions": {
+  "repdb": "back-extension",
+  "tipo": "exacta"
+ },
+ "Weighted_Ball_Hyperextension": null,
+ "Good_Morning": {
+  "repdb": "good-morning",
+  "tipo": "exacta"
+ },
+ "Standing_Military_Press": {
+  "repdb": "ohp",
+  "tipo": "exacta"
+ },
+ "Seated_Barbell_Military_Press": {
+  "repdb": "seated-barbell-overhead-press",
+  "tipo": "exacta"
+ },
+ "Barbell_Shoulder_Press": {
+  "repdb": "ohp",
+  "tipo": "exacta"
+ },
+ "Dumbbell_Shoulder_Press": {
+  "repdb": "dumbbell-shoulder-press",
+  "tipo": "exacta"
+ },
+ "Seated_Dumbbell_Press": {
+  "repdb": "seated-db-press",
+  "tipo": "exacta"
+ },
+ "Standing_Dumbbell_Press": {
+  "repdb": "dumbbell-shoulder-press",
+  "tipo": "exacta"
+ },
+ "Arnold_Dumbbell_Press": {
+  "repdb": "arnold-press",
+  "tipo": "exacta"
+ },
+ "Machine_Shoulder_Military_Press": {
+  "repdb": "machine-shoulder-press",
+  "tipo": "exacta"
+ },
+ "Leverage_Shoulder_Press": {
+  "repdb": "machine-shoulder-press",
+  "tipo": "exacta"
+ },
+ "Smith_Machine_Overhead_Shoulder_Press": {
+  "repdb": "smith-machine-shoulder-press",
+  "tipo": "exacta"
+ },
+ "Cable_Shoulder_Press": null,
+ "Push_Press": {
+  "repdb": "push-press",
+  "tipo": "exacta"
+ },
+ "Kettlebell_Seated_Press": null,
+ "Side_Lateral_Raise": {
+  "repdb": "lateral-raise",
+  "tipo": "exacta"
+ },
+ "Seated_Side_Lateral_Raise": {
+  "repdb": "seated-dumbbell-lateral-raise",
+  "tipo": "exacta"
+ },
+ "Cable_Seated_Lateral_Raise": {
+  "repdb": "cable-lateral-raise",
+  "tipo": "exacta"
+ },
+ "One-Arm_Side_Laterals": {
+  "repdb": "lateral-raise",
+  "tipo": "aproximada"
+ },
+ "Lateral_Raise_-_With_Bands": null,
+ "Front_Dumbbell_Raise": {
+  "repdb": "dumbbell-front-raise",
+  "tipo": "exacta"
+ },
+ "Front_Plate_Raise": null,
+ "Front_Cable_Raise": {
+  "repdb": "cable-front-raise",
+  "tipo": "exacta"
+ },
+ "Reverse_Flyes": {
+  "repdb": "dumbbell-reverse-fly",
+  "tipo": "exacta"
+ },
+ "Reverse_Machine_Flyes": {
+  "repdb": "machine-reverse-fly",
+  "tipo": "exacta"
+ },
+ "Cable_Rear_Delt_Fly": {
+  "repdb": "cable-reverse-fly",
+  "tipo": "exacta"
+ },
+ "Seated_Bent-Over_Rear_Delt_Raise": {
+  "repdb": "dumbbell-reverse-fly",
+  "tipo": "aproximada"
+ },
+ "Face_Pull": {
+  "repdb": "face-pull",
+  "tipo": "exacta"
+ },
+ "Band_Pull_Apart": {
+  "repdb": "band-pull-apart",
+  "tipo": "exacta"
+ },
+ "Upright_Barbell_Row": {
+  "repdb": "upright-row",
+  "tipo": "exacta"
+ },
+ "Standing_Dumbbell_Upright_Row": {
+  "repdb": "dumbbell-upright-row",
+  "tipo": "exacta"
+ },
+ "Upright_Cable_Row": {
+  "repdb": "cable-upright-row",
+  "tipo": "exacta"
+ },
+ "External_Rotation_with_Cable": {
+  "repdb": "cable-external-rotation",
+  "tipo": "exacta"
+ },
+ "External_Rotation_with_Band": {
+  "repdb": "band-shoulder-external-rotation",
+  "tipo": "exacta"
+ },
+ "Handstand_Push-Ups": {
+  "repdb": "handstand-push-ups",
+  "tipo": "exacta"
+ },
+ "Barbell_Shrug": {
+  "repdb": "shrug",
+  "tipo": "exacta"
+ },
+ "Dumbbell_Shrug": {
+  "repdb": "db-shrug",
+  "tipo": "exacta"
+ },
+ "Cable_Shrugs": null,
+ "Smith_Machine_Upright_Row": {
+  "repdb": "smith-machine-upright-row",
+  "tipo": "exacta"
+ },
+ "Leverage_Shrug": {
+  "repdb": "plate-loaded-shrug",
+  "tipo": "exacta"
+ },
+ "Barbell_Curl": {
+  "repdb": "barbell-curl",
+  "tipo": "exacta"
+ },
+ "EZ-Bar_Curl": {
+  "repdb": "ez-bar-curl",
+  "tipo": "exacta"
+ },
+ "Close-Grip_EZ_Bar_Curl": {
+  "repdb": "close-grip-ez-bar-curl",
+  "tipo": "exacta"
+ },
+ "Dumbbell_Bicep_Curl": {
+  "repdb": "bicep-curl",
+  "tipo": "exacta"
+ },
+ "Dumbbell_Alternate_Bicep_Curl": {
+  "repdb": "bicep-curl",
+  "tipo": "aproximada"
+ },
+ "Hammer_Curls": {
+  "repdb": "hammer-curl",
+  "tipo": "exacta"
+ },
+ "Alternate_Hammer_Curl": {
+  "repdb": "hammer-curl",
+  "tipo": "aproximada"
+ },
+ "Cross_Body_Hammer_Curl": {
+  "repdb": "cross-body-hammer-curl",
+  "tipo": "exacta"
+ },
+ "Incline_Dumbbell_Curl": {
+  "repdb": "incline-db-curl",
+  "tipo": "exacta"
+ },
+ "Concentration_Curls": {
+  "repdb": "concentration-curl",
+  "tipo": "exacta"
+ },
+ "Preacher_Curl": {
+  "repdb": "barbell-preacher-curl",
+  "tipo": "exacta"
+ },
+ "One_Arm_Dumbbell_Preacher_Curl": {
+  "repdb": "one-arm-dumbbell-preacher-curl",
+  "tipo": "exacta"
+ },
+ "Machine_Preacher_Curls": {
+  "repdb": "machine-preacher-curl",
+  "tipo": "exacta"
+ },
+ "Machine_Bicep_Curl": {
+  "repdb": "machine-bicep-curl",
+  "tipo": "exacta"
+ },
+ "Standing_Biceps_Cable_Curl": {
+  "repdb": "cable-curl",
+  "tipo": "exacta"
+ },
+ "Cable_Hammer_Curls_-_Rope_Attachment": {
+  "repdb": "cable-hammer-curl",
+  "tipo": "exacta"
+ },
+ "Overhead_Cable_Curl": null,
+ "Cable_Preacher_Curl": null,
+ "Spider_Curl": {
+  "repdb": "ez-bar-spider-curl",
+  "tipo": "exacta"
+ },
+ "Drag_Curl": {
+  "repdb": "drag-curl",
+  "tipo": "exacta"
+ },
+ "Zottman_Curl": {
+  "repdb": "zottman-curl",
+  "tipo": "exacta"
+ },
+ "Reverse_Barbell_Curl": {
+  "repdb": "reverse-curl",
+  "tipo": "exacta"
+ },
+ "Seated_Dumbbell_Curl": {
+  "repdb": "seated-dumbbell-curl",
+  "tipo": "exacta"
+ },
+ "Triceps_Pushdown": {
+  "repdb": "tricep-pushdown",
+  "tipo": "exacta"
+ },
+ "Triceps_Pushdown_-_Rope_Attachment": {
+  "repdb": "tricep-pushdown",
+  "tipo": "aproximada"
+ },
+ "Triceps_Pushdown_-_V-Bar_Attachment": {
+  "repdb": "v-bar-tricep-pushdown",
+  "tipo": "exacta"
+ },
+ "Reverse_Grip_Triceps_Pushdown": null,
+ "Cable_One_Arm_Tricep_Extension": {
+  "repdb": "single-arm-tricep-pushdown",
+  "tipo": "aproximada"
+ },
+ "Triceps_Overhead_Extension_with_Rope": {
+  "repdb": "cable-overhead-tricep-extension",
+  "tipo": "exacta"
+ },
+ "Cable_Rope_Overhead_Triceps_Extension": {
+  "repdb": "cable-overhead-tricep-extension",
+  "tipo": "exacta"
+ },
+ "EZ-Bar_Skullcrusher": {
+  "repdb": "skull-crusher",
+  "tipo": "aproximada"
+ },
+ "Lying_Triceps_Press": {
+  "repdb": "ez-bar-lying-tricep-extension",
+  "tipo": "exacta"
+ },
+ "Lying_Dumbbell_Tricep_Extension": {
+  "repdb": "db-skull-crusher",
+  "tipo": "exacta"
+ },
+ "Standing_Dumbbell_Triceps_Extension": {
+  "repdb": "dumbbell-tricep-extension",
+  "tipo": "aproximada"
+ },
+ "Dumbbell_One-Arm_Triceps_Extension": {
+  "repdb": "single-arm-dumbbell-overhead-tricep-extension",
+  "tipo": "exacta"
+ },
+ "Tricep_Dumbbell_Kickback": {
+  "repdb": "tricep-kickback",
+  "tipo": "exacta"
+ },
+ "Close-Grip_Barbell_Bench_Press": {
+  "repdb": "close-grip-bench-press",
+  "tipo": "exacta"
+ },
+ "Smith_Machine_Close-Grip_Bench_Press": null,
+ "JM_Press": null,
+ "Dips_-_Triceps_Version": {
+  "repdb": "dips",
+  "tipo": "aproximada"
+ },
+ "Parallel_Bar_Dip": {
+  "repdb": "dips",
+  "tipo": "exacta"
+ },
+ "Bench_Dips": {
+  "repdb": "bench-dips",
+  "tipo": "exacta"
+ },
+ "Weighted_Bench_Dip": {
+  "repdb": "bench-dips",
+  "tipo": "aproximada"
+ },
+ "Dip_Machine": {
+  "repdb": "seated-dip-machine",
+  "tipo": "exacta"
+ },
+ "Machine_Triceps_Extension": {
+  "repdb": "machine-triceps-extension",
+  "tipo": "exacta"
+ },
+ "Push-Ups_-_Close_Triceps_Position": {
+  "repdb": "close-grip-push-ups",
+  "tipo": "exacta"
+ },
+ "Close-Grip_Dumbbell_Press": {
+  "repdb": "close-grip-db-bench-press",
+  "tipo": "exacta"
+ },
+ "Palms-Up_Barbell_Wrist_Curl_Over_A_Bench": {
+  "repdb": "barbell-wrist-curl",
+  "tipo": "exacta"
+ },
+ "Palms-Down_Wrist_Curl_Over_A_Bench": null,
+ "Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench": {
+  "repdb": "db-reverse-wrist-curl",
+  "tipo": "exacta"
+ },
+ "Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench": {
+  "repdb": "dumbbell-wrist-curl",
+  "tipo": "exacta"
+ },
+ "Wrist_Roller": {
+  "repdb": "wrist-roller",
+  "tipo": "exacta"
+ },
+ "Plate_Pinch": {
+  "repdb": "plate-pinch",
+  "tipo": "exacta"
+ },
+ "Barbell_Squat": {
+  "repdb": "squat",
+  "tipo": "exacta"
+ },
+ "Barbell_Full_Squat": {
+  "repdb": "squat",
+  "tipo": "exacta"
+ },
+ "Front_Barbell_Squat": {
+  "repdb": "front-squat",
+  "tipo": "exacta"
+ },
+ "Box_Squat": {
+  "repdb": "barbell-box-squat",
+  "tipo": "exacta"
+ },
+ "Smith_Machine_Squat": {
+  "repdb": "smith-machine-squat",
+  "tipo": "exacta"
+ },
+ "Goblet_Squat": {
+  "repdb": "goblet-squat",
+  "tipo": "exacta"
+ },
+ "Dumbbell_Squat": {
+  "repdb": "db-squat",
+  "tipo": "exacta"
+ },
+ "Bodyweight_Squat": {
+  "repdb": "bodyweight-squat",
+  "tipo": "exacta"
+ },
+ "Wide_Stance_Barbell_Squat": {
+  "repdb": "sumo-squat",
+  "tipo": "exacta"
+ },
+ "Plie_Dumbbell_Squat": {
+  "repdb": "db-sumo-squat",
+  "tipo": "exacta"
+ },
+ "Zercher_Squats": {
+  "repdb": "zercher-squat",
+  "tipo": "exacta"
+ },
+ "Overhead_Squat": {
+  "repdb": "overhead-squat",
+  "tipo": "exacta"
+ },
+ "Hack_Squat": {
+  "repdb": "hack-squat",
+  "tipo": "exacta"
+ },
+ "Barbell_Hack_Squat": null,
+ "Leg_Press": {
+  "repdb": "leg-press",
+  "tipo": "exacta"
+ },
+ "Narrow_Stance_Leg_Press": {
+  "repdb": "close-stance-leg-press",
+  "tipo": "exacta"
+ },
+ "Smith_Machine_Leg_Press": null,
+ "Leg_Extensions": {
+  "repdb": "leg-extension",
+  "tipo": "exacta"
+ },
+ "Single-Leg_Leg_Extension": {
+  "repdb": "single-leg-extension",
+  "tipo": "exacta"
+ },
+ "Barbell_Lunge": {
+  "repdb": "barbell-lunge",
+  "tipo": "exacta"
+ },
+ "Dumbbell_Lunges": {
+  "repdb": "db-lunge",
+  "tipo": "exacta"
+ },
+ "Barbell_Walking_Lunge": {
+  "repdb": "barbell-lunge",
+  "tipo": "aproximada"
+ },
+ "Bodyweight_Walking_Lunge": {
+  "repdb": "walking-lunge",
+  "tipo": "exacta"
+ },
+ "Dumbbell_Rear_Lunge": {
+  "repdb": "reverse-lunge",
+  "tipo": "exacta"
+ },
+ "Split_Squat_with_Dumbbells": {
+  "repdb": "bulgarian-split-squat",
+  "tipo": "exacta"
+ },
+ "Smith_Single-Leg_Split_Squat": {
+  "repdb": "smith-machine-bulgarian-split",
+  "tipo": "exacta"
+ },
+ "Dumbbell_Step_Ups": {
+  "repdb": "step-ups",
+  "tipo": "aproximada"
+ },
+ "Barbell_Step_Ups": {
+  "repdb": "step-ups",
+  "tipo": "aproximada"
+ },
+ "Weighted_Sissy_Squat": {
+  "repdb": "sissy-squat",
+  "tipo": "aproximada"
+ },
+ "Kettlebell_Pistol_Squat": {
+  "repdb": "kettlebell-pistol-squat",
+  "tipo": "exacta"
+ },
+ "Freehand_Jump_Squat": {
+  "repdb": "jump-squat",
+  "tipo": "exacta"
+ },
+ "Mountain_Climbers": {
+  "repdb": "mountain-climbers",
+  "tipo": "exacta"
+ },
+ "Romanian_Deadlift": {
+  "repdb": "romanian-deadlift",
+  "tipo": "exacta"
+ },
+ "Stiff-Legged_Barbell_Deadlift": {
+  "repdb": "stiff-leg-deadlift",
+  "tipo": "exacta"
+ },
+ "Stiff-Legged_Dumbbell_Deadlift": {
+  "repdb": "dumbbell-romanian-deadlift",
+  "tipo": "exacta"
+ },
+ "Smith_Machine_Stiff-Legged_Deadlift": {
+  "repdb": "smith-machine-rdl",
+  "tipo": "exacta"
+ },
+ "Kettlebell_One-Legged_Deadlift": {
+  "repdb": "kettlebell-single-leg-deadlift",
+  "tipo": "exacta"
+ },
+ "Lying_Leg_Curls": {
+  "repdb": "leg-curl",
+  "tipo": "exacta"
+ },
+ "Seated_Leg_Curl": {
+  "repdb": "seated-leg-curl",
+  "tipo": "exacta"
+ },
+ "Standing_Leg_Curl": null,
+ "Ball_Leg_Curl": {
+  "repdb": "ball-leg-curl",
+  "tipo": "exacta"
+ },
+ "Glute_Ham_Raise": null,
+ "Natural_Glute_Ham_Raise": {
+  "repdb": "nordic-hamstring-curl",
+  "tipo": "exacta"
+ },
+ "One-Arm_Kettlebell_Swings": {
+  "repdb": "one-arm-kettlebell-swing",
+  "tipo": "exacta"
+ },
+ "Power_Clean": {
+  "repdb": "clean",
+  "tipo": "exacta"
+ },
+ "Clean_Deadlift": null,
+ "Barbell_Hip_Thrust": {
+  "repdb": "hip-thrust",
+  "tipo": "exacta"
+ },
+ "Barbell_Glute_Bridge": {
+  "repdb": "barbell-glute-bridge",
+  "tipo": "exacta"
+ },
+ "Single_Leg_Glute_Bridge": {
+  "repdb": "single-leg-glute-bridge",
+  "tipo": "exacta"
+ },
+ "Butt_Lift_Bridge": {
+  "repdb": "glute-bridge",
+  "tipo": "exacta"
+ },
+ "Glute_Kickback": {
+  "repdb": "glute-kickback",
+  "tipo": "exacta"
+ },
+ "One-Legged_Cable_Kickback": {
+  "repdb": "cable-kickback",
+  "tipo": "exacta"
+ },
+ "Pull_Through": {
+  "repdb": "cable-pull-through",
+  "tipo": "exacta"
+ },
+ "Thigh_Abductor": {
+  "repdb": "hip-abduction",
+  "tipo": "exacta"
+ },
+ "Thigh_Adductor": {
+  "repdb": "hip-adduction",
+  "tipo": "exacta"
+ },
+ "Monster_Walk": {
+  "repdb": "banded-sumo-walk",
+  "tipo": "aproximada"
+ },
+ "Standing_Calf_Raises": {
+  "repdb": "standing-calf-raise",
+  "tipo": "exacta"
+ },
+ "Seated_Calf_Raise": {
+  "repdb": "seated-calf-raise",
+  "tipo": "exacta"
+ },
+ "Standing_Dumbbell_Calf_Raise": {
+  "repdb": "dumbbell-calf-raise",
+  "tipo": "exacta"
+ },
+ "Calf_Press_On_The_Leg_Press_Machine": null,
+ "Smith_Machine_Calf_Raise": {
+  "repdb": "smith-machine-calf-raise",
+  "tipo": "exacta"
+ },
+ "Donkey_Calf_Raises": {
+  "repdb": "donkey-calf-raise",
+  "tipo": "exacta"
+ },
+ "Standing_Barbell_Calf_Raise": {
+  "repdb": "barbell-calf-raise",
+  "tipo": "exacta"
+ },
+ "Crunches": {
+  "repdb": "crunches",
+  "tipo": "exacta"
+ },
+ "Cable_Crunch": {
+  "repdb": "cable-crunch",
+  "tipo": "exacta"
+ },
+ "Bent-Knee_Hip_Raise": {
+  "repdb": "reverse-crunches",
+  "tipo": "aproximada"
+ },
+ "Ab_Crunch_Machine": {
+  "repdb": "machine-seated-crunch",
+  "tipo": "exacta"
+ },
+ "Weighted_Crunches": null,
+ "Decline_Crunch": {
+  "repdb": "decline-crunch",
+  "tipo": "exacta"
+ },
+ "Reverse_Crunch": {
+  "repdb": "reverse-crunches",
+  "tipo": "exacta"
+ },
+ "Oblique_Crunches": null,
+ "Sit-Up": {
+  "repdb": "sit-ups",
+  "tipo": "exacta"
+ },
+ "Hanging_Leg_Raise": {
+  "repdb": "hanging-leg-raise",
+  "tipo": "exacta"
+ },
+ "Knee_Hip_Raise_On_Parallel_Bars": {
+  "repdb": "captains-chair-knee-raise",
+  "tipo": "aproximada"
+ },
+ "Flat_Bench_Lying_Leg_Raise": {
+  "repdb": "lying-leg-raise",
+  "tipo": "exacta"
+ },
+ "Ab_Roller": {
+  "repdb": "ab-wheel-rollout",
+  "tipo": "exacta"
+ },
+ "Barbell_Ab_Rollout_-_On_Knees": {
+  "repdb": "barbell-ab-rollout",
+  "tipo": "exacta"
+ },
+ "Plank": {
+  "repdb": "plank",
+  "tipo": "exacta"
+ },
+ "Side_Bridge": {
+  "repdb": "side-plank",
+  "tipo": "exacta"
+ },
+ "Russian_Twist": {
+  "repdb": "russian-twist",
+  "tipo": "exacta"
+ },
+ "Dead_Bug": {
+  "repdb": "dead-bug",
+  "tipo": "exacta"
+ },
+ "Pallof_Press": {
+  "repdb": "cable-pallof-press",
+  "tipo": "exacta"
+ },
+ "Standing_Cable_Wood_Chop": null,
+ "Dumbbell_Side_Bend": {
+  "repdb": "dumbbell-side-bend",
+  "tipo": "exacta"
+ },
+ "Hanging_Pike": {
+  "repdb": "hanging-pike",
+  "tipo": "exacta"
+ },
+ "Kettlebell_Thruster": null,
+ "Clean_and_Press": null,
+ "Battling_Ropes": {
+  "repdb": "battle-ropes",
+  "tipo": "exacta"
+ },
+ "Rope_Climb": {
+  "repdb": "rope-climb",
+  "tipo": "exacta"
+ },
+ "Muscle_Up": {
+  "repdb": "muscle-ups",
+  "tipo": "exacta"
+ },
+ "Kettlebell_Turkish_Get-Up_Squat_style": {
+  "repdb": "kettlebell-turkish-get-ups",
+  "tipo": "exacta"
+ },
+ "Front_Box_Jump": {
+  "repdb": "box-jump",
+  "tipo": "exacta"
+ },
+ "Walking_Treadmill": {
+  "repdb": "incline-treadmill-walk",
+  "tipo": "aproximada"
+ },
+ "Bicycling_Stationary": {
+  "repdb": "stationary-bike",
+  "tipo": "exacta"
+ },
+ "Elliptical_Trainer": {
+  "repdb": "elliptical-trainer",
+  "tipo": "exacta"
+ },
+ "Stairmaster": {
+  "repdb": "stair-climber",
+  "tipo": "exacta"
+ },
+ "Rowing_Stationary": {
+  "repdb": "rowing-machine",
+  "tipo": "exacta"
+ },
+ "Rope_Jumping": {
+  "repdb": "jump-rope",
+  "tipo": "exacta"
+ }
+}

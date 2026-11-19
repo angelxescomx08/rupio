@@ -188,21 +188,27 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier, action: (@Composab
     }
 }
 
-/** Miniatura del ejercicio (imagen de dominio público de free-exercise-db). */
+/**
+ * Fondo de las imágenes de ejercicios: el mismo celeste de las ilustraciones de RepDB (≈ #D9F1FD), para que la
+ * imagen cuadrada no deje franjas blancas en la caja 1.4:1 del detalle ni en las miniaturas.
+ */
+val ExerciseImageBg = Color(0xFFD9F1FD)
+
+/** Miniatura del ejercicio (ilustración de RepDB, ver docs/IMAGENES_REPDB.md). Sin imagen: ícono de pesa. */
 @Composable
 fun ExerciseThumb(url: String?, size: Dp = 48.dp, modifier: Modifier = Modifier) {
-    Box(modifier.size(size).clip(RoundedCornerShape(12.dp)).background(Color.White), contentAlignment = Alignment.Center) {
+    Box(modifier.size(size).clip(RoundedCornerShape(12.dp)).background(ExerciseImageBg), contentAlignment = Alignment.Center) {
         if (url != null) AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         else Icon(Icons.Rounded.FitnessCenter, null, tint = Color.Gray)
     }
 }
 
-/** Alterna las dos fotos (inicio y fin del movimiento) para mostrar cómo se hace. */
+/** Alterna las dos imágenes (inicio y fin del movimiento) para mostrar cómo se hace. Con una sola, queda fija. */
 @Composable
 fun AnimatedExerciseImage(image0: String?, image1: String?, modifier: Modifier = Modifier) {
     var frame by remember { mutableIntStateOf(0) }
     LaunchedEffect(image0, image1) { if (image1 != null) while (true) { delay(1100); frame = 1 - frame } }
-    Box(modifier.clip(RoundedCornerShape(20.dp)).background(Color.White)) {
+    Box(modifier.clip(RoundedCornerShape(20.dp)).background(ExerciseImageBg)) {
         Crossfade(targetState = frame, animationSpec = tween(450), label = "frames") { f ->
             AsyncImage(model = if (f == 0) image0 else image1, contentDescription = "Demostración del ejercicio",
                 contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())

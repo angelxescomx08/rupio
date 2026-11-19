@@ -28,3 +28,10 @@ __pycache__/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Imágenes de ejercicios de RepDB: su licencia gratuita permite usarlas dentro de la app, pero no volver a
+# publicarlas como colección. El repo es público, así que no se suben: se generan con tools/repdb/instalar_imagenes.py
+app/src/main/assets/ex/
+
+# Archivos para borrar a mano (el asistente no puede borrar en esta carpeta)
+_to_delete/
