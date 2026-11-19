@@ -398,4 +398,38 @@ class V19QaUiTest {
         // La tarjeta entera se puede tocar para abrir la rutina.
         compose.onNode(hasClickAction() and hasText("Full body B")).assertExists()
     }
+
+    /** R1: al cambiar la búsqueda, la lista regresa arriba (antes de "remo" a "sentadilla" el primero quedaba escondido). */
+    @Test fun r1_el_buscador_regresa_arriba_al_cambiar_el_texto() = runBlocking<Unit> {
+        CatalogSeeder.seedIfNeeded(app, c.db)
+        c.auth.useLocalMode("QA")
+        compose.setContent { RupioTheme { Surface(color = MaterialTheme.colorScheme.background) {
+            com.rupio.app.ui.exercises.ExercisePickerScreen(rememberNavController(), "browse", "") } } }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Abdominales", substring = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(hasSetTextAction()).performTextInput("remo"); settle()
+        compose.onNode(hasScrollToIndexAction()).performScrollToIndex(6); settle()
+        compose.onNode(hasSetTextAction()).performTextReplacement("sentadilla"); settle()
+        val catalog = c.db.exercises().observeAll().first()
+        val first = catalog.filter { ExerciseSearch.matches(it.searchKey, Muscles.label(it.primaryMuscle).searchKey(), ExerciseSearch.tokens("sentadilla")) }
+            .sortedWith(compareBy({ ExerciseSearch.rank(it.searchKey, "sentadilla") }, { !it.isCustom }, { it.searchKey })).first()
+        compose.onNodeWithText(first.name).assertIsDisplayed()
+    }
+
+    /** R2 y R3: un entreno solo de cardio explica la duración y no habla de subir peso. */
+    @Test fun r2_r3_entreno_solo_de_cardio() = runBlocking<Unit> {
+        CatalogSeeder.seedIfNeeded(app, c.db)
+        c.auth.useLocalMode("QA")
+        c.wipeLocalData()
+        val w = c.workouts.startEmpty()
+        c.workouts.addExercises(w, listOf("caminadora"))
+        val s = c.db.workouts().sets(w).single()
+        c.workouts.editSet(s.id) { it.copy(durationSec = 1200) }
+        c.workouts.toggleComplete(s.id, Tracking.DURATION, null, null, null)
+        c.workouts.finish(w, null, null)
+        compose.setContent { RupioTheme { Surface(color = MaterialTheme.colorScheme.background) {
+            com.rupio.app.ui.history.WorkoutDetailScreen(rememberNavController(), w, 1) } } }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Incluye 20 min de cardio que anotaste").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Anotaste 20 min de cardio. La próxima vez intenta un poco más.").assertExists()
+        assertTrue("sin «0 lb»", compose.onAllNodesWithText("Volumen").fetchSemanticsNodes().isEmpty())
+    }
 }

@@ -26,6 +26,7 @@ import com.rupio.app.domain.SetType
 import com.rupio.app.domain.CalorieEstimate
 import com.rupio.app.domain.Cardio
 import com.rupio.app.data.repo.isCardio
+import kotlin.math.roundToInt
 import com.rupio.app.domain.MuscleSplit
 import com.rupio.app.domain.SupersetRestMode
 import com.rupio.app.domain.Tracking
@@ -119,6 +120,11 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
         val groups = groupConsecutive(exercises) { it.supersetId }
         val ssIndex = supersetIndexMap(exercises.map { it.supersetId })
         val setsBy = sets.groupBy { it.workoutExerciseId }
+        // El cardio anotado (con su MET): para las calorías, la línea de "Incluye N min" y el mensaje final (R2, R3).
+        val parts = exercises.filter { byId[it.exerciseId]?.isCardio == true }.flatMap { we ->
+            setsBy[we.id].orEmpty().filter { it.completed }.map { CalorieEstimate.CardioPart(Cardio.met(we.exerciseId), it.durationSec ?: 0) }
+        }
+        val cardioMin = (parts.sumOf { it.sec } / 60.0).roundToInt()
         LazyColumn(Modifier.padding(pad), contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (celebrating) item {
                 Surface(shape = RoundedCornerShape(20.dp), color = RupioColors.Success.copy(alpha = 0.14f), modifier = Modifier.fillMaxWidth()) {
@@ -126,7 +132,12 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
                         Text("🎉", style = MaterialTheme.typography.displaySmall)
                         Text("¡Entrenamiento guardado!", style = MaterialTheme.typography.titleLarge, color = RupioColors.Success)
                         val prs = celebrate - 1
-                        Text(if (prs > 0) "Rompiste ${Fmt.plural(prs, "récord personal", "récords personales")}. ¡Así se progresa!" else "Cada sesión cuenta. La próxima vez Rupio te dirá cuánto subir.",
+                        // v1.9 (R3): un entreno solo de cardio no habla de subir peso.
+                        Text(when {
+                            prs > 0 -> "Rompiste ${Fmt.plural(prs, "récord personal", "récords personales")}. ¡Así se progresa!"
+                            workout.totalVolumeKg <= 0.0 && cardioMin > 0 -> "Anotaste $cardioMin min de cardio. La próxima vez intenta un poco más."
+                            else -> "Cada sesión cuenta. La próxima vez Rupio te dirá cuánto subir."
+                        },
                             style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim, textAlign = TextAlign.Center)
                     }
                 }
@@ -144,6 +155,10 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
                     Text("Empezó a las " + Dates.formatTimeWithOrigin(workout.startedAt, zone, workout.timeZone) +
                         (workout.endedAt?.let { " · terminó a las " + Dates.formatTime(it, zone) } ?: ""),
                         style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
+                    // v1.9 (R2): las horas son las reales; si la duración es mayor es porque cuenta el cardio que anotaste.
+                    val clockSec = workout.endedAt?.let { (it - workout.startedAt) / 1000 } ?: 0L
+                    if (cardioMin > 0 && (workout.durationSec ?: 0) > clockSec + 30)
+                        Text("Incluye $cardioMin min de cardio que anotaste", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
                     Spacer(Modifier.height(12.dp))
                     // v1.9: sin "0 lb" cuando no hubo pesas (cardio o solo peso corporal).
                     TileRow {
@@ -157,9 +172,6 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
                         Tile("Récords", "${workout.prCount}")
                     }
                     // v1.8: calorías estimadas (método MET, ver CalorieEstimate). v1.9: el cardio con su MET y sus minutos.
-                    val parts = exercises.filter { byId[it.exerciseId]?.isCardio == true }.flatMap { we ->
-                        setsBy[we.id].orEmpty().filter { it.completed }.map { CalorieEstimate.CardioPart(Cardio.met(we.exerciseId), it.durationSec ?: 0) }
-                    }
                     CalorieEstimate.estimate((workout.durationSec ?: 0).toLong(), workout.totalSets - parts.size, bodyKg.firstOrNull()?.weightKg, parts)?.let { kcal ->
                         Spacer(Modifier.height(8.dp)); TileRow { CaloriesTile(kcal) }
                     }

@@ -69,3 +69,10 @@ Las pruebas están en `V19QaTest.kt` (las que empiezan con `n`).
 - **N10 Registro**: desde el modo sin cuenta, el campo Nombre ya trae tu nombre.
 - **Plurales**: "1 ejercicio · 1 serie", "1 semana seguida", "1 serie/sem", "Rompiste 1 récord personal", "Si guardas sin marcarla".
 - **Pruebas**: 195 con `--rerun` (sin caché): 192 pasan y 3 se omiten (las mismas de antes).
+
+## Tercera vuelta (docs/QA_V19_RONDA3.md)
+- **R1 Buscador**: al cambiar la búsqueda o un filtro, la lista regresa arriba; al volver del detalle de un ejercicio sigue donde estaba. La prueba `V19QaUiTest.r1_…` falla sin el arreglo y pasa con él.
+- **R2 Duración del cardio**: en el detalle, debajo de las horas reales, "Incluye 20 min de cardio que anotaste" cuando la duración es mayor que el reloj. Durante el entreno, el encabezado cuenta el cardio marcado y sin pesas no muestra "0 lb".
+- **R3 Mensaje final**: un entreno solo de cardio dice "Anotaste 20 min de cardio. La próxima vez intenta un poco más."
+- **Catálogo del servidor**: `db/migrations/010_cardio.sql` agrega los 6 de cardio y hace que `rupio_muscle_sets` no cuente "cardio" ni "cuerpo_completo". **Aplicada en production el 18 nov 2026** con `db/neon/aplicar.ps1` (proyecto Rupio, rama production, `ep-wild-art-bdlip6s4`). Verificado: los 6 ejercicios están en `public.exercises` y la función excluye esos grupos.
+- **Pruebas**: 197 con `--rerun`: 194 pasan y 3 se omiten. En una corrida falló una vez `V17UiTest.n2_n9…` por un archivo de DataStore bloqueado en Windows (la instancia de `preferencesDataStore` es única por proceso y queda apuntando a la carpeta temporal de la primera prueba que la usa). La siguiente corrida pasó completa.

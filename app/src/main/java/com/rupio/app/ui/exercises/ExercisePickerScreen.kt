@@ -33,6 +33,7 @@ import com.rupio.app.domain.Tracking
 import com.rupio.app.domain.label
 import com.rupio.app.ui.components.*
 import com.rupio.app.ui.theme.RupioColors
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 /**
@@ -52,6 +53,13 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
     val selected = rememberSaveable(saver = listSaver(save = { it.toList() }, restore = { it.toMutableStateList() })) { mutableStateListOf<String>() }
     var creating by remember { mutableStateOf(false) }
     val browse = mode == "browse"
+    // v1.9 (R1): al cambiar la búsqueda o un filtro, la lista regresa arriba (por las llaves conservaba el ejercicio que
+    // estaba arriba y los mejores resultados quedaban escondidos). La primera emisión se salta: al volver del detalle
+    // de un ejercicio la lista sigue donde estaba.
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    LaunchedEffect(listState) {
+        snapshotFlow { Triple(query, muscle, equipment) }.drop(1).collect { listState.scrollToItem(0) }
+    }
 
     val filtered = remember(catalog, query, muscle, equipment) {
         // v1.9: con sinónimos ("desplante" → zancada, "gemelos" → pantorrilla, "caminadora", "cardio"…).
@@ -114,7 +122,7 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
             }
         }
         if (!short) filters(16.dp)
-        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (short) item(key = "filtros") { Column { filters(0.dp) } }
             if (filtered.isEmpty()) item {
                 EmptyState(Icons.Rounded.SearchOff, "Sin resultados", "Prueba con otra palabra o crea tu propio ejercicio.") {

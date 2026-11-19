@@ -164,6 +164,9 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
     val volume = items.sumOf { e -> e.sets.filter { it.completed && it.setType != SetType.WARMUP.code }.sumOf { (it.weightKg ?: 0.0).coerceAtLeast(0.0) * (it.reps ?: 0) } }
     val ssIndex = supersetIndexMap(items.map { it.we.supersetId })
     val groups = groupConsecutive(items) { it.we.supersetId }
+    // Cardio marcado (segundos) y si todo lo marcado es cardio (para no mostrar "0 lb").
+    val cardioSec = items.filter { it.isCardio }.sumOf { e -> e.sets.filter { it.completed }.sumOf { (it.durationSec ?: 0).toLong() } }
+    val onlyCardio = cardioSec > 0 && items.all { e -> e.isCardio || e.sets.none { it.completed } }
 
     Scaffold(
         containerColor = RupioColors.Background,
@@ -183,15 +186,20 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
                 }
                 if (bigText) Text(w.name, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 16.dp))
-                val dur = Fmt.duration(((now - w.startedAt) / 1000).coerceAtLeast(0))
+                // v1.9 (R2): el cardio que ya anotaste cuenta en la duración (20 min de caminadora no son "3:12"), y sin
+                // pesas marcadas no se muestra "0 lb".
+                val clockSec = ((now - w.startedAt) / 1000).coerceAtLeast(0)
+                val dur = Fmt.duration(maxOf(clockSec, cardioSec))
+                val showVolume = volume > 0.0 || !onlyCardio
+                val volText = if (showVolume) " · ${Fmt.volume(volume, unit)}" else ""
                 if (compactHeader) {
-                    FitText("$dur · ${Fmt.volume(volume, unit)} · ${Fmt.plural(doneSets, "serie", "series")}", MaterialTheme.typography.titleMedium.merge(Tabular),
+                    FitText("$dur$volText · ${Fmt.plural(doneSets, "serie", "series")}", MaterialTheme.typography.titleMedium.merge(Tabular),
                         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp)
-                            .semantics { contentDescription = "Duración $dur, volumen ${Fmt.volume(volume, unit)}, ${Fmt.plural(doneSets, "serie", "series")}" },
+                            .semantics { contentDescription = "Duración $dur" + (if (showVolume) ", volumen ${Fmt.volume(volume, unit)}" else "") + ", ${Fmt.plural(doneSets, "serie", "series")}" },
                         color = RupioColors.TextDim, maxLines = 1)
                 } else TileRow(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                     Tile("Duración", dur)
-                    Tile("Volumen", Fmt.volume(volume, unit), sub = Fmt.volume(volume, unit.other))
+                    if (showVolume) Tile("Volumen", Fmt.volume(volume, unit), sub = Fmt.volume(volume, unit.other))
                     Tile("Series", "$doneSets")
                 }
             }
