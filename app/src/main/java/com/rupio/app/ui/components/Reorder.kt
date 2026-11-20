@@ -1,5 +1,7 @@
 package com.rupio.app.ui.components
 
+
+import com.rupio.app.core.tr
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -57,7 +59,7 @@ data class ReorderEntry(
  * - mantener presionada la fila y arrastrar (desde cualquier parte de la fila);
  * - con TalkBack: acciones "Mover arriba / abajo / al inicio / al final" en cada fila.
  * Las superseries se mueven completas desde su encabezado y, dentro, cada ejercicio se puede reacomodar.
- * Al acercarte al borde la lista se desplaza sola. Nada se guarda hasta tocar "Listo"; "Cancelar" o atrás lo
+ * Al acercarte al borde la lista se desplaza sola. Nada se guarda hasta tocar tr("Listo", "Done"); "Cancelar" o atrás lo
  * dejan como estaba (si ya moviste algo, pregunta antes).
  *
  * @param focusKey si se abrió manteniendo presionado un elemento, ese se muestra y se resalta un momento.
@@ -104,7 +106,7 @@ fun ReorderDialog(
         Surface(Modifier.fillMaxSize(), color = RupioColors.Background) {
             Column(Modifier.fillMaxSize()) {
                 RupioTopBar(title, onBack = { cancel() }) {
-                    Button(onClick = { onDone(flat.map { it.key }) }, shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(end = 8.dp)) { Text("Listo") }
+                    Button(onClick = { onDone(flat.map { it.key }) }, shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(end = 8.dp)) { Text(tr("Listo", "Done")) }
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.SwapVert, null, tint = RupioColors.TextDim, modifier = Modifier.size(18.dp))
@@ -131,7 +133,7 @@ fun ReorderDialog(
                                 ) {
                                     Column(Modifier.padding(8.dp)) {
                                         // Encabezado: arrastra la superserie completa.
-                                        val groupName = "Superserie ${supersetLetter(idx)}"
+                                        val groupName = tr("Superserie ${supersetLetter(idx)}", "Superset ${supersetLetter(idx)}")
                                         val blockActions = blockActions(
                                             bi, blocks.size, groupName,
                                             onMove = { to -> blocks = ReorderOps.moveBlock(blocks, bi, to); tick() },
@@ -140,8 +142,8 @@ fun ReorderDialog(
                                             Modifier.fillMaxWidth().heightIn(min = 52.dp)
                                                 .longPressDraggableHandle(onDragStarted = { haptics.performHapticFeedback(HapticFeedbackType.LongPress) })
                                                 .semantics(mergeDescendants = true) {
-                                                    contentDescription = "$groupName, ${block.size} ejercicios"
-                                                    stateDescription = "Bloque ${bi + 1} de ${blocks.size}"
+                                                    contentDescription = tr("$groupName, ${block.size} ejercicios", "$groupName, ${block.size} exercises")
+                                                    stateDescription = tr("Bloque ${bi + 1} de ${blocks.size}", "Block ${bi + 1} of ${blocks.size}")
                                                     customActions = blockActions
                                                 },
                                             verticalAlignment = Alignment.CenterVertically,
@@ -149,7 +151,7 @@ fun ReorderDialog(
                                             Spacer(Modifier.width(6.dp))
                                             SupersetTag(idx, null)
                                             Spacer(Modifier.width(8.dp))
-                                            Text("Superserie · ${block.size} ejercicios", style = MaterialTheme.typography.labelLarge, color = color, modifier = Modifier.weight(1f))
+                                            Text(tr("Superserie · ${block.size} ejercicios", "Superset · ${block.size} exercises"), style = MaterialTheme.typography.labelLarge, color = color, modifier = Modifier.weight(1f))
                                             DragHandleIcon(
                                                 "handle:$g",
                                                 Modifier.draggableHandle(onDragStarted = { haptics.performHapticFeedback(HapticFeedbackType.LongPress) }),
@@ -168,7 +170,7 @@ fun ReorderDialog(
                                             key(e.key) {
                                                 ReorderableItem {
                                                     EntryRow(
-                                                        e, label = supersetLetter(idx) + (k + 1), labelColor = color, position = "${k + 1} de ${block.size} en la $groupName",
+                                                        e, label = supersetLetter(idx) + (k + 1), labelColor = color, position = tr("${k + 1} de ${block.size} en la $groupName", "${k + 1} of ${block.size} in $groupName"),
                                                         dragging = memberDragging, highlighted = highlight == e.key, showImage = showImages,
                                                         actions = entryActions(flat, e, ::setFlat),
                                                         longPress = Modifier.longPressDraggableHandle(onDragStarted = { haptics.performHapticFeedback(HapticFeedbackType.LongPress) }),
@@ -183,7 +185,7 @@ fun ReorderDialog(
                                 val e = block.first()
                                 Box {
                                     EntryRow(
-                                        e, label = "${flat.indexOf(e) + 1}", labelColor = RupioColors.TextDim, position = "${flat.indexOf(e) + 1} de ${flat.size}",
+                                        e, label = "${flat.indexOf(e) + 1}", labelColor = RupioColors.TextDim, position = tr("${flat.indexOf(e) + 1} de ${flat.size}", "${flat.indexOf(e) + 1} of ${flat.size}"),
                                         dragging = dragging, highlighted = highlight == e.key, showImage = showImages,
                                         actions = entryActions(flat, e, ::setFlat),
                                         longPress = Modifier.longPressDraggableHandle(onDragStarted = { haptics.performHapticFeedback(HapticFeedbackType.LongPress) }),
@@ -196,7 +198,7 @@ fun ReorderDialog(
                 }
             }
         }
-        if (confirmCancel) ConfirmDialog("¿Descartar el nuevo orden?", "Todo se queda como estaba.", "Descartar", { confirmCancel = false }) {
+        if (confirmCancel) ConfirmDialog(tr("¿Descartar el nuevo orden?", "Discard the new order?"), tr("Todo se queda como estaba.", "Everything stays as it was."), tr("Descartar", "Discard"), { confirmCancel = false }) {
             confirmCancel = false; onDismiss()
         }
     }
@@ -259,17 +261,17 @@ private fun DragHandleIcon(tag: String, modifier: Modifier) {
 private fun entryActions(flat: List<ReorderEntry>, e: ReorderEntry, apply: (List<ReorderEntry>?) -> Unit): List<CustomAccessibilityAction> {
     val k: (ReorderEntry) -> String = { it.key }; val g: (ReorderEntry) -> String? = { it.group }
     return buildList {
-        ReorderOps.moveStep(flat, e.key, -1, k, g)?.let { r -> add(CustomAccessibilityAction("Mover arriba") { apply(r); true }) }
-        ReorderOps.moveStep(flat, e.key, 1, k, g)?.let { r -> add(CustomAccessibilityAction("Mover abajo") { apply(r); true }) }
-        ReorderOps.moveToEdge(flat, e.key, true, k, g)?.let { r -> add(CustomAccessibilityAction("Mover al inicio") { apply(r); true }) }
-        ReorderOps.moveToEdge(flat, e.key, false, k, g)?.let { r -> add(CustomAccessibilityAction("Mover al final") { apply(r); true }) }
+        ReorderOps.moveStep(flat, e.key, -1, k, g)?.let { r -> add(CustomAccessibilityAction(tr("Mover arriba", "Move up")) { apply(r); true }) }
+        ReorderOps.moveStep(flat, e.key, 1, k, g)?.let { r -> add(CustomAccessibilityAction(tr("Mover abajo", "Move down")) { apply(r); true }) }
+        ReorderOps.moveToEdge(flat, e.key, true, k, g)?.let { r -> add(CustomAccessibilityAction(tr("Mover al inicio", "Move to top")) { apply(r); true }) }
+        ReorderOps.moveToEdge(flat, e.key, false, k, g)?.let { r -> add(CustomAccessibilityAction(tr("Mover al final", "Move to bottom")) { apply(r); true }) }
     }
 }
 
 /** Acciones de TalkBack de una superserie completa. */
 private fun blockActions(index: Int, count: Int, name: String, onMove: (Int) -> Unit): List<CustomAccessibilityAction> = buildList {
-    if (index > 0) add(CustomAccessibilityAction("Mover $name arriba") { onMove(index - 1); true })
-    if (index < count - 1) add(CustomAccessibilityAction("Mover $name abajo") { onMove(index + 1); true })
-    if (index > 0) add(CustomAccessibilityAction("Mover $name al inicio") { onMove(0); true })
-    if (index < count - 1) add(CustomAccessibilityAction("Mover $name al final") { onMove(count - 1); true })
+    if (index > 0) add(CustomAccessibilityAction(tr("Mover $name arriba", "Move $name up")) { onMove(index - 1); true })
+    if (index < count - 1) add(CustomAccessibilityAction(tr("Mover $name abajo", "Move $name down")) { onMove(index + 1); true })
+    if (index > 0) add(CustomAccessibilityAction(tr("Mover $name al inicio", "Move $name to the top")) { onMove(0); true })
+    if (index < count - 1) add(CustomAccessibilityAction(tr("Mover $name al final", "Move $name to the bottom")) { onMove(count - 1); true })
 }

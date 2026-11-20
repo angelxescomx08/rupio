@@ -1,5 +1,7 @@
 package com.rupio.app.ui.components
 
+
+import com.rupio.app.core.tr
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -52,8 +54,8 @@ fun <T> groupConsecutive(items: List<T>, ss: (T) -> String?): List<List<T>> {
 }
 
 fun supersetRestText(mode: SupersetRestMode, sharedSec: Int?): String = when (mode) {
-    SupersetRestMode.SHARED -> "Descanso compartido: ${Fmt.restLabel(sharedSec ?: 0)} al terminar la ronda"
-    SupersetRestMode.INDIVIDUAL -> "Descanso individual: cada ejercicio usa el suyo"
+    SupersetRestMode.SHARED -> tr("Descanso compartido: ${Fmt.restLabel(sharedSec ?: 0)} al terminar la ronda", "Shared rest: ${Fmt.restLabel(sharedSec ?: 0)} after the round")
+    SupersetRestMode.INDIVIDUAL -> tr("Descanso individual: cada ejercicio usa el suyo", "Individual rest: each exercise uses its own")
 }
 
 /** Contenedor de una superserie. [content] recibe (índice del miembro, total) para dibujar cada uno. */
@@ -78,11 +80,11 @@ fun SupersetGroup(
                 SupersetTag(index, null)
                 Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Superserie · $count ejercicios", style = MaterialTheme.typography.labelLarge, color = color)
+                    Text(tr("Superserie · $count ejercicios", "Superset · $count exercises"), style = MaterialTheme.typography.labelLarge, color = color)
                     Text(supersetRestText(mode, sharedRestSec), style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim)
                 }
-                if (onEditRest != null) IconButton(onClick = onEditRest) { Icon(Icons.Rounded.Timer, "Descanso de la superserie", tint = RupioColors.Rest) }
-                if (onUngroup != null) IconButton(onClick = onUngroup) { Icon(Icons.Rounded.LinkOff, "Separar superserie", tint = RupioColors.TextDim) }
+                if (onEditRest != null) IconButton(onClick = onEditRest) { Icon(Icons.Rounded.Timer, tr("Descanso de la superserie", "Superset rest"), tint = RupioColors.Rest) }
+                if (onUngroup != null) IconButton(onClick = onUngroup) { Icon(Icons.Rounded.LinkOff, tr("Separar superserie", "Split superset"), tint = RupioColors.TextDim) }
             }
             for (i in 0 until count) {
                 Row(Modifier.height(IntrinsicSize.Min)) {
@@ -127,8 +129,8 @@ fun SupersetRestDialog(
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                ModeOption(mode == SupersetRestMode.SHARED, "Un descanso para toda la superserie",
-                    "Haces A1 → A2 sin parar y descansas al terminar la ronda.") { mode = SupersetRestMode.SHARED }
+                ModeOption(mode == SupersetRestMode.SHARED, tr("Un descanso para toda la superserie", "One rest for the whole superset"),
+                    tr("Haces A1 → A2 sin parar y descansas al terminar la ronda.", "You do A1 → A2 without stopping and rest when the round is done.")) { mode = SupersetRestMode.SHARED }
                 if (mode == SupersetRestMode.SHARED) {
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(RupioColors.Rest.copy(alpha = 0.14f))
@@ -137,26 +139,26 @@ fun SupersetRestDialog(
                     ) {
                         Icon(Icons.Rounded.Timer, null, tint = RupioColors.Rest)
                         Spacer(Modifier.width(8.dp))
-                        Text("Descanso tras la ronda: ${Fmt.restLabel(rest)}", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
-                        Text("Cambiar", color = RupioColors.Primary, style = MaterialTheme.typography.labelLarge)
+                        Text(tr("Descanso tras la ronda: ${Fmt.restLabel(rest)}", "Rest after the round: ${Fmt.restLabel(rest)}"), modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                        Text(tr("Cambiar", "Change"), color = RupioColors.Primary, style = MaterialTheme.typography.labelLarge)
                     }
                 }
-                ModeOption(mode == SupersetRestMode.INDIVIDUAL, "Descanso individual",
-                    "Cada ejercicio usa su propio descanso después de su serie.") { mode = SupersetRestMode.INDIVIDUAL }
+                ModeOption(mode == SupersetRestMode.INDIVIDUAL, tr("Descanso individual", "Individual rest"),
+                    tr("Cada ejercicio usa su propio descanso después de su serie.", "Each exercise uses its own rest after its set.")) { mode = SupersetRestMode.INDIVIDUAL }
                 Surface(shape = RoundedCornerShape(12.dp), color = RupioColors.Surface2) {
                     Text(
-                        if (sameMuscle) "⚠ Estos ejercicios trabajan el mismo músculo: en superserie harás menos peso total. Combinar músculos opuestos (pecho + espalda) rinde más."
-                        else "Tip: las superseries ahorran tiempo sin perder resultados; combinar músculos opuestos (pecho + espalda, bíceps + tríceps) te deja hacer más repeticiones.",
+                        if (sameMuscle) tr("⚠ Estos ejercicios trabajan el mismo músculo: en superserie harás menos peso total. Combinar músculos opuestos (pecho + espalda) rinde más.", "⚠ These exercises work the same muscle: in a superset you'll lift less total weight. Pairing opposing muscles (chest + back) works better.")
+                        else tr("Tip: las superseries ahorran tiempo sin perder resultados; combinar músculos opuestos (pecho + espalda, bíceps + tríceps) te deja hacer más repeticiones.", "Tip: supersets save time without losing results; pairing opposing muscles (chest + back, biceps + triceps) lets you do more reps."),
                         style = MaterialTheme.typography.bodySmall, color = if (sameMuscle) RupioColors.Warning else RupioColors.TextDim,
                         modifier = Modifier.padding(10.dp),
                     )
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onConfirm(mode, if (mode == SupersetRestMode.SHARED) rest else null) }) { Text("Listo") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        confirmButton = { TextButton(onClick = { onConfirm(mode, if (mode == SupersetRestMode.SHARED) rest else null) }) { Text(tr("Listo", "Done")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancelar", "Cancel")) } },
     )
-    if (picking) RestPickerDialog("Descanso tras la ronda", rest, { picking = false }, { rest = it; picking = false })
+    if (picking) RestPickerDialog(tr("Descanso tras la ronda", "Rest after the round"), rest, { picking = false }, { rest = it; picking = false })
 }
 
 @Composable

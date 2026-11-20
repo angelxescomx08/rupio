@@ -317,9 +317,19 @@ class QaDomainTest {
     @Test fun textosSinRestosTecnicosNiPendientes() {
         // El aviso de privacidad SÍ debe nombrar a los proveedores (Neon, Amazon Web Services): es lo que pide la ley.
         val ui = File("src/main/java/com/rupio/app/ui").walk().filter { it.extension == "kt" && it.name != "PrivacyPolicy.kt" }
-        val strings = ui.flatMap { f -> Regex(""""((?:[^"\\\n]++|\\.)*+)"""").findAll(f.readText()).map { f.name to it.groupValues[1] } }.toList()
-        val bad = Regex("""\b(TODO|FIXME|Lorem|lorem|Supabase|Neon|PostgREST|Data API|JWT|null|undefined|Loading|Error:|Cancel|Settings)\b""")
-        val hits = strings.filter { (_, s) -> bad.containsMatchIn(s) && !s.startsWith("http") && !s.contains("\${") }
+        // v2.0: el inglés vive en el segundo argumento de tr("es", "en"); ahí "Cancel" o "Loading" son correctos.
+        // Los restos técnicos se buscan en los dos idiomas; las palabras en inglés, solo fuera de ese argumento.
+        val literal = Regex(""""((?:[^"\\\n]++|\\.)*+)"""")
+        val trEnglish = Regex("""\btr\(\s*"(?:[^"\\\n]|\\.)*"\s*,\s*"((?:[^"\\\n]|\\.)*)"""")
+        val tech = Regex("""\b(TODO|FIXME|Lorem|lorem|Supabase|Neon|PostgREST|Data API|JWT|null|undefined|Error:)\b""")
+        val english = Regex("""\b(Loading|Cancel|Settings)\b""")
+        val hits = ui.flatMap { f ->
+            val text = f.readText()
+            val enStarts = trEnglish.findAll(text).map { it.groups[1]!!.range.first }.toSet()
+            literal.findAll(text).map { m -> Triple(f.name, m.groupValues[1], m.groups[1]!!.range.first in enStarts) }
+        }.filter { (_, s, isEnglish) ->
+            !s.startsWith("http") && !s.contains("\${") && (tech.containsMatchIn(s) || (!isEnglish && english.containsMatchIn(s)))
+        }.map { (name, s, _) -> name to s }.toList()
         assertEquals("Textos con restos técnicos o en inglés:\n" + hits.joinToString("\n"), emptyList<Pair<String, String>>(), hits)
     }
 }

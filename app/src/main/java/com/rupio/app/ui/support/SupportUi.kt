@@ -24,9 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.launch
@@ -34,6 +32,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
@@ -41,6 +40,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -48,8 +48,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.rupio.app.BuildConfig
 import com.rupio.app.container
+import com.rupio.app.core.tr
 import com.rupio.app.data.billing.SupportState
 import com.rupio.app.domain.Accent
+import com.rupio.app.domain.AppIconStyle
+import com.rupio.app.domain.RewardCopy
 import com.rupio.app.domain.SupportCopy
 import com.rupio.app.domain.SupportTier
 import com.rupio.app.domain.WallBoost
@@ -95,7 +98,7 @@ fun SupportPromptCard(state: SupportState, workouts: Int, lifted: String, onSeeO
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onNotNow) { Text(SupportCopy.NOT_NOW, color = RupioColors.TextDim) }
                 Spacer(Modifier.width(4.dp))
-                FilledTonalButton(onClick = onSeeOptions) { Text("Ver cómo apoyar") }
+                FilledTonalButton(onClick = onSeeOptions) { Text(tr("Ver cómo apoyar", "See how to support")) }
             }
         }
     }
@@ -115,7 +118,8 @@ fun SupportTiers(state: SupportState, selected: SupportTier?, onSelect: (Support
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         available.forEach { t -> TierCard(t, state.price(t), selected == t, recommended = t == SupportTier.RECOMMENDED && available.size > 1,
             pending = t in state.pending) { onSelect(t) } }
-        Text("Pago único con Google Play. Puedes pagar con tarjeta, saldo de Google Play o en efectivo en tiendas como OXXO.",
+        Text(tr("Pago único con Google Play. Puedes pagar con tarjeta, saldo de Google Play o en efectivo en tiendas como OXXO.",
+            "One-time payment through Google Play. You can pay by card, with Google Play balance or in cash at stores like OXXO."),
             style = MaterialTheme.typography.labelMedium, color = RupioColors.TextFaint)
     }
 }
@@ -134,10 +138,10 @@ fun SupportBuyButton(state: SupportState, selected: SupportTier?, onBuy: (Suppor
             }
         }
         LoadingButton(SupportCopy.cta(state.price(tier)), loading = state.buying != null, onClick = { onBuy(tier) },
-            modifier = Modifier.fillMaxWidth().height(56.dp), loadingText = "Abriendo Google Play…")
+            modifier = Modifier.fillMaxWidth().height(56.dp), loadingText = tr("Abriendo Google Play…", "Opening Google Play…"))
         if (BuildConfig.DEBUG && onDebugGrant != null) {
             TextButton(onClick = { onDebugGrant(tier) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                Text("Simular compra (solo versión de pruebas)", color = RupioColors.TextFaint, style = MaterialTheme.typography.labelMedium)
+                Text(tr("Simular compra (solo versión de pruebas)", "Simulate purchase (test build only)"), color = RupioColors.TextFaint, style = MaterialTheme.typography.labelMedium)
             }
         }
     }
@@ -146,32 +150,40 @@ fun SupportBuyButton(state: SupportState, selected: SupportTier?, onBuy: (Suppor
 @Composable
 private fun TierCard(t: SupportTier, price: String, selected: Boolean, recommended: Boolean, pending: Boolean, onClick: () -> Unit) {
     val border = if (selected) BorderStroke(2.dp, RupioColors.Primary) else BorderStroke(1.dp, RupioColors.Outline)
+    val metal = Metals.of(t)
     Surface(
         Modifier.fillMaxWidth().selectable(selected, role = Role.RadioButton, onClick = onClick),
         shape = RoundedCornerShape(18.dp), color = if (selected) RupioColors.Primary.copy(alpha = 0.10f) else RupioColors.Surface, border = border,
     ) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(t.emoji, style = MaterialTheme.typography.headlineSmall)
+                // El emoji va sobre el metal del nivel: así se ve de una vez qué insignia y marco te llevas.
+                Box(Modifier.size(40.dp).clip(CircleShape).background(metal.brush), contentAlignment = Alignment.Center) {
+                    Text(t.emoji, style = MaterialTheme.typography.titleLarge)
+                }
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text(t.title, style = MaterialTheme.typography.titleMedium)
-                    if (recommended) Pill("Recomendado", RupioColors.Primary)
-                    if (pending) Pill("Pago pendiente", RupioColors.Warning)
+                    Text(metal.name, style = MaterialTheme.typography.labelMedium, color = metal.ink)
+                    if (recommended) Pill(tr("Recomendado", "Recommended"), RupioColors.Primary)
+                    if (pending) Pill(tr("Pago pendiente", "Payment pending"), RupioColors.Warning)
                 }
                 Text(price, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(8.dp))
                 RadioButton(selected, onClick = null)
             }
             Spacer(Modifier.height(6.dp))
-            t.perks.forEach { p ->
-                Row(Modifier.padding(start = 2.dp, top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.Check, null, tint = RupioColors.Success, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(p, style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
-                }
-            }
+            t.perks.forEach { p -> PerkRow(p) }
         }
+    }
+}
+
+@Composable
+private fun PerkRow(text: String, color: Color = RupioColors.TextDim) {
+    Row(Modifier.padding(start = 2.dp, top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Rounded.Check, null, tint = RupioColors.Success, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = color)
     }
 }
 
@@ -179,9 +191,12 @@ private fun TierCard(t: SupportTier, price: String, selected: Boolean, recommend
 // Gracias
 // ---------------------------------------------------------------------------------------------------------------
 
-/** Pantalla de gracias con confeti, la insignia ganada y (si aplica) los colores para elegir de una vez. */
+/**
+ * Pantalla de gracias con confeti, la insignia ganada, lo que desbloqueaste (para que quede claro que es por tu pago) y
+ * los colores e íconos para elegir de una vez.
+ */
 @Composable
-fun ThanksDialog(tier: SupportTier, state: SupportState, onAccent: (Accent) -> Unit, onGoldIcon: (Boolean) -> Unit, onClose: () -> Unit,
+fun ThanksDialog(tier: SupportTier, state: SupportState, onAccent: (Accent) -> Unit, onIcon: (AppIconStyle) -> Unit, onClose: () -> Unit,
                  wallRank: Int? = null, onSeeWall: (() -> Unit)? = null) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = RupioColors.Background) {
@@ -197,41 +212,50 @@ fun ThanksDialog(tier: SupportTier, state: SupportState, onAccent: (Accent) -> U
                     Text(SupportCopy.THANKS_SIGN, style = MaterialTheme.typography.titleMedium, color = RupioColors.Text, modifier = Modifier.padding(top = 6.dp))
                     Spacer(Modifier.height(18.dp))
                     SupporterBadge(tier)
-                    Text("Ya está en tu perfil. El mensaje de apoyo no volverá a salir.", style = MaterialTheme.typography.bodySmall,
-                        color = RupioColors.TextFaint, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp))
+                    Text(tr("Ya está en tu perfil. El mensaje de apoyo no volverá a salir.", "It's on your profile now. The support message won't show again."),
+                        style = MaterialTheme.typography.bodySmall, color = RupioColors.TextFaint, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp))
+                    Spacer(Modifier.height(18.dp))
+                    SectionCard {
+                        Text(tr("Lo que desbloqueaste", "What you unlocked"), style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.height(4.dp))
+                        tier.perks.forEach { PerkRow(it, RupioColors.Text) }
+                        Spacer(Modifier.height(6.dp))
+                        Text(RewardCopy.EXPLAIN, style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
+                    }
                     if (tier == SupportTier.MECENAS) {
                         Spacer(Modifier.height(18.dp))
                         Surface(shape = RoundedCornerShape(18.dp), color = Metals.Aurora.ink.copy(alpha = 0.12f),
                             border = BorderStroke(1.dp, Metals.Aurora.ink.copy(alpha = 0.6f)), modifier = Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(if (wallRank != null) "¡Ya estás en el muro! Lugar #$wallRank" else "¡Ya estás en el muro!",
+                                Text(if (wallRank != null) tr("¡Ya estás en el muro! Lugar #$wallRank", "You're on the wall! Place #$wallRank") else tr("¡Ya estás en el muro!", "You're on the wall!"),
                                     style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-                                Text("Todas las personas que usan Rupio verán tu nombre. Puedes cambiarlo o quitarlo cuando quieras.",
+                                Text(tr("Todas las personas que usan Rupio verán tu nombre. Puedes cambiarlo o quitarlo cuando quieras.",
+                                    "Everyone who uses Rupio will see your name. You can change it or remove it at any time."),
                                     style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
-                                if (onSeeWall != null) FilledTonalButton(onClick = onSeeWall, modifier = Modifier.padding(top = 10.dp)) { Text("Ver el muro") }
+                                if (onSeeWall != null) FilledTonalButton(onClick = onSeeWall, modifier = Modifier.padding(top = 10.dp)) { Text(tr("Ver el muro", "See the wall")) }
                             }
                         }
                     }
                     if (Accent.entries.count { it.unlockedBy(state.best) } > 1) {
                         Spacer(Modifier.height(24.dp))
                         SectionCard {
-                            Text("Elige el color de tu Rupio", style = MaterialTheme.typography.titleMedium)
+                            Text(tr("Elige el color de tu Rupio", "Pick your Rupio color"), style = MaterialTheme.typography.titleMedium)
                             Spacer(Modifier.height(10.dp))
                             AccentPicker(state, onAccent)
-                            if (state.best?.hasGoldPerks == true) {
+                            if (AppIconStyle.entries.count { it.unlockedBy(state.best) } > 1) {
                                 Spacer(Modifier.height(10.dp)); HorizontalDivider(color = RupioColors.Outline)
-                                GoldIconRow(state.goldIcon, onGoldIcon)
+                                AppIconPicker(state, onIcon)
                             }
                         }
                     }
                     Spacer(Modifier.height(24.dp))
                     Button(onClick = onClose, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
-                        Text("¡Listo!", style = MaterialTheme.typography.titleMedium)
+                        Text(tr("¡Listo!", "Done!"), style = MaterialTheme.typography.titleMedium)
                     }
                     Spacer(Modifier.height(8.dp))
-                    ShareAppButton(Modifier.fillMaxWidth(), text = "Compártela con tus amigos del gym")
+                    ShareAppButton(Modifier.fillMaxWidth(), text = tr("Compártela con tus amigos del gym", "Share it with your gym friends"))
                 }
-                Confetti(Modifier.fillMaxSize())
+                Confetti(Modifier.fillMaxSize(), colors = confettiColors(tier))
             }
         }
     }
@@ -251,11 +275,16 @@ private fun BigBadge(tier: SupportTier) {
 /** Degradado del metal del nivel (Bronce, Plata, Oro, Aurora). */
 private fun tierBrush(t: SupportTier): Brush = Metals.of(t).brush
 
+/** v2.0: confeti con los colores del metal (dorado para Fan, aurora para Mecenas); sin nivel, los colores de la app. */
+fun confettiColors(tier: SupportTier?): List<Color> = when (tier) {
+    null, SupportTier.CAFE, SupportTier.LICUADO -> listOf(RupioColors.Primary, RupioColors.Success, RupioColors.Warning, Color(0xFFFF7AB4), Color(0xFFC59BFF), Color.White)
+    else -> Metals.of(tier).stops + Metals.of(tier).inkDark + Color.White
+}
+
 /** Confeti que cae una vez (unos 3 s) y desaparece. Solo decoración: no bloquea los toques. */
 @Composable
-fun Confetti(modifier: Modifier = Modifier, pieces: Int = 90) {
-    val colors = listOf(RupioColors.Primary, RupioColors.Success, RupioColors.Warning, Color(0xFFFF7AB4), Color(0xFFC59BFF), Color.White)
-    val parts = remember {
+fun Confetti(modifier: Modifier = Modifier, pieces: Int = 90, colors: List<Color> = confettiColors(null)) {
+    val parts = remember(colors) {
         val r = Random(7)
         List(pieces) { Piece(r.nextFloat(), -0.1f - r.nextFloat() * 0.5f, (r.nextFloat() - 0.5f) * 0.25f, 0.55f + r.nextFloat() * 0.6f,
             r.nextFloat() * 360f, (r.nextFloat() - 0.5f) * 720f, colors[r.nextInt(colors.size)], 10f + r.nextFloat() * 12f) }
@@ -263,7 +292,7 @@ fun Confetti(modifier: Modifier = Modifier, pieces: Int = 90) {
     val t = remember { Animatable(0f) }
     LaunchedEffect(Unit) { t.animateTo(1f, tween(3200, easing = LinearEasing)) }
     if (t.value >= 1f) return
-    Canvas(modifier.semantics { contentDescription = "Confeti" }) {
+    Canvas(modifier.semantics { contentDescription = tr("Confeti", "Confetti") }) {
         val p = t.value
         for (q in parts) {
             val y = (q.y0 + q.speed * p * 1.6f + 0.35f * p * p) * size.height
@@ -279,7 +308,7 @@ fun Confetti(modifier: Modifier = Modifier, pieces: Int = 90) {
 private data class Piece(val x0: Float, val y0: Float, val drift: Float, val speed: Float, val rot0: Float, val spin: Float, val color: Color, val w: Float)
 
 // ---------------------------------------------------------------------------------------------------------------
-// Insignias, colores e ícono
+// Insignias, marco del avatar, colores e íconos
 // ---------------------------------------------------------------------------------------------------------------
 
 private val Shine = listOf(Color.Transparent, Color.White.copy(alpha = 0.55f), Color.Transparent)
@@ -318,6 +347,28 @@ fun SupporterBadge(tier: SupportTier, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * v2.0: avatar con el marco del metal de tu nivel (recompensa desde ☕ Café). En Fan y Mecenas el brillo del marco gira
+ * despacio. Mide lo mismo que [InitialsAvatar] del mismo tamaño (el marco va por dentro), así que se cambia sin mover
+ * nada. Sin nivel es el avatar de siempre. El giro se lee al dibujar: no recompone.
+ */
+@Composable
+fun SupporterAvatar(name: String, size: Dp, tier: SupportTier?, modifier: Modifier = Modifier) {
+    if (tier == null) { InitialsAvatar(name, size, modifier); return }
+    val metal = Metals.of(tier)
+    val ring = (size.value * 0.075f).coerceIn(2.5f, 5f).dp
+    val gap = (ring.value * 0.6f).dp
+    val sweep = remember(metal) { Brush.sweepGradient(metal.stops + metal.stops.first()) }
+    val spin = if (tier.hasGoldPerks) rememberInfiniteTransition(label = "ring")
+        .animateFloat(0f, 360f, infiniteRepeatable(tween(7000, easing = LinearEasing)), label = "spin") else null
+    Box(modifier.size(size).drawBehind {
+        val w = ring.toPx()
+        rotate(spin?.value ?: 0f) { drawCircle(sweep, radius = this.size.minDimension / 2 - w / 2, style = Stroke(w)) }
+    }, contentAlignment = Alignment.Center) {
+        InitialsAvatar(name, size - (ring + gap) * 2)
+    }
+}
+
 /** Puntito del metal (filas de las ligas). Null = sin insignia. */
 @Composable
 fun MetalDot(badge: Int, modifier: Modifier = Modifier) {
@@ -330,14 +381,17 @@ fun MetalDot(badge: Int, modifier: Modifier = Modifier) {
 @Composable
 fun AccentPicker(state: SupportState, onPick: (Accent) -> Unit) {
     val current = state.effectiveAccent
+    val dark = com.rupio.app.ui.theme.Appearance.isDark
     FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Accent.entries.forEach { a ->
             val unlocked = a.unlockedBy(state.best)
-            val color = Color(a.argb)
+            val color = Color(if (dark) a.argb else a.lightArgb)
+            val lockedText = a.minTier?.let { RewardCopy.unlocks(it) }
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(60.dp)
-                .selectable(a == current, enabled = unlocked, role = Role.RadioButton) { onPick(a) }) {
+                .selectable(a == current, enabled = unlocked, role = Role.RadioButton) { onPick(a) }
+                .semantics { if (!unlocked && lockedText != null) contentDescription = a.label + ". " + lockedText }) {
                 Box(Modifier.size(44.dp).clip(CircleShape).background(if (unlocked) color else color.copy(alpha = 0.25f))
-                    .border(if (a == current) 3.dp else 0.dp, if (a == current) Color.White else Color.Transparent, CircleShape),
+                    .border(if (a == current) 3.dp else 0.dp, if (a == current) RupioColors.Text else Color.Transparent, CircleShape),
                     contentAlignment = Alignment.Center) {
                     when {
                         a == current -> Icon(Icons.Rounded.Check, null, tint = RupioColors.OnPrimary)
@@ -351,19 +405,78 @@ fun AccentPicker(state: SupportState, onPick: (Accent) -> Unit) {
     }
 }
 
+/** v2.0: íconos de la app (antes solo el dorado sí/no). Los bloqueados dicen con qué nivel se abren. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun GoldIconRow(on: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFF17110A)), contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.FitnessCenter, null, tint = Metals.Oro.ink)
+fun AppIconPicker(state: SupportState, onPick: (AppIconStyle) -> Unit) {
+    val current = state.effectiveIcon
+    Column(Modifier.fillMaxWidth().padding(top = 10.dp)) {
+        Text(tr("Ícono de la app", "App icon"), style = MaterialTheme.typography.bodyLarge)
+        Text(tr("Cambia el ícono de Rupio en tu pantalla de inicio. Puede tardar unos segundos en verse.",
+            "Changes Rupio's icon on your home screen. It can take a few seconds to show up."),
+            style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
+        Spacer(Modifier.height(10.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            AppIconStyle.entries.forEach { s ->
+                val unlocked = s.unlockedBy(state.best)
+                val lockedText = s.minTier?.let { RewardCopy.unlocks(it) }
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(64.dp)
+                    .selectable(s == current, enabled = unlocked, role = Role.RadioButton) { onPick(s) }
+                    .semantics { if (!unlocked && lockedText != null) contentDescription = s.label + ". " + lockedText }) {
+                    val shape = RoundedCornerShape(12.dp)
+                    Box(Modifier.size(48.dp).clip(shape).background(iconBackground(s))
+                        .border(if (s == current) 3.dp else 1.dp, if (s == current) RupioColors.Primary else RupioColors.Outline, shape)
+                        .graphicsLayer { alpha = if (unlocked) 1f else 0.45f },
+                        contentAlignment = Alignment.Center) {
+                        when (s) {
+                            AppIconStyle.AURORA -> Box(Modifier.size(26.dp).clip(RoundedCornerShape(6.dp)).background(Metals.Aurora.brush))
+                            else -> Icon(Icons.Rounded.FitnessCenter, null, tint = iconTint(s))
+                        }
+                        if (!unlocked) Icon(Icons.Rounded.Lock, null, tint = Color.White, modifier = Modifier.size(16.dp).align(Alignment.BottomEnd).padding(2.dp))
+                    }
+                    Text(s.label, style = MaterialTheme.typography.labelMedium, color = if (unlocked) RupioColors.Text else RupioColors.TextFaint, maxLines = 1)
+                    if (!unlocked) Text(s.minTier!!.emoji, style = MaterialTheme.typography.labelSmall)
+                }
+            }
         }
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text("Ícono dorado", style = MaterialTheme.typography.bodyLarge)
-            Text("Cambia el ícono de Rupio en tu pantalla de inicio. Puede tardar unos segundos en verse.",
-                style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
+    }
+}
+
+/** Fondo y color de cada ícono (los mismos del manifiesto: res/values/colors.xml y los ic_launcher_*). */
+private fun iconBackground(s: AppIconStyle) = when (s) {
+    AppIconStyle.NORMAL -> Color.Black; AppIconStyle.PLATA -> Color(0xFF10151C)
+    AppIconStyle.ORO -> Color(0xFF17110A); AppIconStyle.AURORA -> Color(0xFF120F1E)
+}
+private fun iconTint(s: AppIconStyle) = when (s) {
+    AppIconStyle.NORMAL -> Color(0xFF5B8CFF); AppIconStyle.PLATA -> Metals.Plata.inkDark
+    AppIconStyle.ORO -> Metals.Oro.inkDark; AppIconStyle.AURORA -> Metals.Aurora.inkDark
+}
+
+/**
+ * v2.0: "Tus recompensas". Dice qué tienes y POR QUÉ (tu nivel de apoyo): antes la insignia y los colores aparecían sin
+ * explicar que eran un "gracias" por pagar.
+ */
+@Composable
+fun MyRewardsCard(state: SupportState, name: String) {
+    val best = state.best ?: return
+    SectionCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SupporterAvatar(name, 56.dp, best)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(tr("Tus recompensas", "Your rewards"), style = MaterialTheme.typography.titleMedium)
+                Text(RewardCopy.yours(best), style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+            }
         }
-        Switch(on, onChange)
+        Spacer(Modifier.height(10.dp))
+        SupporterBadge(best)
+        if (state.owned.size > 1) Text(tr("Niveles: ", "Levels: ") + state.owned.sortedBy { it.rank }.joinToString(" · ") { it.emoji + " " + it.title },
+            style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim, modifier = Modifier.padding(top = 8.dp))
+        Spacer(Modifier.height(8.dp))
+        // Todo lo que tienes, con la insignia y el marco de tu nivel (no los de los niveles de abajo).
+        best.allPerks.forEach { PerkRow(it, RupioColors.Text) }
+        Spacer(Modifier.height(6.dp))
+        Text(RewardCopy.EXPLAIN, style = MaterialTheme.typography.labelMedium, color = RupioColors.TextFaint)
     }
 }
 
@@ -372,8 +485,10 @@ private fun GoldIconRow(on: Boolean, onChange: (Boolean) -> Unit) {
 // ---------------------------------------------------------------------------------------------------------------
 
 /** Pestañas de Apoya Rupio. [id] va en la ruta (support?tab=muro). */
-enum class SupportTab(val id: String, val label: String) {
-    APOYAR("apoyar", "Apoyar"), MURO("muro", "Muro"), LIGAS("ligas", "Ligas");
+enum class SupportTab(val id: String) {
+    APOYAR("apoyar"), MURO("muro"), LIGAS("ligas");
+
+    val label: String get() = when (this) { APOYAR -> tr("Apoyar", "Support"); MURO -> tr("Muro", "Wall"); LIGAS -> tr("Ligas", "Leagues") }
 
     companion object {
         fun of(id: String?): SupportTab = entries.firstOrNull { it.id == id } ?: APOYAR
@@ -406,13 +521,13 @@ fun SupportScreen(nav: NavHostController, initialTab: SupportTab = SupportTab.AP
 
     Scaffold(containerColor = RupioColors.Background, snackbarHost = { SnackbarHost(snackbar) }, topBar = {
         Column {
-            RupioTopBar("Apoya Rupio", onBack = { nav.safePop() }) {
+            RupioTopBar(tr("Apoya Rupio", "Support Rupio"), onBack = { nav.safePop() }) {
                 if (tab != SupportTab.APOYAR && access == WallAccess.READY) IconButton(onClick = {
                     scope.launch {
                         if (tab == SupportTab.MURO) c.wall.load()
                         else { c.league.load(force = true); if (leagueView == LeagueView.GLOBAL) c.league.loadTop(reset = true) }
                     }
-                }) { Icon(Icons.Rounded.Refresh, "Actualizar") }
+                }) { Icon(Icons.Rounded.Refresh, tr("Actualizar", "Refresh")) }
             }
             SupportTabs(tab) { tab = it }
         }
@@ -445,8 +560,8 @@ private fun SupportTabs(tab: SupportTab, onTab: (SupportTab) -> Unit) {
 }
 
 /**
- * Pestaña "Apoyar". Orden: quién hace la app → (tus recompensas) → niveles → pagar → compartir (apoyar sin pagar)
- * → restaurar compras (utilidad, al final).
+ * Pestaña "Apoyar". Orden: quién hace la app → (tus recompensas) → qué son las recompensas → quiénes ya apoyan (muro)
+ * → niveles → pagar → compartir (apoyar sin pagar) → restaurar compras (utilidad, al final).
  */
 @Composable
 private fun SupportTabContent(nav: NavHostController, scroll: ScrollState, onOpenWall: () -> Unit) {
@@ -467,9 +582,9 @@ private fun SupportTabContent(nav: NavHostController, scroll: ScrollState, onOpe
         else askName = true
     }
     if (askName) WallNameDialog(
-        title = "Ser Mecenas · ${state.price(SupportTier.MECENAS)}",
-        intro = "Escribe cómo quieres aparecer. Después de pagar entras al muro con este nombre.",
-        initial = wall.me?.name ?: signed?.name.orEmpty(), confirm = "Continuar al pago", askConsent = true,
+        title = tr("Ser Mecenas · ${state.price(SupportTier.MECENAS)}", "Become a patron · ${state.price(SupportTier.MECENAS)}"),
+        intro = tr("Escribe cómo quieres aparecer. Después de pagar entras al muro con este nombre.", "Enter how you want to appear. After paying, you join the wall with this name."),
+        initial = wall.me?.name ?: signed?.name.orEmpty(), confirm = tr("Continuar al pago", "Continue to payment"), askConsent = true,
         onDismiss = { askName = false },
     ) { name -> askName = false; activity?.let { c.support.buyWall(it, WallBoost.BIG, name) } }
     if (askAccount) WallAccountDialog(signed?.localOnly == true, onCreate = { askAccount = false; nav.navigate(Routes.ACCOUNT) }, onDismiss = { askAccount = false })
@@ -483,34 +598,34 @@ private fun SupportTabContent(nav: NavHostController, scroll: ScrollState, onOpe
                     Text(SupportCopy.TITLE, style = MaterialTheme.typography.titleLarge)
                 }
                 Spacer(Modifier.height(10.dp))
-                Text("Hago Rupio yo solo, en mis ratos libres. " + SupportCopy.ASK, style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
+                Text(SupportCopy.ABOUT + " " + SupportCopy.ASK, style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
                 Spacer(Modifier.height(6.dp))
                 Text(SupportCopy.FREEDOM, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextFaint)
             }
         } else {
-            SectionCard {
-                Text("Tus recompensas", style = MaterialTheme.typography.titleMedium)
-                Text("Gracias por apoyar Rupio 💙", style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
-                Spacer(Modifier.height(10.dp))
-                SupporterBadge(best)
-                if (state.owned.size > 1) Text("Niveles: " + state.owned.sortedBy { it.rank }.joinToString(" · ") { it.emoji + " " + it.title },
-                    style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim, modifier = Modifier.padding(top = 8.dp))
-            }
+            MyRewardsCard(state, signed?.name.orEmpty())
             if (best == SupportTier.MECENAS) WallSummaryCard(wall.me, onOpenWall)
             SectionCard {
-                Text("Color de la app", style = MaterialTheme.typography.titleMedium)
+                Text(tr("Color de la app", "App color"), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(10.dp))
                 AccentPicker(state) { c.support.setAccent(it) }
-                if (best.hasGoldPerks) { Spacer(Modifier.height(6.dp)); HorizontalDivider(color = RupioColors.Outline); GoldIconRow(state.goldIcon) { c.support.setGoldIcon(it) } }
+                if (AppIconStyle.entries.count { it.unlockedBy(best) } > 1) {
+                    Spacer(Modifier.height(6.dp)); HorizontalDivider(color = RupioColors.Outline); AppIconPicker(state) { c.support.setAppIcon(it) }
+                }
             }
-            when (best) {
-                SupportTier.MECENAS -> {}
-                SupportTier.FAN -> Text("¿Quieres aparecer en el muro de agradecimientos? Hazte Mecenas:", style = MaterialTheme.typography.titleSmall)
-                else -> Text("¿Quieres más adornos? Puedes subir de nivel:", style = MaterialTheme.typography.titleSmall)
+        }
+        // v2.0: quiénes ya apoyan, a la vista antes de los niveles (antes el muro solo se veía en su pestaña).
+        if (best != SupportTier.MECENAS) WallPreviewCard(wall, wallAccess(auth), onOpen = onOpenWall)
+        if (best != SupportTier.MECENAS) {
+            Column {
+                Text(if (best == null) RewardCopy.TITLE else if (best == SupportTier.FAN) tr("¿Quieres aparecer en el muro de agradecimientos? Hazte Mecenas:", "Want to be on the thank-you wall? Become a patron:")
+                    else tr("¿Quieres más recompensas? Puedes subir de nivel:", "Want more rewards? You can level up:"), style = MaterialTheme.typography.titleSmall)
+                if (best == null) Text(RewardCopy.EXPLAIN, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = Modifier.padding(top = 2.dp))
             }
         }
         if (state.pending.isNotEmpty()) Surface(color = RupioColors.Warning.copy(alpha = 0.12f), shape = RoundedCornerShape(12.dp)) {
-            Text("Tienes un pago pendiente (${state.pending.joinToString { it.title }}). Cuando lo completes se activa solo.",
+            Text(tr("Tienes un pago pendiente (${state.pending.joinToString { it.title }}). Cuando lo completes se activa solo.",
+                "You have a pending payment (${state.pending.joinToString { it.title }}). It turns on by itself once you complete it."),
                 modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
         }
         var selected by rememberSaveable(state.best) { mutableStateOf(defaultTier(state)) }
@@ -518,18 +633,20 @@ private fun SupportTabContent(nav: NavHostController, scroll: ScrollState, onOpe
         SupportBuyButton(state, selected, onBuy = onBuy, onDebugGrant = { c.support.debugGrant(it) })
         // Una forma de apoyar sin pagar: que más gente la conozca.
         SectionCard {
-            Text(if (best == null) "¿Ahora no puedes? También ayuda muchísimo que la compartas 🙌" else "Que más gente la conozca también ayuda muchísimo 🙌",
+            Text(if (best == null) tr("¿Ahora no puedes? También ayuda muchísimo que la compartas 🙌", "Can't right now? Sharing it helps a lot too 🙌")
+                else tr("Que más gente la conozca también ayuda muchísimo 🙌", "Getting more people to know it helps a lot too 🙌"),
                 style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(10.dp))
             ShareAppButton(Modifier.fillMaxWidth())
         }
         TextButton(onClick = { c.support.refresh() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Icon(Icons.Rounded.Restore, null); Spacer(Modifier.width(6.dp)); Text("Restaurar compras")
+            Icon(Icons.Rounded.Restore, null); Spacer(Modifier.width(6.dp)); Text(tr("Restaurar compras", "Restore purchases"))
         }
-        Text("Las compras quedan en tu cuenta de Google: si cambias de teléfono o reinstalas, se recuperan solas.",
+        Text(tr("Las compras quedan en tu cuenta de Google: si cambias de teléfono o reinstalas, se recuperan solas.",
+            "Purchases stay in your Google account: if you change phones or reinstall, they come back on their own."),
             style = MaterialTheme.typography.labelMedium, color = RupioColors.TextFaint)
         if (BuildConfig.DEBUG && state.owned.isNotEmpty()) TextButton(onClick = { c.support.debugReset() }) {
-            Text("Quitar compras simuladas (solo pruebas)", color = RupioColors.TextFaint)
+            Text(tr("Quitar compras simuladas (solo pruebas)", "Remove simulated purchases (test only)"), color = RupioColors.TextFaint)
         }
         Spacer(Modifier.height(24.dp))
     }
@@ -546,13 +663,13 @@ fun WallSummaryCard(me: com.rupio.app.data.billing.WallMe?, onOpen: () -> Unit) 
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text("Muro de agradecimientos", style = MaterialTheme.typography.titleMedium)
+                Text(com.rupio.app.domain.WallCopy.TITLE, style = MaterialTheme.typography.titleMedium)
                 Text(when {
-                    me == null -> "Toca para ver tu lugar"
-                    me.hidden -> "Tu nombre está oculto"
-                    me.rank != null && me.toNext != null && me.rank > 1 -> "Lugar #${me.rank} · te faltan ${me.toNext} puntos para subir"
-                    me.rank != null -> "Lugar #${me.rank}"
-                    else -> "${me.points} puntos"
+                    me == null -> tr("Toca para ver tu lugar", "Tap to see your place")
+                    me.hidden -> tr("Tu nombre está oculto", "Your name is hidden")
+                    me.rank != null && me.toNext != null && me.rank > 1 -> tr("Lugar #${me.rank} · te faltan ${me.toNext} puntos para subir", "Place #${me.rank} · ${me.toNext} points to move up")
+                    me.rank != null -> tr("Lugar #${me.rank}", "Place #${me.rank}")
+                    else -> tr("${me.points} puntos", "${me.points} points")
                 }, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
             }
             Icon(Icons.Rounded.ChevronRight, null, tint = RupioColors.TextFaint)

@@ -1,5 +1,7 @@
 package com.rupio.app.ui.components
 
+
+import com.rupio.app.core.tr
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.Crossfade
@@ -127,7 +129,7 @@ fun FitText(
     val st = style.merge(TextStyle(color = tint, fontWeight = fontWeight, textAlign = textAlign ?: TextAlign.Unspecified,
         hyphens = if (big) androidx.compose.ui.text.style.Hyphens.Auto else androidx.compose.ui.text.style.Hyphens.None,
         lineBreak = if (big) androidx.compose.ui.text.style.LineBreak.Paragraph else androidx.compose.ui.text.style.LineBreak.Simple,
-        localeList = androidx.compose.ui.text.intl.LocaleList("es-MX")))
+        localeList = androidx.compose.ui.text.intl.LocaleList(if (com.rupio.app.core.I18n.isEnglish) "en-US" else "es-MX")))
     if (fontScale <= 1f) {
         // Letra normal o chica: una palabra sola (p. ej. "Repeticiones" en una tarjeta angosta) se achica un poco en una
         // línea en vez de partirse con guion; varias palabras usan hasta [maxLines] líneas.
@@ -177,7 +179,7 @@ fun Pill(text: String, color: Color, modifier: Modifier = Modifier, filled: Bool
     Box(
         modifier.clip(RoundedCornerShape(50)).background(if (filled) color else color.copy(alpha = 0.16f))
             .padding(horizontal = 10.dp, vertical = 4.dp),
-    ) { Text(text, color = if (filled) Color.Black else color, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false) }
+    ) { Text(text, color = if (filled) RupioColors.OnFill else color, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false) }
 }
 
 @Composable
@@ -210,14 +212,14 @@ fun AnimatedExerciseImage(image0: String?, image1: String?, modifier: Modifier =
     LaunchedEffect(image0, image1) { if (image1 != null) while (true) { delay(1100); frame = 1 - frame } }
     Box(modifier.clip(RoundedCornerShape(20.dp)).background(ExerciseImageBg)) {
         Crossfade(targetState = frame, animationSpec = tween(450), label = "frames") { f ->
-            AsyncImage(model = if (f == 0) image0 else image1, contentDescription = "Demostración del ejercicio",
+            AsyncImage(model = if (f == 0) image0 else image1, contentDescription = tr("Demostración del ejercicio", "Exercise demonstration"),
                 contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
         }
     }
 }
 
 fun openVideo(context: android.content.Context, exerciseName: String) {
-    val q = URLEncoder.encode("cómo hacer $exerciseName técnica correcta", "UTF-8")
+    val q = URLEncoder.encode(com.rupio.app.core.tr("cómo hacer $exerciseName técnica correcta", "how to do $exerciseName proper form"), "UTF-8")
     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=$q")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
 
@@ -312,13 +314,13 @@ fun RestPickerDialog(title: String, current: Int, onDismiss: () -> Unit, onPick:
                                 // Opción de una lista: TalkBack dice "botón de opción, seleccionado".
                                 .selectable(selected = sel, role = Role.RadioButton, onClick = { onPick(sec) }).padding(vertical = 12.dp),
                             contentAlignment = Alignment.Center,
-                        ) { Text(if (sec == 0) "Sin" else Fmt.restLabel(sec), style = MaterialTheme.typography.labelLarge) }
+                        ) { Text(if (sec == 0) Fmt.restShort(0) else Fmt.restLabel(sec), style = MaterialTheme.typography.labelLarge) }
                     }
                 }
                 footer?.invoke()
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Cerrar") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("Cerrar", "Close")) } },
     )
 }
 
@@ -343,7 +345,7 @@ fun supersetLetter(index: Int) = ('A' + (index % 26)).toString()
 fun SupersetTag(index: Int, member: Int?) {
     val c = RupioColors.Supersets[index % RupioColors.Supersets.size]
     Box(Modifier.clip(RoundedCornerShape(6.dp)).background(c).padding(horizontal = 6.dp, vertical = 2.dp)) {
-        Text(supersetLetter(index) + (member?.let { "${it + 1}" } ?: ""), color = Color.Black, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        Text(supersetLetter(index) + (member?.let { "${it + 1}" } ?: ""), color = RupioColors.OnFill, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -358,7 +360,7 @@ fun RupioTopBar(title: String, onBack: (() -> Unit)?, modifier: Modifier = Modif
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Sin flecha: el título queda alineado a 16 dp, igual que el contenido.
-        if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Atrás") }
+        if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, tr("Atrás", "Back")) }
         else Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f).padding(horizontal = 4.dp)) {
             FitText(title, MaterialTheme.typography.titleLarge)
@@ -373,14 +375,14 @@ fun RupioTopBar(title: String, onBack: (() -> Unit)?, modifier: Modifier = Modif
 fun Stepper(value: Int, onChange: (Int) -> Unit, range: IntRange, label: String? = null, modifier: Modifier = Modifier) {
     Row(modifier.clip(RoundedCornerShape(12.dp)).background(RupioColors.Surface2), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { if (value > range.first) onChange(value - 1) }, modifier = Modifier.size(36.dp)) {
-            Icon(Icons.Rounded.Remove, "Menos", modifier = Modifier.size(18.dp))
+            Icon(Icons.Rounded.Remove, tr("Menos", "Less"), modifier = Modifier.size(18.dp))
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.widthIn(min = 28.dp)) {
             Text("$value", style = MaterialTheme.typography.titleMedium.merge(Tabular))
             if (label != null) Text(label, style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
         }
         IconButton(onClick = { if (value < range.last) onChange(value + 1) }, modifier = Modifier.size(36.dp)) {
-            Icon(Icons.Rounded.Add, "Más", modifier = Modifier.size(18.dp))
+            Icon(Icons.Rounded.Add, tr("Más", "More"), modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -392,21 +394,21 @@ fun RepRangeDialog(min: Int, max: Int, onDismiss: () -> Unit, onSave: (Int, Int)
     var hi by remember { mutableIntStateOf(max) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Repeticiones objetivo") },
+        title = { Text(tr("Repeticiones objetivo", "Target reps")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Cuando hagas el máximo en todas las series, Rupio te dirá que subas el peso y vuelvas al mínimo.",
+                Text(tr("Cuando hagas el máximo en todas las series, Rupio te dirá que subas el peso y vuelvas al mínimo.", "When you hit the top of the range on every set, Rupio will tell you to add weight and go back to the bottom."),
                     style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Stepper(lo, { lo = it; if (hi < it) hi = it }, 1..50, "mínimo")
+                    Stepper(lo, { lo = it; if (hi < it) hi = it }, 1..50, tr("mínimo", "min"))
                     Text("a", color = RupioColors.TextDim)
-                    Stepper(hi, { hi = it; if (lo > it) lo = it }, 1..60, "máximo")
+                    Stepper(hi, { hi = it; if (lo > it) lo = it }, 1..60, tr("máximo", "max"))
                 }
-                Text("Comunes: 6–8 fuerza · 8–12 músculo · 12–20 resistencia", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
+                Text(tr("Comunes: 6–8 fuerza · 8–12 músculo · 12–20 resistencia", "Common: 6–8 strength · 8–12 muscle · 12–20 endurance"), style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(lo, hi) }) { Text("Guardar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        confirmButton = { TextButton(onClick = { onSave(lo, hi) }) { Text(tr("Guardar", "Save")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancelar", "Cancel")) } },
     )
 }
 
@@ -432,8 +434,8 @@ fun RenameDialog(title: String, initial: String, onDismiss: () -> Unit, below: (
                 below?.invoke(value.text)
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(value.text) }) { Text("Guardar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        confirmButton = { TextButton(onClick = { onSave(value.text) }) { Text(tr("Guardar", "Save")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancelar", "Cancel")) } },
     )
 }
 
@@ -447,6 +449,6 @@ fun ConfirmDialog(title: String, body: String, confirm: String, onDismiss: () ->
         confirmButton = {
             TextButton(onClick = onConfirm, colors = ButtonDefaults.textButtonColors(contentColor = if (danger) RupioColors.Danger else RupioColors.Primary)) { Text(confirm) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancelar", "Cancel")) } },
     )
 }

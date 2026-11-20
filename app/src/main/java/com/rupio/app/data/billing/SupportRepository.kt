@@ -20,6 +20,8 @@ import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.rupio.app.BuildConfig
 import com.rupio.app.domain.Accent
+import com.rupio.app.domain.AppIconStyle
+import com.rupio.app.core.tr
 import com.rupio.app.domain.SupportTier
 import com.rupio.app.domain.WallBoost
 import com.rupio.app.ui.theme.RupioColors
@@ -45,7 +47,8 @@ data class SupportState(
     val buying: SupportTier? = null,
     val message: String? = null,
     val accent: Accent = Accent.AZUL,
-    val goldIcon: Boolean = false,
+    /** v2.0: ícono elegido (antes solo había dorado sí/no). */
+    val appIcon: AppIconStyle = AppIconStyle.NORMAL,
     /** v1.8: precios de los aportes del muro (Google Play). */
     val wallPrices: Map<WallBoost, String> = emptyMap(),
     /** v1.8: llegó una compra del muro pero falta el nombre (y el permiso para publicarlo). */
@@ -56,6 +59,7 @@ data class SupportState(
     val best: SupportTier? get() = SupportTier.best(owned)
     val isSupporter: Boolean get() = owned.isNotEmpty()
     val effectiveAccent: Accent get() = Accent.effective(accent, best)
+    val effectiveIcon: AppIconStyle get() = AppIconStyle.effective(appIcon, best)
     val isPatron: Boolean get() = SupportTier.MECENAS in owned
     fun price(t: SupportTier): String = prices[t] ?: t.fallbackPrice
     fun price(b: WallBoost): String = wallPrices[b] ?: if (b == WallBoost.BIG) price(SupportTier.MECENAS) else b.fallbackPrice
@@ -132,7 +136,9 @@ class SupportRepository(
             owned = owned,
             pending = prefs.getStringSet("pending", emptySet()).orEmpty().mapNotNull(SupportTier::of).toSet(),
             accent = Accent.of(prefs.getString("accent", null)),
-            goldIcon = prefs.getBoolean("gold_icon", false),
+            // v2.0: "gold_icon" (versiones de antes) pasa a ser el ícono dorado.
+            appIcon = prefs.getString("app_icon", null)?.let(AppIconStyle::of)
+                ?: if (prefs.getBoolean("gold_icon", false)) AppIconStyle.ORO else AppIconStyle.NORMAL,
         )
     }
 
@@ -221,12 +227,12 @@ class SupportRepository(
     // ---------- Comprar ----------
 
     fun buy(activity: Activity, tier: SupportTier) {
-        if (tier == SupportTier.MECENAS) { _state.update { it.copy(message = "Para ser Mecenas primero escribe tu nombre para el muro.") }; return }
+        if (tier == SupportTier.MECENAS) { _state.update { it.copy(message = tr("Para ser Mecenas primero escribe tu nombre para el muro.", "To become a patron, first enter your name for the wall.")) }; return }
         val c = client
         val pd = details[tier]
         if (c == null || !c.isReady || pd == null) {
             connect()
-            _state.update { it.copy(message = "Los pagos funcionan cuando instalas Rupio desde Google Play. Revisa tu conexión e intenta de nuevo.") }
+            _state.update { it.copy(message = NO_PLAY) }
             return
         }
         val params = BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(pd)
@@ -248,7 +254,7 @@ class SupportRepository(
         val pd = wallDetails[boost]
         if (c == null || !c.isReady || pd == null) {
             connect()
-            _state.update { it.copy(message = "Los pagos funcionan cuando instalas Rupio desde Google Play. Revisa tu conexión e intenta de nuevo.") }
+            _state.update { it.copy(message = NO_PLAY) }
             return
         }
         displayName?.let { prefs.edit().putString("wall_pending_name", it).apply() }
@@ -280,7 +286,7 @@ class SupportRepository(
                 scope.launch { registerWall(p) }
             }
             Purchase.PurchaseState.PENDING -> if (!fromRestore) _state.update { it.copy(buying = null,
-                message = "Tu pago quedó pendiente. Cuando lo completes (por ejemplo en OXXO) aparecerás en el muro.") }
+                message = tr("Tu pago quedó pendiente. Cuando lo completes (por ejemplo en OXXO) aparecerás en el muro.", "Your payment is pending. Once you complete it (for example at OXXO), you'll appear on the wall.")) }
             else -> _state.update { it.copy(buying = null) }
         }
     }
@@ -329,11 +335,11 @@ class SupportRepository(
             BillingClient.BillingResponseCode.OK -> purchases.orEmpty().forEach(::handle)
             BillingClient.BillingResponseCode.USER_CANCELED -> _state.update { it.copy(buying = null) }
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
-                _state.update { it.copy(buying = null, message = "Ya tenías este nivel. ¡Gracias otra vez! 💙") }; refresh()
+                _state.update { it.copy(buying = null, message = tr("Ya tenías este nivel. ¡Gracias otra vez! 💙", "You already had this level. Thanks again! 💙")) }; refresh()
             }
             BillingClient.BillingResponseCode.NETWORK_ERROR, BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE ->
-                _state.update { it.copy(buying = null, message = "Sin conexión con Google Play. Revisa tu internet e intenta de nuevo.") }
-            else -> _state.update { it.copy(buying = null, message = "No se pudo completar el pago. No se te cobró nada; intenta de nuevo.") }
+                _state.update { it.copy(buying = null, message = tr("Sin conexión con Google Play. Revisa tu internet e intenta de nuevo.", "Can't reach Google Play. Check your internet and try again.")) }
+            else -> _state.update { it.copy(buying = null, message = tr("No se pudo completar el pago. No se te cobró nada; intenta de nuevo.", "The payment couldn't be completed. You weren't charged; please try again.")) }
         }
     }
 
@@ -354,7 +360,7 @@ class SupportRepository(
                 val s = _state.value
                 saveOwned(s.owned - debugOwned(), s.pending + tiers)
                 _state.update { it.copy(buying = null, pending = it.pending + tiers,
-                    message = "Tu pago quedó pendiente. Cuando lo completes (por ejemplo en OXXO) se activa solo.") }
+                    message = tr("Tu pago quedó pendiente. Cuando lo completes (por ejemplo en OXXO) se activa solo.", "Your payment is pending. Once you complete it (for example at OXXO), it turns on by itself.")) }
             }
             else -> _state.update { it.copy(buying = null) }
         }
@@ -373,6 +379,9 @@ class SupportRepository(
 
     fun clearMessage() = _state.update { it.copy(message = null) }
 
+    private val NO_PLAY: String get() = tr("Los pagos funcionan cuando instalas Rupio desde Google Play. Revisa tu conexión e intenta de nuevo.",
+        "Payments work when Rupio is installed from Google Play. Check your connection and try again.")
+
     fun setAccent(a: Accent) {
         if (!a.unlockedBy(_state.value.best)) return
         prefs.edit().putString("accent", a.id).apply()
@@ -380,20 +389,22 @@ class SupportRepository(
         applyAccent()
     }
 
-    fun setGoldIcon(enabled: Boolean) {
-        val allowed = enabled && _state.value.best?.hasGoldPerks == true
-        prefs.edit().putBoolean("gold_icon", allowed).apply()
-        _state.update { it.copy(goldIcon = allowed) }
-        AppIcon.set(app, gold = allowed)
+    /** v2.0: ícono de la app (normal, plateado, dorado o Aurora). Solo cambia si el nivel lo tiene. */
+    fun setAppIcon(style: AppIconStyle) {
+        val allowed = AppIconStyle.effective(style, _state.value.best)
+        prefs.edit().putString("app_icon", allowed.id).remove("gold_icon").apply()
+        _state.update { it.copy(appIcon = allowed) }
+        AppIcon.set(app, allowed)
     }
 
     private fun afterOwnershipChange() {
         applyAccent()
-        // Si se reembolsó el nivel Fan, el ícono vuelve al normal.
-        if (_state.value.goldIcon && _state.value.best?.hasGoldPerks != true) setGoldIcon(false)
+        // Si se reembolsó el nivel, el ícono vuelve al normal.
+        val s = _state.value
+        if (s.appIcon != AppIconStyle.NORMAL && !s.appIcon.unlockedBy(s.best)) setAppIcon(AppIconStyle.NORMAL)
     }
 
-    private fun applyAccent() = RupioColors.applyAccent(Color(_state.value.effectiveAccent.argb))
+    private fun applyAccent() = _state.value.effectiveAccent.let { RupioColors.applyAccent(Color(it.argb), Color(it.lightArgb)) }
 
     // ---------- Mensaje al terminar ----------
 
@@ -405,6 +416,11 @@ class SupportRepository(
         prefs.edit().putString("last_prompt_workout", workoutId).putInt("last_prompt_milestone", milestone)
             .putLong("last_prompt_at", System.currentTimeMillis()).apply()
     }
+    /** v2.0: la vista previa del muro en Inicio se cerró con "Ocultar" (sigue en Progreso, Perfil y Apoya Rupio). */
+    private val _homeWallHidden = MutableStateFlow(prefs.getBoolean("home_wall_hidden", false))
+    val homeWallHidden: StateFlow<Boolean> = _homeWallHidden
+    fun hideHomeWall() { prefs.edit().putBoolean("home_wall_hidden", true).apply(); _homeWallHidden.value = true }
+
     /** "Ahora no": a las 3 veces ya no se vuelve a mostrar el mensaje (Perfil sigue teniendo la fila de apoyo). */
     fun markDismissed() { prefs.edit().putInt("prompt_dismissals", dismissals + 1).apply() }
 
@@ -431,20 +447,20 @@ class SupportRepository(
 }
 
 /**
- * Ícono alternativo (nivel Fan): dos "alias" de la misma pantalla en el manifiesto; se activa uno y se apaga el otro.
+ * Íconos alternativos (v2.0: plateado desde Licuado, dorado desde Fan, Aurora para Mecenas): "alias" de la misma
+ * pantalla en el manifiesto; se activa uno y se apagan los demás.
  * Algunos lanzadores tardan unos segundos en mostrar el cambio.
  */
 object AppIcon {
-    private const val DEFAULT = "com.rupio.app.LauncherDefault"
-    private const val GOLD = "com.rupio.app.LauncherGold"
-
-    fun set(context: Context, gold: Boolean) {
+    fun set(context: Context, style: AppIconStyle) {
         val pm = context.packageManager
         fun state(on: Boolean) = if (on) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DISABLED
         runCatching {
-            // Primero se enciende el nuevo y luego se apaga el viejo: nunca queda la app sin ícono.
-            pm.setComponentEnabledSetting(ComponentName(context, if (gold) GOLD else DEFAULT), state(true), PackageManager.DONT_KILL_APP)
-            pm.setComponentEnabledSetting(ComponentName(context, if (gold) DEFAULT else GOLD), state(false), PackageManager.DONT_KILL_APP)
+            // Primero se enciende el nuevo y luego se apagan los demás: nunca queda la app sin ícono.
+            pm.setComponentEnabledSetting(ComponentName(context, style.alias), state(true), PackageManager.DONT_KILL_APP)
+            AppIconStyle.entries.filter { it != style }.forEach {
+                pm.setComponentEnabledSetting(ComponentName(context, it.alias), state(false), PackageManager.DONT_KILL_APP)
+            }
         }
     }
 }

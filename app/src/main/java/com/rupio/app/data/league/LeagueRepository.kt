@@ -1,5 +1,7 @@
 package com.rupio.app.data.league
 
+
+import com.rupio.app.core.tr
 import android.content.Context
 import androidx.compose.runtime.Immutable
 import com.rupio.app.data.billing.WallError
@@ -235,7 +237,7 @@ class LeagueRepository(
 
     companion object {
         const val PAGE = 50
-        const val NO_ACCOUNT = "Para las ligas necesitas entrar con tu cuenta de Rupio (y confirmar tu correo)."
+        val NO_ACCOUNT: String get() = tr("Para las ligas necesitas entrar con tu cuenta de Rupio (y confirmar tu correo).", "For leagues you need to sign in with your Rupio account (and confirm your email).")
         const val MAX_AGE_MS = 30_000L
         internal val json = Json { ignoreUnknownKeys = true; coerceInputValues = true; explicitNulls = false }
         private val topSerializer = ListSerializer(TopRowDto.serializer())
@@ -264,7 +266,7 @@ class LeagueRepository(
         }
 
         fun errorText(e: Throwable): String = when (val w = WallError.from(e)) {
-            WallError.NO_ENTRY -> "Todavía no participas en las ligas."
+            WallError.NO_ENTRY -> tr("Todavía no participas en las ligas.", "You're not in the leagues yet.")
             WallError.NO_ACCOUNT -> NO_ACCOUNT
             else -> if (e is LeagueException) e.message.orEmpty() else w.userText
         }

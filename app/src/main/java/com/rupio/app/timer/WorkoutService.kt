@@ -1,5 +1,7 @@
 package com.rupio.app.timer
 
+
+import com.rupio.app.core.tr
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationManager
@@ -45,7 +47,7 @@ class WorkoutService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         lifecycleScope.launch { container.settings.settings.collect { alertMode = it.restAlert } }
-        ServiceCompat.startForeground(this, NOTIF_ID, build("Entrenamiento en curso", "Rupio", null, null),
+        ServiceCompat.startForeground(this, NOTIF_ID, build(tr("Entrenamiento en curso", "Workout in progress"), "Rupio", null, null),
             if (Build.VERSION.SDK_INT >= 34) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0)
 
         // Notificación en curso: cronómetro de la sesión o cuenta regresiva del descanso (silenciosa).
@@ -56,7 +58,7 @@ class WorkoutService : LifecycleService() {
                 if (w == null) { stopSelf(); return@collectLatest }
                 if (r == null) {
                     if (canNotify(this@WorkoutService)) NotificationManagerCompat.from(this@WorkoutService)
-                        .notify(NOTIF_ID, build(w.name, "Entrenamiento en curso", w.startedAt, countDown = false))
+                        .notify(NOTIF_ID, build(w.name, tr("Entrenamiento en curso", "Workout in progress"), w.startedAt, countDown = false))
                     return@collectLatest
                 }
                 while (true) {
@@ -116,7 +118,7 @@ class WorkoutService : LifecycleService() {
             b.setWhen(whenMs).setShowWhen(true).setUsesChronometer(true)
             if (countDown == true) {
                 b.setChronometerCountDown(true)
-                b.addAction(0, "+15 s", action(ACTION_ADD15, 1)).addAction(0, "Saltar", action(ACTION_SKIP, 2))
+                b.addAction(0, "+15 s", action(ACTION_ADD15, 1)).addAction(0, tr("Saltar", "Skip"), action(ACTION_SKIP, 2))
             }
         }
         return b.build()
@@ -128,14 +130,14 @@ class WorkoutService : LifecycleService() {
         val total = r.totalSec.coerceAtLeast(1)
         return NotificationCompat.Builder(this, RupioApp.CHANNEL_WORKOUT)
             .setSmallIcon(R.drawable.ic_stat_rupio)
-            .setContentTitle(restTitle(leftSec)).setContentText(r.label).setSubText("de ${Fmt.restLabel(total)}")
+            .setContentTitle(restTitle(leftSec)).setContentText(r.label).setSubText(tr("de ${Fmt.restLabel(total)}", "of ${Fmt.restLabel(total)}"))
             .setProgress(total, leftSec.coerceIn(0, total), false)
             .setOngoing(true).setOnlyAlertOnce(true).setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setContentIntent(openApp(this))
             .setShowWhen(false)
-            .addAction(0, "+15 s", action(ACTION_ADD15, 1)).addAction(0, "Saltar", action(ACTION_SKIP, 2))
+            .addAction(0, "+15 s", action(ACTION_ADD15, 1)).addAction(0, tr("Saltar", "Skip"), action(ACTION_SKIP, 2))
             .build()
     }
 
@@ -144,7 +146,7 @@ class WorkoutService : LifecycleService() {
 
     companion object {
         /** "Quedan 1:24 de descanso" (lo que importa con el teléfono bloqueado). */
-        fun restTitle(leftSec: Int): String = "Quedan ${Fmt.duration(leftSec.coerceAtLeast(0).toLong())} de descanso"
+        fun restTitle(leftSec: Int): String = tr("Quedan ${Fmt.duration(leftSec.coerceAtLeast(0).toLong())} de descanso", "${Fmt.duration(leftSec.coerceAtLeast(0).toLong())} of rest left")
 
         const val NOTIF_ID = 42
         const val ACTION_ADD15 = "rupio.add15"
@@ -208,7 +210,7 @@ object RestAlert {
         if (canNotify(ctx) && channelOn) {
             val n = NotificationCompat.Builder(ctx, channel)
                 .setSmallIcon(R.drawable.ic_stat_rupio)
-                .setContentTitle("¡Descanso terminado!")
+                .setContentTitle(tr("¡Descanso terminado!", "Rest's over!"))
                 .setContentText(label)
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -239,11 +241,11 @@ object RestAlert {
         when (mode) {
             com.rupio.app.data.prefs.RestAlertMode.MEDIA ->
                 if (decision(ctx, mode, force = false).sound && am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) == 0)
-                    "El volumen multimedia está en 0. Súbelo con los botones del teléfono (el aviso usa el volumen de la música)." else null
+                    tr("El volumen multimedia está en 0. Súbelo con los botones del teléfono (el aviso usa el volumen de la música).", "Media volume is at 0. Turn it up with your phone's buttons (the alert uses the music volume).") else null
             com.rupio.app.data.prefs.RestAlertMode.SOUND -> when {
                 am.ringerMode != android.media.AudioManager.RINGER_MODE_NORMAL ->
-                    "Tu teléfono está en vibración o silencio y el aviso está «Como notificación». En Perfil → Aviso de fin de descanso elige «Con el volumen de la música»."
-                am.getStreamVolume(android.media.AudioManager.STREAM_NOTIFICATION) == 0 -> "El volumen de notificaciones está en 0."
+                    tr("Tu teléfono está en vibración o silencio y el aviso está «Como notificación». En Perfil → Aviso de fin de descanso elige «Con el volumen de la música».", "Your phone is on vibrate or silent and the alert is set to “As a notification”. In Profile → Rest timer alert, choose “With the music volume”.")
+                am.getStreamVolume(android.media.AudioManager.STREAM_NOTIFICATION) == 0 -> tr("El volumen de notificaciones está en 0.", "Notification volume is at 0.")
                 else -> null
             }
             com.rupio.app.data.prefs.RestAlertMode.VIBRATE -> null

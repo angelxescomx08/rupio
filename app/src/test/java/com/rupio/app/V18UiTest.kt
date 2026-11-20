@@ -48,7 +48,7 @@ import java.util.concurrent.TimeUnit
 /** v1.8: pantallas nuevas y arreglos visuales (capturas en app/screenshots/8x–9x). */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w393dp-h852dp-xhdpi")
+@Config(sdk = [34], qualifiers = "es-rMX-w393dp-h852dp-night-xhdpi")
 class V18UiTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val app get() = ApplicationProvider.getApplicationContext<RupioApp>()

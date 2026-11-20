@@ -2,6 +2,8 @@
 
 El código ya está listo (Google Play Billing 9.1). Lo que falta se hace en Play Console, una sola vez.
 
+> **Nombre de paquete en Play: `mx.rupio.app`** (desde v2.1). `com.rupio.app` quedó apartado por una cuenta anterior que Google cerró y no se libera. En Play no se puede cambiar después. Es solo el `applicationId`: el `namespace` y los paquetes de Kotlin siguen siendo `com.rupio.app`. Cuenta de desarrollador: angelitox105@gmail.com.
+
 ## 1. Cuenta y perfil de pagos
 
 1. Cuenta de desarrollador de Google Play (pago único de 25 USD).
@@ -34,6 +36,8 @@ Después genera el paquete para Play:
 
 **Prueba y lanzamiento → Pruebas → Prueba interna → Crear versión** y sube el `.aab`. Google solo deja crear productos cuando ya subiste una versión que incluye la biblioteca de pagos.
 
+> **Protección automática** (Play la activa por defecto): agrega una comprobación del instalador y, si la app se instaló desde otra fuente, pide descargarla desde Play. Mientras se reparta el APK directo, decide antes de publicar si se deja activa.
+
 ## 4. Crea los productos
 
 **Monetizar → Productos → Productos únicos → Crear producto**. Los IDs deben ser **exactamente** estos (la app los busca así):
@@ -64,7 +68,7 @@ Estos tres son **consumibles** (se pueden comprar varias veces): en Play Console
   1. Play Console → Monetizar con Play → Configuración de monetización → **Licencias** → copia la llave (empieza con `MIIBIjANBgkq…`). No es secreta.
   2. `python3 db/wall/llave_play.py "MIIBIjANBgkq…"` → imprime un `update public.wall_config …`.
   3. Pégalo en Neon → SQL Editor (rol `neondb_owner`) y córrelo.
-- El servidor verifica **cada compra** con esa llave (firma RSA-SHA1 de Google, en SQL puro: `rupio_play_signature_ok`), que el paquete sea `com.rupio.app`, que el pago esté completo, que el token no se haya usado y que la compra sea de **esa cuenta de Rupio** (la app manda `obfuscatedAccountId` = sha256 del id de la cuenta). Pruebas: `db/wall/prueba_muro.py` (24 casos contra un Postgres local).
+- El servidor verifica **cada compra** con esa llave (firma RSA-SHA1 de Google, en SQL puro: `rupio_play_signature_ok`), que el paquete sea `mx.rupio.app` (columna `wall_config.package_name`; ver `db/migrations/011_paquete_play.sql`), que el pago esté completo, que el token no se haya usado y que la compra sea de **esa cuenta de Rupio** (la app manda `obfuscatedAccountId` = sha256 del id de la cuenta). Pruebas: `db/wall/prueba_muro.py` (25 casos contra un Postgres local).
 - **Reembolsos**: el muro no se entera solo. Si reembolsas un aporte, corre `select public.rupio_wall_admin_revoke('<purchaseToken>');` (lo ves en la orden de Play Console o en `wall_payments`). Nombre ofensivo: `update public.wall_entries set blocked = true where display_name ilike '%…%';` (la persona ve que fue ocultado y puede cambiarlo).
 - Para el muro hace falta **cuenta de Rupio** (la Data API pide JWT): en modo sin cuenta la app ofrece «Crear cuenta y conservar mis datos».
 

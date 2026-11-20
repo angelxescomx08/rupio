@@ -1,5 +1,7 @@
 package com.rupio.app.domain
 
+
+import com.rupio.app.core.tr
 import com.rupio.app.data.local.DayBest
 import com.rupio.app.data.local.Totals2
 
@@ -107,33 +109,36 @@ object ProgressStoryBuilder {
 
     /** Frase principal, en lenguaje sencillo. */
     fun headline(s: ProgressStory): String = when {
-        s.isEmpty -> "Tu historia empieza con tu primer entrenamiento."
-        (s.medianStrengthPct ?: 0.0) >= 1.0 -> "Eres ~${Math.round(s.medianStrengthPct!!)} % más fuerte que cuando empezaste"
-        s.total.n == 1 -> "¡Primer entrenamiento hecho! Ya empezaste."
-        else -> "Llevas ${s.total.n} entrenamientos: estás construyendo tu base"
+        s.isEmpty -> tr("Tu historia empieza con tu primer entrenamiento.", "Your story starts with your first workout.")
+        (s.medianStrengthPct ?: 0.0) >= 1.0 -> tr("Eres ~${Math.round(s.medianStrengthPct!!)} % más fuerte que cuando empezaste", "You're ~${Math.round(s.medianStrengthPct!!)}% stronger than when you started")
+        s.total.n == 1 -> tr("¡Primer entrenamiento hecho! Ya empezaste.", "First workout done! You've started.")
+        else -> tr("Llevas ${s.total.n} entrenamientos: estás construyendo tu base", "${s.total.n} workouts so far: you're building your base")
     }
 
     /** Explicación de qué está pasando y qué esperar (para que nadie se desmotive). */
     fun meaning(s: ProgressStory): List<String> {
         val out = mutableListOf<String>()
-        if (s.isEmpty) return listOf("Cuando termines entrenamientos, aquí verás cómo cambian tu fuerza, tus récords y tu constancia.")
-        if (s.medianStrengthPct != null) out += "El % compara tu mejor serie de ahora con la de tu primera vez en cada ejercicio, " +
-            "usando la fuerza estimada (1RM): así cuenta aunque hayas cambiado el peso o las repeticiones."
-        out += if (s.weeks < 52) "Estás en tu primer año: es cuando más rápido se progresa. Aprovecha con buena técnica y constancia; esas bases te sirven para siempre."
-            else "Ya pasaste tu primer año. Es normal que ahora el progreso sea más lento: cada pequeño aumento vale más."
-        if (s.stalled.isNotEmpty()) out += "Algunos ejercicios no han subido en las últimas sesiones. Es normal y le pasa a todos; abajo te decimos qué probar."
-        if (s.last30.n > 0 && s.prev30.n > 0 && s.last30.n >= s.prev30.n) out += "Este mes entrenaste igual o más que el anterior. La constancia es lo que más resultados da."
+        if (s.isEmpty) return listOf(tr("Cuando termines entrenamientos, aquí verás cómo cambian tu fuerza, tus récords y tu constancia.", "As you finish workouts, you'll see here how your strength, PRs and consistency change."))
+        if (s.medianStrengthPct != null) out += tr("El % compara tu mejor serie de ahora con la de tu primera vez en cada ejercicio, " +
+            "usando la fuerza estimada (1RM): así cuenta aunque hayas cambiado el peso o las repeticiones.",
+            "The % compares your best set now with your first time on each exercise, using estimated strength (1RM), " +
+                "so it counts even if you changed the weight or the reps.")
+        out += if (s.weeks < 52) tr("Estás en tu primer año: es cuando más rápido se progresa. Aprovecha con buena técnica y constancia; esas bases te sirven para siempre.", "You're in your first year: that's when progress is fastest. Make the most of it with good form and consistency; those foundations last forever.")
+            else tr("Ya pasaste tu primer año. Es normal que ahora el progreso sea más lento: cada pequeño aumento vale más.", "You're past your first year. It's normal for progress to be slower now: every small gain is worth more.")
+        if (s.stalled.isNotEmpty()) out += tr("Algunos ejercicios no han subido en las últimas sesiones. Es normal y le pasa a todos; abajo te decimos qué probar.", "Some exercises haven't gone up in recent sessions. That's normal and happens to everyone; below we tell you what to try.")
+        if (s.last30.n > 0 && s.prev30.n > 0 && s.last30.n >= s.prev30.n) out += tr("Este mes entrenaste igual o más que el anterior. La constancia es lo que más resultados da.", "This month you trained as much as or more than last month. Consistency is what gets the most results.")
         return out
     }
 
     /** Equivalencia divertida del volumen total (aproximada). */
     fun equivalence(kg: Double): String? {
-        val things = listOf(Triple("un auto compacto", 1_200.0, "🚗"), Triple("un elefante africano", 6_000.0, "🐘"),
-            Triple("un autobús", 12_000.0, "🚌"), Triple("una ballena azul", 150_000.0, "🐋"))
+        val things = listOf(Triple(tr("un auto compacto", "a compact car"), 1_200.0, "🚗"), Triple(tr("un elefante africano", "an African elephant"), 6_000.0, "🐘"),
+            Triple(tr("un autobús", "a bus"), 12_000.0, "🚌"), Triple(tr("una ballena azul", "a blue whale"), 150_000.0, "🐋"))
         val (name, w, emoji) = things.lastOrNull { kg >= it.second } ?: return null
         val times = kg / w
         val n = if (times < 10) String.format(java.util.Locale.US, "%.1f", times) else Math.round(times).toString()
-        return if (times < 1.5) "como levantar $name $emoji" else "como levantar $n veces $name $emoji"
+        return if (times < 1.5) tr("como levantar $name $emoji", "like lifting $name $emoji")
+            else tr("como levantar $n veces $name $emoji", "like lifting $name $n times $emoji")
     }
 
 }

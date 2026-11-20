@@ -2,10 +2,10 @@ package com.rupio.app.ui.support
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.toggleable
@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -38,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.rupio.app.Routes
 import com.rupio.app.container
+import com.rupio.app.core.tr
 import com.rupio.app.data.auth.AuthState
 import com.rupio.app.data.billing.SupportState
 import com.rupio.app.data.billing.WallEntry
@@ -50,9 +50,7 @@ import com.rupio.app.domain.SupportTier
 import com.rupio.app.domain.WallBoost
 import com.rupio.app.domain.WallCopy
 import com.rupio.app.domain.WallName
-import com.rupio.app.safePop
 import com.rupio.app.ui.components.InitialsAvatar
-import com.rupio.app.ui.components.RupioTopBar
 import com.rupio.app.ui.components.SectionCard
 import com.rupio.app.ui.theme.Metals
 import com.rupio.app.ui.theme.RupioColors
@@ -113,21 +111,22 @@ fun WallTab(nav: NavHostController, snackbar: SnackbarHostState, listState: Lazy
 
     val defaultName = wall.me?.name ?: signed?.name.orEmpty()
     if (joining) WallNameDialog(
-        title = "Ser Mecenas · ${support.price(SupportTier.MECENAS)}",
-        intro = "Escribe cómo quieres aparecer. Después de pagar entras al muro con este nombre.",
-        initial = defaultName, confirm = "Continuar al pago", askConsent = true,
+        title = tr("Ser Mecenas · ${support.price(SupportTier.MECENAS)}", "Become a patron · ${support.price(SupportTier.MECENAS)}"),
+        intro = tr("Escribe cómo quieres aparecer. Después de pagar entras al muro con este nombre.", "Enter how you want to appear. After paying, you join the wall with this name."),
+        initial = defaultName, confirm = tr("Continuar al pago", "Continue to payment"), askConsent = true,
         onDismiss = { joining = false },
     ) { name -> joining = false; activity?.let { c.support.buyWall(it, WallBoost.BIG, name) } }
     if (renaming) WallNameDialog(
-        title = "Tu nombre en el muro", intro = null, initial = defaultName, confirm = "Guardar", askConsent = true,
+        title = tr("Tu nombre en el muro", "Your name on the wall"), intro = null, initial = defaultName, confirm = tr("Guardar", "Save"), askConsent = true,
         onDismiss = { renaming = false },
     ) { name -> renaming = false; act { c.wall.setName(name) } }
     if (hiding) AlertDialog(
         onDismissRequest = { hiding = false },
-        title = { Text("¿Quitar tu nombre del muro?") },
-        text = { Text("Dejará de verse para los demás. Conservas tu nivel Mecenas y tus puntos, y puedes volver a aparecer cuando quieras.") },
-        confirmButton = { TextButton(onClick = { hiding = false; act { c.wall.setHidden(true) } }) { Text("Quitar") } },
-        dismissButton = { TextButton(onClick = { hiding = false }) { Text("Cancelar") } },
+        title = { Text(tr("¿Quitar tu nombre del muro?", "Remove your name from the wall?")) },
+        text = { Text(tr("Dejará de verse para los demás. Conservas tu nivel Mecenas y tus puntos, y puedes volver a aparecer cuando quieras.",
+            "Others won't see it anymore. You keep your Patron level and your points, and you can show up again whenever you want.")) },
+        confirmButton = { TextButton(onClick = { hiding = false; act { c.wall.setHidden(true) } }) { Text(tr("Quitar", "Remove")) } },
+        dismissButton = { TextButton(onClick = { hiding = false }) { Text(tr("Cancelar", "Cancel")) } },
     )
 }
 
@@ -147,7 +146,7 @@ fun WallContent(
             SectionCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     InitialsAvatar(SupportCopy.DEV_NAME, 44.dp); Spacer(Modifier.width(12.dp))
-                    Text("Gracias 💙", style = MaterialTheme.typography.titleLarge)
+                    Text(tr("Gracias 💙", "Thank you 💙"), style = MaterialTheme.typography.titleLarge)
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(WallCopy.INTRO, style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
@@ -156,16 +155,16 @@ fun WallContent(
             }
         }
         support.message?.let { msg -> item { InfoBanner(msg) } }
-        if (support.wallRegistering) item { InfoBanner("Registrando tu aporte en el muro…", loading = true) }
+        if (support.wallRegistering) item { InfoBanner(tr("Registrando tu aporte en el muro…", "Adding your contribution to the wall…"), loading = true) }
         when (access) {
             WallAccess.LOCAL_ONLY, WallAccess.NOT_READY -> item {
                 SectionCard {
-                    Text("🌟  Aparece en el muro", style = MaterialTheme.typography.titleMedium)
+                    Text(tr("🌟  Aparece en el muro", "🌟  Get on the wall"), style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(6.dp))
                     Text(WallCopy.NEEDS_ACCOUNT, style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
                     if (access == WallAccess.LOCAL_ONLY) {
                         Spacer(Modifier.height(10.dp))
-                        Button(onClick = onCreateAccount, modifier = Modifier.fillMaxWidth()) { Text("Crear cuenta y conservar mis datos") }
+                        Button(onClick = onCreateAccount, modifier = Modifier.fillMaxWidth()) { Text(tr("Crear cuenta y conservar mis datos", "Create an account and keep my data")) }
                     }
                 }
             }
@@ -178,18 +177,19 @@ fun WallContent(
             wall.error?.let { err -> item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(err, style = MaterialTheme.typography.bodyMedium, color = RupioColors.Warning, modifier = Modifier.weight(1f))
-                    TextButton(onClick = onRetry) { Text("Reintentar") }
+                    TextButton(onClick = onRetry) { Text(tr("Reintentar", "Retry")) }
                 }
             } }
             if (wall.loading && wall.entries.isEmpty()) item {
                 Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             }
             if (wall.loaded && wall.entries.isEmpty() && wall.error == null) item {
-                Text("Todavía no hay nadie en el muro. ¡Puedes ser la primera persona! 🌟", style = MaterialTheme.typography.bodyMedium,
+                Text(tr("Todavía no hay nadie en el muro. ¡Puedes ser la primera persona! 🌟", "Nobody's on the wall yet. You could be the first! 🌟"), style = MaterialTheme.typography.bodyMedium,
                     color = RupioColors.TextDim, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp))
             }
             if (wall.entries.isNotEmpty()) item {
-                Text("${wall.me?.total ?: wall.entries.size} ${if ((wall.me?.total ?: wall.entries.size) == 1) "persona" else "personas"} en el muro",
+                val total = wall.me?.total ?: wall.entries.size
+                Text(tr("$total ${if (total == 1) "persona" else "personas"} en el muro", "$total ${if (total == 1) "person" else "people"} on the wall"),
                     style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 6.dp).semantics { heading() })
             }
             itemsIndexed(wall.entries, key = { i, _ -> keys[i] }, contentType = { _, _ -> "row" }) { _, e -> WallRow(e) }
@@ -214,13 +214,63 @@ private fun InfoBanner(text: String, loading: Boolean = false) {
     }
 }
 
-private val sinceFmt = java.time.format.DateTimeFormatter.ofPattern("MMMM 'de' yyyy", com.rupio.app.core.Fmt.locale)
+private val sinceFmtEs = java.time.format.DateTimeFormatter.ofPattern("MMMM 'de' yyyy", com.rupio.app.core.I18n.SPANISH_MX)
+private val sinceFmtEn = java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy", java.util.Locale.US)
 
-/** "noviembre de 2026" (vacío si no hay fecha). */
-fun wallSince(ms: Long): String = if (ms <= 0) "" else Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate().format(sinceFmt)
+/** "noviembre de 2026" / "November 2026" (vacío si no hay fecha). */
+fun wallSince(ms: Long): String = if (ms <= 0) "" else Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDate()
+    .format(if (com.rupio.app.core.I18n.isEnglish) sinceFmtEn else sinceFmtEs)
 
 /** Degradado del nivel Mecenas: el metal Aurora (se crea una sola vez, en Metals). */
 val MecenasBrush: Brush get() = Metals.Aurora.brush
+
+private fun medal(rank: Int): String? = when (rank) { 1 -> "🥇"; 2 -> "🥈"; 3 -> "🥉"; else -> null }
+
+/**
+ * v2.0: vista previa del muro (los 3 primeros lugares) en Inicio, Progreso, Perfil y la pestaña Apoyar. Antes el muro
+ * solo existía dentro de su pestaña y casi nadie lo encontraba (lo que no se ve no se usa: NN/g, navegación oculta).
+ *
+ * Es una tarjeta como las demás de la app, no un banner: la gente ignora lo que parece anuncio (NN/g, ceguera a los
+ * banners). Va al final de cada pantalla, nunca interrumpe y en Inicio se puede ocultar. Mostrar con nombre a quienes
+ * apoyan es, además, lo que más anima a apoyar (reconocimiento público: Karlan & McConnell 2014; Harbaugh 1998).
+ */
+@Composable
+fun WallPreviewCard(wall: WallState, access: WallAccess, onOpen: () -> Unit, modifier: Modifier = Modifier,
+                    onHide: (() -> Unit)? = null, onJoin: (() -> Unit)? = null) {
+    val total = wall.me?.total ?: wall.entries.size
+    val top = wall.entries.take(3)
+    val shape = RoundedCornerShape(20.dp)
+    Surface(shape = shape, color = RupioColors.Surface, border = BorderStroke(1.dp, Metals.Aurora.ink.copy(alpha = 0.45f)),
+        modifier = modifier.fillMaxWidth().clip(shape).clickable(onClickLabel = tr("Ver el muro de agradecimientos", "See the thank-you wall"), onClick = onOpen)) {
+        Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(40.dp).clip(CircleShape).background(MecenasBrush), contentAlignment = Alignment.Center) { Text(SupportTier.MECENAS.emoji) }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(WallCopy.TITLE, style = MaterialTheme.typography.titleMedium)
+                    Text(WallCopy.teaser(if (access == WallAccess.READY) total else 0), style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                }
+                Icon(Icons.Rounded.ChevronRight, null, tint = RupioColors.TextFaint)
+            }
+            if (top.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                top.forEach { e ->
+                    Row(Modifier.padding(vertical = 3.dp).semantics(mergeDescendants = true) {}, verticalAlignment = Alignment.CenterVertically) {
+                        Text(medal(e.rank) ?: "#${e.rank}", modifier = Modifier.width(32.dp), textAlign = TextAlign.Center)
+                        Spacer(Modifier.width(8.dp))
+                        Text(e.name + if (e.me) tr(" (tú)", " (you)") else "", style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (e.me) FontWeight.SemiBold else null, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                if (onHide != null) TextButton(onClick = onHide) { Text(tr("Ocultar", "Hide"), color = RupioColors.TextDim) }
+                if (onJoin != null) TextButton(onClick = onJoin) { Text(tr("Hazte Mecenas", "Become a patron")) }
+                else TextButton(onClick = onOpen) { Text(if (total > 3 && access == WallAccess.READY) tr("Ver los $total", "See all $total") else tr("Ver el muro", "See the wall")) }
+            }
+        }
+    }
+}
 
 @Composable
 private fun JoinCard(support: SupportState, onJoin: () -> Unit) {
@@ -231,8 +281,8 @@ private fun JoinCard(support: SupportState, onJoin: () -> Unit) {
                 Box(Modifier.size(44.dp).clip(CircleShape).background(MecenasBrush), contentAlignment = Alignment.Center) { Text(SupportTier.MECENAS.emoji) }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("¿Quieres aparecer aquí?", style = MaterialTheme.typography.titleMedium)
-                    Text("Nivel Mecenas · pago único", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
+                    Text(tr("¿Quieres aparecer aquí?", "Want to appear here?"), style = MaterialTheme.typography.titleMedium)
+                    Text(tr("Nivel Mecenas · pago único", "Patron level · one-time payment"), style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -244,7 +294,7 @@ private fun JoinCard(support: SupportState, onJoin: () -> Unit) {
             }
             Spacer(Modifier.height(12.dp))
             Button(onClick = onJoin, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp), shape = RoundedCornerShape(14.dp)) {
-                Text("Ser Mecenas · ${support.price(SupportTier.MECENAS)}", fontWeight = FontWeight.SemiBold)
+                Text(tr("Ser Mecenas · ${support.price(SupportTier.MECENAS)}", "Become a patron · ${support.price(SupportTier.MECENAS)}"), fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -264,10 +314,10 @@ private fun MyWallCard(me: WallMe, support: SupportState, onBoost: (WallBoost) -
                 Column(Modifier.weight(1f)) {
                     Text(me.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(when {
-                        me.blocked -> "Tu nombre está oculto por moderación. Cámbialo para volver a aparecer."
-                        me.hidden -> "Tu nombre está oculto"
-                        me.rank != null -> WallCopy.rank(me.rank) + " · ${me.points} puntos"
-                        else -> "${me.points} puntos"
+                        me.blocked -> tr("Tu nombre está oculto por moderación. Cámbialo para volver a aparecer.", "Your name was hidden by moderation. Change it to show up again.")
+                        me.hidden -> tr("Tu nombre está oculto", "Your name is hidden")
+                        me.rank != null -> WallCopy.rank(me.rank) + tr(" · ${me.points} puntos", " · ${me.points} points")
+                        else -> tr("${me.points} puntos", "${me.points} points")
                     }, style = MaterialTheme.typography.labelMedium, color = if (me.blocked) RupioColors.Warning else RupioColors.TextDim)
                 }
             }
@@ -275,9 +325,9 @@ private fun MyWallCard(me: WallMe, support: SupportState, onBoost: (WallBoost) -
                 Spacer(Modifier.height(10.dp))
                 val toNext = me.toNext
                 if (toNext != null && me.rank > 1) Text(WallCopy.toPass(toNext, me.rank - 1), style = MaterialTheme.typography.bodyMedium)
-                else Text("¡Vas en primer lugar! Gracias por tanto apoyo. 🥇", style = MaterialTheme.typography.bodyMedium)
+                else Text(tr("¡Vas en primer lugar! Gracias por tanto apoyo. 🥇", "You're in first place! Thank you for so much support. 🥇"), style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(10.dp))
-                Text("Sube de lugar con un aporte extra:", style = MaterialTheme.typography.labelLarge, color = RupioColors.TextDim)
+                Text(tr("Sube de lugar con un aporte extra:", "Move up with an extra contribution:"), style = MaterialTheme.typography.labelLarge, color = RupioColors.TextDim)
                 Spacer(Modifier.height(6.dp))
                 val suggested = WallBoost.toPass(toNext?.takeIf { me.rank > 1 })
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -290,8 +340,8 @@ private fun MyWallCard(me: WallMe, support: SupportState, onBoost: (WallBoost) -
             }
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onRename) { Text("Cambiar nombre") }
-                TextButton(onClick = { onHide(!me.hidden) }) { Text(if (me.hidden) "Volver a aparecer" else "Quitarme del muro", color = RupioColors.TextDim) }
+                TextButton(onClick = onRename) { Text(tr("Cambiar nombre", "Change name")) }
+                TextButton(onClick = { onHide(!me.hidden) }) { Text(if (me.hidden) tr("Volver a aparecer", "Show me again") else tr("Quitarme del muro", "Remove me from the wall"), color = RupioColors.TextDim) }
             }
         }
     }
@@ -300,7 +350,8 @@ private fun MyWallCard(me: WallMe, support: SupportState, onBoost: (WallBoost) -
 @Composable
 private fun BoostButton(b: WallBoost, price: String, highlighted: Boolean, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
-    Surface(onClick = onClick, enabled = enabled, shape = shape, modifier = modifier.heightIn(min = 64.dp).semantics { contentDescription = "Aportar $price, suma ${b.points} puntos" },
+    Surface(onClick = onClick, enabled = enabled, shape = shape, modifier = modifier.heightIn(min = 64.dp)
+        .semantics { contentDescription = tr("Aportar $price, suma ${b.points} puntos", "Contribute $price, adds ${b.points} points") },
         color = if (highlighted) Metals.Aurora.ink.copy(alpha = 0.16f) else RupioColors.Surface2,
         border = BorderStroke(if (highlighted) 1.5.dp else 1.dp, if (highlighted) Metals.Aurora.ink else RupioColors.Outline)) {
         Column(Modifier.padding(horizontal = 6.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -312,13 +363,14 @@ private fun BoostButton(b: WallBoost, price: String, highlighted: Boolean, enabl
 
 @Composable
 private fun WallRow(e: WallEntry) {
-    val medal = when (e.rank) { 1 -> "🥇"; 2 -> "🥈"; 3 -> "🥉"; else -> null }
-    val since = remember(e.sinceMs) {
-        wallSince(e.sinceMs)
-    }
+    val medal = medal(e.rank)
+    val since = wallSince(e.sinceMs)
     Surface(shape = RoundedCornerShape(14.dp), color = if (e.me) Metals.Aurora.ink.copy(alpha = 0.12f) else RupioColors.Surface,
         border = if (e.me) BorderStroke(1.dp, Metals.Aurora.ink.copy(alpha = 0.6f)) else null, modifier = Modifier.fillMaxWidth()
-            .semantics(mergeDescendants = true) { contentDescription = "Lugar ${e.rank}, ${e.name}" + (if (e.me) ", eres tú" else "") + (if (since.isNotBlank()) ", desde $since" else "") }) {
+            .semantics(mergeDescendants = true) {
+                contentDescription = tr("Lugar ${e.rank}, ${e.name}", "Place ${e.rank}, ${e.name}") + (if (e.me) tr(", eres tú", ", that's you") else "") +
+                    (if (since.isNotBlank()) tr(", desde $since", ", since $since") else "")
+            }) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.width(40.dp), contentAlignment = Alignment.Center) {
                 if (medal != null) Text(medal, style = MaterialTheme.typography.headlineSmall)
@@ -326,8 +378,8 @@ private fun WallRow(e: WallEntry) {
             }
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text(e.name + if (e.me) " (tú)" else "", style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                if (since.isNotBlank()) Text("Desde $since", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
+                Text(e.name + if (e.me) tr(" (tú)", " (you)") else "", style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                if (since.isNotBlank()) Text(tr("Desde $since", "Since $since"), style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
             }
             Text(SupportTier.MECENAS.emoji)
         }
@@ -344,7 +396,7 @@ private fun WallRow(e: WallEntry) {
  */
 @Composable
 fun WallNameDialog(title: String, intro: String?, initial: String, confirm: String, askConsent: Boolean, onDismiss: () -> Unit,
-                   label: String = "Nombre en el muro", consentText: String = WallCopy.CONSENT, onConfirm: (String) -> Unit) {
+                   label: String = tr("Nombre en el muro", "Name on the wall"), consentText: String = WallCopy.CONSENT, onConfirm: (String) -> Unit) {
     var name by rememberSaveable { mutableStateOf(initial.take(WallName.MAX)) }
     var consent by rememberSaveable { mutableStateOf(false) }
     val error = WallName.problem(name)
@@ -355,7 +407,8 @@ fun WallNameDialog(title: String, intro: String?, initial: String, confirm: Stri
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 intro?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim) }
                 OutlinedTextField(name, { name = it.take(WallName.MAX) }, label = { Text(label) }, singleLine = true,
-                    isError = name.isNotEmpty() && error != null, supportingText = { Text(if (name.isNotEmpty() && error != null) error else "${WallName.clean(name).length}/${WallName.MAX} · puede ser un apodo") },
+                    isError = name.isNotEmpty() && error != null,
+                    supportingText = { Text(if (name.isNotEmpty() && error != null) error else "${WallName.clean(name).length}/${WallName.MAX} · " + tr("puede ser un apodo", "a nickname is fine")) },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words), modifier = Modifier.fillMaxWidth())
                 if (askConsent) Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).toggleable(consent, role = Role.Checkbox) { consent = it }.padding(vertical = 4.dp),
@@ -367,7 +420,7 @@ fun WallNameDialog(title: String, intro: String?, initial: String, confirm: Stri
             }
         },
         confirmButton = { TextButton(enabled = error == null && (consent || !askConsent), onClick = { onConfirm(WallName.clean(name)) }) { Text(confirm) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancelar", "Cancel")) } },
     )
 }
 
@@ -376,10 +429,10 @@ fun WallNameDialog(title: String, intro: String?, initial: String, confirm: Stri
 fun WallAccountDialog(localOnly: Boolean, onCreate: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Necesitas una cuenta") },
-        text = { Text(WallCopy.NEEDS_ACCOUNT + if (localOnly) " Tus entrenos se conservan." else " Confirma tu correo o vuelve a entrar.") },
-        confirmButton = { if (localOnly) TextButton(onClick = onCreate) { Text("Crear cuenta") } else TextButton(onClick = onDismiss) { Text("Entendido") } },
-        dismissButton = { if (localOnly) TextButton(onClick = onDismiss) { Text("Ahora no") } },
+        title = { Text(tr("Necesitas una cuenta", "You need an account")) },
+        text = { Text(WallCopy.NEEDS_ACCOUNT + if (localOnly) tr(" Tus entrenos se conservan.", " Your workouts are kept.") else tr(" Confirma tu correo o vuelve a entrar.", " Confirm your email or sign in again.")) },
+        confirmButton = { if (localOnly) TextButton(onClick = onCreate) { Text(tr("Crear cuenta", "Create account")) } else TextButton(onClick = onDismiss) { Text(tr("Entendido", "Got it")) } },
+        dismissButton = { if (localOnly) TextButton(onClick = onDismiss) { Text(tr("Ahora no", "Not now")) } },
     )
 }
 
@@ -394,19 +447,19 @@ fun WallRaisedDialog(rank: Int?, previousRank: Int?, onSeeWall: () -> Unit, onCl
                         Text(rank?.let { "#$it" } ?: "🌟", style = MaterialTheme.typography.headlineMedium, color = Metals.Aurora.on, fontWeight = FontWeight.Bold)
                     }
                     Spacer(Modifier.height(14.dp))
-                    Text("¡Gracias otra vez! 🙌", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+                    Text(tr("¡Gracias otra vez! 🙌", "Thanks again! 🙌"), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(6.dp))
                     Text(when {
-                        rank == null -> "Tu aporte ya cuenta en el muro."
-                        previousRank != null && rank < previousRank -> "Subiste del lugar #$previousRank al #$rank."
-                        else -> "Tu aporte ya cuenta. Vas en el lugar #$rank."
+                        rank == null -> tr("Tu aporte ya cuenta en el muro.", "Your contribution now counts on the wall.")
+                        previousRank != null && rank < previousRank -> tr("Subiste del lugar #$previousRank al #$rank.", "You moved up from place #$previousRank to #$rank.")
+                        else -> tr("Tu aporte ya cuenta. Vas en el lugar #$rank.", "Your contribution counts. You're in place #$rank.")
                     }, style = MaterialTheme.typography.bodyLarge, color = RupioColors.TextDim, textAlign = TextAlign.Center)
                     Text(SupportCopy.THANKS_SIGN, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 6.dp))
                     Spacer(Modifier.height(18.dp))
-                    Button(onClick = onSeeWall, modifier = Modifier.fillMaxWidth()) { Text("Ver el muro") }
-                    TextButton(onClick = onClose) { Text("Cerrar") }
+                    Button(onClick = onSeeWall, modifier = Modifier.fillMaxWidth()) { Text(tr("Ver el muro", "See the wall")) }
+                    TextButton(onClick = onClose) { Text(tr("Cerrar", "Close")) }
                 }
-                Confetti(Modifier.matchParentSize(), pieces = 50)
+                Confetti(Modifier.matchParentSize(), pieces = 50, colors = confettiColors(SupportTier.MECENAS))
             }
         }
     }

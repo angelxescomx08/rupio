@@ -55,11 +55,20 @@ data class Settings(
 )
 
 /** Cómo suena el fin del descanso. */
-enum class RestAlertMode(val code: String, val label: String, val detail: String) {
-    MEDIA("media", "Con el volumen de la música (recomendado)",
-        "Se oye aunque el teléfono esté en vibración, por la bocina o tus audífonos, y baja un momento la música o el video. En silencio total, solo vibra (salvo con audífonos o si algo está sonando)"),
-    SOUND("sound", "Como notificación", "Usa el volumen de notificaciones: en vibración o silencio no suena"),
-    VIBRATE("vibrate", "Solo vibración", "Sin sonido");
+enum class RestAlertMode(val code: String) {
+    MEDIA("media"), SOUND("sound"), VIBRATE("vibrate");
+
+    val label: String get() = when (this) {
+        MEDIA -> com.rupio.app.core.tr("Con el volumen de la música (recomendado)", "With the music volume (recommended)")
+        SOUND -> com.rupio.app.core.tr("Como notificación", "As a notification")
+        VIBRATE -> com.rupio.app.core.tr("Solo vibración", "Vibrate only")
+    }
+    val detail: String get() = when (this) {
+        MEDIA -> com.rupio.app.core.tr("Se oye aunque el teléfono esté en vibración, por la bocina o tus audífonos, y baja un momento la música o el video. En silencio total, solo vibra (salvo con audífonos o si algo está sonando)",
+            "You'll hear it even with your phone on vibrate, through the speaker or your headphones, and it briefly lowers your music or video. On full silent it only vibrates (unless you have headphones or something is playing)")
+        SOUND -> com.rupio.app.core.tr("Usa el volumen de notificaciones: en vibración o silencio no suena", "Uses the notification volume: on vibrate or silent it won't play")
+        VIBRATE -> com.rupio.app.core.tr("Sin sonido", "No sound")
+    }
 
     /**
      * v1.8: si nunca elegiste, ahora es MEDIA. Antes era SOUND, que en vibración no suena: así llegó el reporte de que

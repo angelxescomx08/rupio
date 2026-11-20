@@ -1,5 +1,7 @@
 package com.rupio.app.ui.legal
 
+
+import com.rupio.app.core.tr
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,7 +31,7 @@ import com.rupio.app.ui.theme.RupioColors
 import kotlinx.coroutines.launch
 
 /**
- * "Eliminar mi cuenta" (requisito de Google Play). Dice exactamente qué se borra, pide la contraseña para confirmar
+ * tr("Eliminar mi cuenta", "Delete my account") (requisito de Google Play). Dice exactamente qué se borra, pide la contraseña para confirmar
  * que eres tú y borra todo en el servidor en una sola operación (si falla, no se borra nada).
  */
 @Composable
@@ -46,47 +48,49 @@ fun DeleteAccountScreen(nav: NavHostController) {
     var forgot by remember { mutableStateOf(false) }
 
     fun delete() {
-        if (pass.isEmpty()) { error = "Escribe tu contraseña para confirmar."; return }
+        if (pass.isEmpty()) { error = tr("Escribe tu contraseña para confirmar.", "Enter your password to confirm."); return }
         busy = true; error = null
         scope.launch {
             try { c.deleteAccount(pass); c.accountDeleted.value = true }
             catch (e: AuthException) { error = e.message }
-            catch (e: Exception) { error = "Algo salió mal (código D1). No se borró nada; inténtalo de nuevo." }
+            catch (e: Exception) { error = tr("Algo salió mal (código D1). No se borró nada; inténtalo de nuevo.", "Something went wrong (code D1). Nothing was erased; please try again.") }
             busy = false
         }
     }
 
     Column(Modifier.fillMaxSize()) {
-        RupioTopBar("Eliminar mi cuenta", onBack = { if (!busy) nav.safePop() })
+        RupioTopBar(tr("Eliminar mi cuenta", "Delete my account"), onBack = { if (!busy) nav.safePop() })
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SectionCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.DeleteForever, null, tint = RupioColors.Danger)
                     Spacer(Modifier.width(10.dp))
-                    Text("Se borra para siempre", style = MaterialTheme.typography.titleMedium)
+                    Text(tr("Se borra para siempre", "It's erased forever"), style = MaterialTheme.typography.titleMedium)
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("De la nube y de este teléfono se eliminan:", style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
+                Text(tr("De la nube y de este teléfono se eliminan:", "Deleted from the cloud and this phone:"), style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
                 Spacer(Modifier.height(6.dp))
                 (listOf(
-                    "Tu cuenta (${me.email})",
-                    "Tus $count ${if (count == 1) "entrenamiento" else "entrenamientos"}, con sus series y récords",
-                    "Tus rutinas y ejercicios personalizados",
-                    "Tu registro de peso corporal",
-                ) + (if (com.rupio.app.container().support.state.collectAsState().value.isPatron) listOf("Tu lugar en el muro de agradecimientos") else emptyList())
+                    tr("Tu cuenta (${me.email})", "Your account (${me.email})"),
+                    tr("Tus $count ${if (count == 1) "entrenamiento" else "entrenamientos"}, con sus series y récords", "Your $count ${if (count == 1) "workout" else "workouts"}, with their sets and PRs"),
+                    tr("Tus rutinas y ejercicios personalizados", "Your routines and custom exercises"),
+                    tr("Tu registro de peso corporal", "Your body weight log"),
+                ) + (if (com.rupio.app.container().support.state.collectAsState().value.isPatron) listOf(tr("Tu lugar en el muro de agradecimientos", "Your place on the thank-you wall")) else emptyList())
                 ).forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
                 Spacer(Modifier.height(8.dp))
-                Text("No se puede deshacer. Las copias de seguridad automáticas del servidor se borran solas en un máximo de 30 días. " +
-                    "Tus compras de apoyo siguen ligadas a tu cuenta de Google Play.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                Text(tr("No se puede deshacer. Las copias de seguridad automáticas del servidor se borran solas en un máximo de 30 días. " +
+                    "Tus compras de apoyo siguen ligadas a tu cuenta de Google Play.",
+                    "This can't be undone. The server's automatic backups are erased on their own within 30 days at most. " +
+                        "Your supporter purchases stay linked to your Google Play account."), style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
             }
             SectionCard {
-                Text("Confirma que eres tú", style = MaterialTheme.typography.titleSmall)
+                Text(tr("Confirma que eres tú", "Confirm it's you"), style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.height(8.dp))
                 PasswordField(pass, { pass = it }, show, { show = !show }, onDone = { if (sure) delete() })
-                TextButton(onClick = { forgot = true }, contentPadding = PaddingValues(0.dp)) { Text("¿Olvidaste tu contraseña?") }
+                TextButton(onClick = { forgot = true }, contentPadding = PaddingValues(0.dp)) { Text(tr("¿Olvidaste tu contraseña?", "Forgot your password?")) }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(sure, { sure = it })
-                    Text("Entiendo que mis datos se borran y no se pueden recuperar", style = MaterialTheme.typography.bodyMedium)
+                    Text(tr("Entiendo que mis datos se borran y no se pueden recuperar", "I understand my data is erased and can't be recovered"), style = MaterialTheme.typography.bodyMedium)
                 }
             }
             error?.let {
@@ -94,10 +98,10 @@ fun DeleteAccountScreen(nav: NavHostController) {
                     Text(it, Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
                 }
             }
-            LoadingButton("Eliminar mi cuenta para siempre", loading = busy, onClick = { delete() }, enabled = sure,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), loadingText = "Eliminando…",
-                container = RupioColors.Danger, content = androidx.compose.ui.graphics.Color.Black)
-            TextButton(onClick = { nav.safePop() }, enabled = !busy, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Mejor no") }
+            LoadingButton(tr("Eliminar mi cuenta para siempre", "Delete my account forever"), loading = busy, onClick = { delete() }, enabled = sure,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), loadingText = tr("Eliminando…", "Deleting…"),
+                container = RupioColors.Danger, content = RupioColors.OnFill)
+            TextButton(onClick = { nav.safePop() }, enabled = !busy, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text(tr("Mejor no", "Never mind")) }
             Spacer(Modifier.height(16.dp))
         }
     }
@@ -110,8 +114,8 @@ fun AccountDeletedDialog(onClose: () -> Unit) {
     AlertDialog(
         onDismissRequest = onClose,
         icon = { Icon(Icons.Rounded.CheckCircle, null, tint = RupioColors.Success) },
-        title = { Text("Tu cuenta se eliminó") },
-        text = { Text("Borramos tu cuenta y todos tus datos de la nube y de este teléfono. Gracias por haber entrenado con Rupio.", color = RupioColors.TextDim) },
-        confirmButton = { TextButton(onClick = onClose) { Text("Entendido") } },
+        title = { Text(tr("Tu cuenta se eliminó", "Your account was deleted")) },
+        text = { Text(tr("Borramos tu cuenta y todos tus datos de la nube y de este teléfono. Gracias por haber entrenado con Rupio.", "We deleted your account and all your data from the cloud and this phone. Thanks for training with Rupio."), color = RupioColors.TextDim) },
+        confirmButton = { TextButton(onClick = onClose) { Text(tr("Entendido", "Got it")) } },
     )
 }

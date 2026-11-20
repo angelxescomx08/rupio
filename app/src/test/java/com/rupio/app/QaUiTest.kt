@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w320dp-h640dp-xhdpi", fontScale = 2.0f)
+@Config(sdk = [34], qualifiers = "es-rMX-w320dp-h640dp-night-xhdpi", fontScale = 2.0f)
 class QaUiTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val app get() = ApplicationProvider.getApplicationContext<RupioApp>()

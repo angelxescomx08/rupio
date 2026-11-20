@@ -1,5 +1,7 @@
 package com.rupio.app.ui.components
 
+
+import com.rupio.app.core.tr
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -24,7 +26,7 @@ fun RupioSpinner(
     size: Dp = 28.dp,
     color: Color = RupioColors.Primary,
     strokeWidth: Dp = if (size <= 24.dp) 2.5.dp else 3.dp,
-    label: String = "Cargando",
+    label: String = tr("Cargando", "Loading"),
 ) {
     CircularProgressIndicator(
         modifier.size(size).semantics { contentDescription = label },

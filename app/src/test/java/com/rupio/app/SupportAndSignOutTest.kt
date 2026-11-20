@@ -53,10 +53,15 @@ class SupportAndSignOutTest {
 
     @Test fun colores_desbloqueo_y_contraste() {
         assertTrue(Accent.AZUL.unlockedBy(null))
-        assertFalse(Accent.ROSA.unlockedBy(SupportTier.CAFE))
-        assertTrue(Accent.ROSA.unlockedBy(SupportTier.LICUADO))
+        // v2.0: el rosa baja a Café (más recompensas en cada nivel); turquesa, lila y plata son de Licuado; Aurora solo Mecenas.
+        assertFalse(Accent.ROSA.unlockedBy(null))
+        assertTrue(Accent.ROSA.unlockedBy(SupportTier.CAFE))
+        assertFalse(Accent.TURQUESA.unlockedBy(SupportTier.CAFE))
+        assertTrue(Accent.PLATA.unlockedBy(SupportTier.LICUADO))
         assertFalse(Accent.DORADO.unlockedBy(SupportTier.LICUADO))
         assertTrue(Accent.DORADO.unlockedBy(SupportTier.FAN))
+        assertFalse(Accent.AURORA.unlockedBy(SupportTier.FAN))
+        assertTrue(Accent.AURORA.unlockedBy(SupportTier.MECENAS))
         assertEquals("tras un reembolso vuelve al azul", Accent.AZUL, Accent.effective(Accent.DORADO, SupportTier.CAFE))
         // Texto de los botones (OnPrimary) sobre cada acento, y cada acento sobre el fondo negro: WCAG AA.
         fun lum(argb: Long): Double {
@@ -67,6 +72,9 @@ class SupportAndSignOutTest {
         for (a in Accent.entries) {
             assertTrue("${a.label} con texto oscuro", ratio(a.argb, 0xFF0B1020) >= 4.5)
             assertTrue("${a.label} sobre negro", ratio(a.argb, 0xFF000000) >= 4.5)
+            // v2.0, tema claro: texto blanco encima y el acento como texto sobre la tarjeta más oscura (#E6E8ED).
+            assertTrue("${a.label} (claro) con texto blanco", ratio(a.lightArgb, 0xFFFFFFFF) >= 4.5)
+            assertTrue("${a.label} (claro) sobre la tarjeta gris", ratio(a.lightArgb, 0xFFE6E8ED) >= 4.5)
         }
     }
 
@@ -81,10 +89,13 @@ class SupportAndSignOutTest {
         s.setAccent(Accent.ROSA)
         assertEquals(Accent.ROSA, s.state.value.effectiveAccent)
         assertEquals(Color(0xFFFF7AB4), RupioColors.Primary)
-        s.setGoldIcon(true)                                        // solo nivel Fan
-        assertFalse(s.state.value.goldIcon)
+        s.setAppIcon(com.rupio.app.domain.AppIconStyle.ORO)        // solo desde Fan
+        assertEquals(com.rupio.app.domain.AppIconStyle.NORMAL, s.state.value.appIcon)
+        s.setAppIcon(com.rupio.app.domain.AppIconStyle.PLATA)      // v2.0: el plateado sí es de Licuado
+        assertEquals(com.rupio.app.domain.AppIconStyle.PLATA, s.state.value.appIcon)
         s.debugReset()
         assertEquals("sin el nivel, vuelve al azul", Accent.AZUL, s.state.value.effectiveAccent)
+        assertEquals("y el ícono vuelve al normal", com.rupio.app.domain.AppIconStyle.NORMAL, s.state.value.appIcon)
         assertEquals(Color(0xFF5B8CFF), RupioColors.Primary)
     }
 

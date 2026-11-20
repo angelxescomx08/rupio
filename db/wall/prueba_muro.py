@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """
-Pruebas del muro de agradecimientos (db/migrations/007_supporters_wall.sql) contra un Postgres LOCAL (nunca Neon).
+Pruebas del muro de agradecimientos (db/migrations/007_supporters_wall.sql y 011_paquete_play.sql) contra un Postgres
+LOCAL (nunca Neon).
 
 Necesita: Postgres 16 con pgcrypto, `pip install cryptography`, y una base "t" con:
     create role authenticated nologin; create role anonymous nologin;
     create schema auth;
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
     grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;
-    \\i db/migrations/001_schema.sql
-    \\i db/migrations/007_supporters_wall.sql
+    -- opcional, para imitar a Neon: alter default privileges in schema public grant all on tables to authenticated;
+    --                                alter default privileges in schema public grant execute on functions to authenticated;
+    \\i db/migrations/001_schema.sql … \\i db/migrations/011_paquete_play.sql   (todas, en orden)
 Variables: PGHOST, PGPORT (por defecto /tmp/pgtest y 5499).
 
-Genera una llave RSA de 2048 bits como la de Google Play, firma compras con SHA1withRSA y revisa 24 casos:
-firma válida/alterada, token repetido, compra de otra cuenta, pago pendiente, otro paquete, nombres, orden, ocultarse,
-reembolso y borrar la cuenta. Última corrida: 24/24 (18 nov 2026).
+Genera una llave RSA de 2048 bits como la de Google Play, firma compras con SHA1withRSA y revisa 25 casos:
+firma válida/alterada, token repetido, compra de otra cuenta, pago pendiente, otro paquete y el paquete viejo
+(com.rupio.app), nombres, orden, ocultarse, reembolso y borrar la cuenta. Las compras van con el paquete de Play,
+mx.rupio.app (v2.0).
 """
 import os
 import base64, hashlib, json, subprocess, sys, uuid
@@ -36,7 +39,7 @@ A = str(uuid.uuid4()); B = str(uuid.uuid4()); C = str(uuid.uuid4())
 for u, n in [(A, "Ana"), (B, "Beto")]:
     psql(f"insert into profiles(user_id, display_name) values ('{u}', '{n}')")
 
-def purchase(uid, product, token=None, qty=None, acct=True, pkg="com.rupio.app", state=0):
+def purchase(uid, product, token=None, qty=None, acct=True, pkg="mx.rupio.app", state=0):
     d = {"orderId": "GPA.3300-1111-2222-" + str(uuid.uuid4().int)[:5], "packageName": pkg, "productId": product,
          "purchaseTime": 1795000000000, "purchaseState": state, "purchaseToken": token or ("tok-" + uuid.uuid4().hex * 3),
          "quantity": qty or 1, "acknowledged": False}
@@ -93,6 +96,9 @@ check("pago pendiente → not_completed", "rupio:not_completed" in err, err)
 jsX, sigX = purchase(A, "rupio_mecenas", pkg="com.otra.app")
 out, err = reg(A, jsX, sigX, None)
 check("otro paquete → bad_purchase", "rupio:bad_purchase" in err, err)
+jsO, sigO = purchase(A, "rupio_mecenas", pkg="com.rupio.app")
+out, err = reg(A, jsO, sigO, None)
+check("paquete viejo com.rupio.app → bad_purchase (v2.0: Play es mx.rupio.app)", "rupio:bad_purchase" in err, err)
 out, err = psql("select public.rupio_wall_set_hidden(true)", A, "authenticated")
 out, err = psql("select public.rupio_wall()", B, "authenticated")
 check("A se oculta → solo Beto en la lista", [e["name"] for e in json.loads(out)["entries"]] == ["Beto R"], out + err)

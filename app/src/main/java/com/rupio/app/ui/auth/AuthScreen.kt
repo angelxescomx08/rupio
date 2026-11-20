@@ -1,5 +1,7 @@
 package com.rupio.app.ui.auth
 
+
+import com.rupio.app.core.tr
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -38,9 +40,9 @@ object AuthValidation {
     data class Fields(val name: String?, val email: String?, val password: String?) { val ok get() = name == null && email == null && password == null }
 
     fun check(signUp: Boolean, name: String, email: String, pass: String) = Fields(
-        name = if (signUp && name.isBlank()) "Escribe tu nombre." else null,
-        email = if (!looksLikeEmail(email)) "Escribe un correo válido, como nombre@gmail.com." else null,
-        password = if (pass.length < 8) "La contraseña debe tener al menos 8 caracteres." else null,
+        name = if (signUp && name.isBlank()) tr("Escribe tu nombre.", "Enter your name.") else null,
+        email = if (!looksLikeEmail(email)) tr("Escribe un correo válido, como nombre@gmail.com.", "Enter a valid email, like name@gmail.com.") else null,
+        password = if (pass.length < 8) tr("La contraseña debe tener al menos 8 caracteres.", "The password must be at least 8 characters.") else null,
     )
 }
 
@@ -57,7 +59,7 @@ fun AuthScreen(upgrade: Boolean = false, onBack: (() -> Unit)? = null, onDone: (
     var signUp by rememberSaveable { mutableStateOf(upgrade) }
     // v1.9 (N10): desde el modo sin cuenta ya sabemos cómo te llamas (antes el campo salía vacío).
     val localName = (c.auth.state.value as? com.rupio.app.data.auth.AuthState.SignedIn)?.takeIf { upgrade && it.localOnly }?.name
-        ?.takeIf { it.isNotBlank() && it != "Atleta" }.orEmpty()
+        ?.takeIf { it.isNotBlank() && it != "Atleta" && it != "Athlete" }.orEmpty()
     var name by rememberSaveable { mutableStateOf(localName) }
     var email by rememberSaveable { mutableStateOf("") }
     // La contraseña NO va en rememberSaveable: Android guardaría su texto en el estado de la actividad.
@@ -88,7 +90,7 @@ fun AuthScreen(upgrade: Boolean = false, onBack: (() -> Unit)? = null, onDone: (
             }
             catch (e: AuthException) { error = e.message }
             // Nunca un mensaje técnico: solo un código para poder rastrearlo.
-            catch (e: Exception) { error = "Algo salió mal (código A1). Inténtalo de nuevo." }
+            catch (e: Exception) { error = tr("Algo salió mal (código A1). Inténtalo de nuevo.", "Something went wrong (code A1). Please try again.") }
             busy = false
         }
     }
@@ -97,31 +99,32 @@ fun AuthScreen(upgrade: Boolean = false, onBack: (() -> Unit)? = null, onDone: (
         Modifier.fillMaxSize().background(RupioColors.Background).systemBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
     ) {
         if (onBack != null) {
-            IconButton(onClick = onBack, modifier = Modifier.offset(x = (-12).dp)) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Atrás") }
+            IconButton(onClick = onBack, modifier = Modifier.offset(x = (-12).dp)) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, tr("Atrás", "Back")) }
         } else Spacer(Modifier.height(32.dp))
         Box(Modifier.size(64.dp).clip(RoundedCornerShape(18.dp)).background(RupioColors.Primary.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
             Icon(if (upgrade) Icons.Rounded.CloudUpload else Icons.Rounded.FitnessCenter, null, tint = RupioColors.Primary, modifier = Modifier.size(34.dp))
         }
         Spacer(Modifier.height(20.dp))
-        Text(if (upgrade) "Respalda tus datos" else "Rupio", style = MaterialTheme.typography.displaySmall)
+        Text(if (upgrade) tr("Respalda tus datos", "Back up your data") else "Rupio", style = MaterialTheme.typography.displaySmall)
         Text(
             when {
-                upgrade -> "Crea una cuenta (o entra con la tuya) y tus $count ${if (count == 1) "entrenamiento" else "entrenamientos"}, rutinas y pesos de este teléfono se suben a la nube. No se pierde nada."
-                signUp -> "Crea tu cuenta para guardar tu progreso"
-                else -> "Entrena con método. Progresa con ciencia."
+                upgrade -> tr("Crea una cuenta (o entra con la tuya) y tus $count ${if (count == 1) "entrenamiento" else "entrenamientos"}, rutinas y pesos de este teléfono se suben a la nube. No se pierde nada.",
+                        "Create an account (or sign in to yours) and your $count ${if (count == 1) "workout" else "workouts"}, routines and weights on this phone are uploaded to the cloud. Nothing is lost.")
+                signUp -> tr("Crea tu cuenta para guardar tu progreso", "Create your account to save your progress")
+                else -> tr("Entrena con método. Progresa con ciencia.", "Train with a plan. Progress with science.")
             }, style = MaterialTheme.typography.bodyLarge, color = RupioColors.TextDim)
         Spacer(Modifier.height(32.dp))
 
         AnimatedVisibility(signUp) {
             Column {
-                OutlinedTextField(name, { name = it; nameError = null }, label = { Text("Nombre") }, singleLine = true,
+                OutlinedTextField(name, { name = it; nameError = null }, label = { Text(tr("Nombre", "Name")) }, singleLine = true,
                     isError = nameError != null, supportingText = nameError?.let { t -> { Text(t) } },
                     modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.PersonFullName },
                     leadingIcon = { Icon(Icons.Rounded.Person, null) }, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), shape = RoundedCornerShape(14.dp))
                 Spacer(Modifier.height(12.dp))
             }
         }
-        OutlinedTextField(email, { email = it.trim(); emailError = null }, label = { Text("Correo electrónico") }, singleLine = true,
+        OutlinedTextField(email, { email = it.trim(); emailError = null }, label = { Text(tr("Correo electrónico", "Email")) }, singleLine = true,
             isError = emailError != null, supportingText = emailError?.let { t -> { Text(t) } },
             // Conectado al autocompletado de Android: los gestores de contraseñas lo llenan.
             modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.Username + ContentType.EmailAddress },
@@ -129,8 +132,8 @@ fun AuthScreen(upgrade: Boolean = false, onBack: (() -> Unit)? = null, onDone: (
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next))
         Spacer(Modifier.height(12.dp))
         PasswordField(pass, { pass = it; passError = null }, showPass, { showPass = !showPass }, newPassword = signUp, onDone = { submit() },
-            error = passError, hint = if (signUp) "Mínimo 8 caracteres" else null)
-        if (!signUp) TextButton(onClick = { forgot = true; error = null }, modifier = Modifier.align(Alignment.End)) { Text("¿Olvidaste tu contraseña?") }
+            error = passError, hint = if (signUp) tr("Mínimo 8 caracteres", "At least 8 characters") else null)
+        if (!signUp) TextButton(onClick = { forgot = true; error = null }, modifier = Modifier.align(Alignment.End)) { Text(tr("¿Olvidaste tu contraseña?", "Forgot your password?")) }
 
         (error ?: info)?.let {
             Spacer(Modifier.height(8.dp))
@@ -148,23 +151,23 @@ fun AuthScreen(upgrade: Boolean = false, onBack: (() -> Unit)? = null, onDone: (
             Surface(color = RupioColors.Warning.copy(alpha = 0.12f), shape = RoundedCornerShape(12.dp)) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
                     Icon(Icons.Rounded.MergeType, null, tint = RupioColors.Warning); Spacer(Modifier.width(8.dp))
-                    Text("Se juntarán con lo que ya tienes en tu cuenta: no se borra nada de ella. Tus récords se recalculan con todo tu historial.",
+                    Text(tr("Se juntarán con lo que ya tienes en tu cuenta: no se borra nada de ella. Tus récords se recalculan con todo tu historial.", "They'll be merged with what's already in your account: nothing in it is erased. Your PRs are recalculated with your whole history."),
                         color = RupioColors.Text, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
         Spacer(Modifier.height(20.dp))
-        LoadingButton(if (signUp) (if (upgrade) "Crear cuenta y subir mis datos" else "Crear cuenta") else (if (upgrade) "Entrar y subir mis datos" else "Iniciar sesión"),
+        LoadingButton(if (signUp) (if (upgrade) tr("Crear cuenta y subir mis datos", "Create account and upload my data") else tr("Crear cuenta", "Create account")) else (if (upgrade) tr("Entrar y subir mis datos", "Sign in and upload my data") else tr("Iniciar sesión", "Sign in")),
             loading = busy, onClick = { submit() },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), loadingText = if (signUp) "Creando tu cuenta…" else "Entrando…")
+            modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), loadingText = if (signUp) tr("Creando tu cuenta…", "Creating your account…") else tr("Entrando…", "Signing in…"))
         TextButton(onClick = { signUp = !signUp; error = null; nameError = null; emailError = null; passError = null }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text(if (signUp) "¿Ya tienes cuenta? Inicia sesión" else "¿No tienes cuenta? Regístrate")
+            Text(if (signUp) tr("¿Ya tienes cuenta? Inicia sesión", "Already have an account? Sign in") else tr("¿No tienes cuenta? Regístrate", "No account? Sign up"))
         }
         Spacer(Modifier.height(8.dp))
-        Text("Tu sesión se queda abierta en este teléfono. Si pasan semanas sin usar la app, te pediremos la contraseña otra vez; tus datos del teléfono no se pierden.",
+        Text(tr("Tu sesión se queda abierta en este teléfono. Si pasan semanas sin usar la app, te pediremos la contraseña otra vez; tus datos del teléfono no se pierden.", "You stay signed in on this phone. If weeks go by without using the app, we'll ask for your password again; the data on your phone isn't lost."),
             style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
         TextButton(onClick = { privacy = true }, contentPadding = PaddingValues(0.dp)) {
-            Text(if (signUp) "Al crear tu cuenta aceptas el Aviso de privacidad" else "Aviso de privacidad", style = MaterialTheme.typography.bodySmall)
+            Text(if (signUp) tr("Al crear tu cuenta aceptas el Aviso de privacidad", "By creating your account you accept the Privacy notice") else tr("Aviso de privacidad", "Privacy notice"), style = MaterialTheme.typography.bodySmall)
         }
 
         if (!upgrade) {
@@ -172,16 +175,16 @@ fun AuthScreen(upgrade: Boolean = false, onBack: (() -> Unit)? = null, onDone: (
             HorizontalDivider(color = RupioColors.Outline)
             Spacer(Modifier.height(12.dp))
             TextButton(onClick = { c.auth.useLocalMode(name.ifBlank { email.substringBefore('@') }, c.restoredLocalOwner()) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                Icon(Icons.Rounded.PhoneAndroid, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Probar sin cuenta")
+                Icon(Icons.Rounded.PhoneAndroid, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(tr("Probar sin cuenta", "Try without an account"))
             }
-            Text("Sin cuenta, tus datos se guardan solo en este teléfono. Cuando quieras, desde Perfil creas una cuenta y se suben sin perder nada.",
+            Text(tr("Sin cuenta, tus datos se guardan solo en este teléfono. Cuando quieras, desde Perfil creas una cuenta y se suben sin perder nada.", "Without an account, your data is saved only on this phone. Whenever you want, create an account from Profile and it's uploaded without losing anything."),
                 style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = Modifier.align(Alignment.CenterHorizontally))
         }
     }
 
     if (forgot) ForgotPasswordDialog(email) { changed ->
         forgot = false
-        if (changed != null) { email = changed; pass = ""; signUp = false; info = "Listo. Entra con tu contraseña nueva." }
+        if (changed != null) { email = changed; pass = ""; signUp = false; info = tr("Listo. Entra con tu contraseña nueva.", "Done. Sign in with your new password.") }
     }
     if (privacy) PrivacyPolicyDialog { privacy = false }
 }

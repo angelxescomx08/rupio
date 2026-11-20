@@ -1,5 +1,7 @@
 package com.rupio.app.ui.stats
 
+
+import com.rupio.app.core.tr
 import com.rupio.app.goToTab
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -93,12 +95,12 @@ fun StatsScreen(nav: NavHostController) {
     LaunchedEffect(leagueAccess) { if (leagueAccess == com.rupio.app.ui.support.WallAccess.READY) { c.league.warmUp(); c.league.load(maxAgeMs = 5 * 60_000L) } }
 
     Column(Modifier.fillMaxSize()) {
-        RupioTopBar("Progreso", onBack = null) {
-            // Con letra muy grande solo el ícono (el título "Progreso" no se corta).
+        RupioTopBar(tr("Progreso", "Progress"), onBack = null) {
+            // Con letra muy grande solo el ícono (el título tr("Progreso", "Progress") no se corta).
             if (androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f)
-                IconButton(onClick = { nav.navigate(Routes.tutorial("graficas")) }) { Icon(Icons.Rounded.School, "Cómo leer las gráficas", tint = RupioColors.Primary) }
+                IconButton(onClick = { nav.navigate(Routes.tutorial("graficas")) }) { Icon(Icons.Rounded.School, tr("Cómo leer las gráficas", "How to read the charts"), tint = RupioColors.Primary) }
             else TextButton(onClick = { nav.navigate(Routes.tutorial("graficas")) }) {
-                Icon(Icons.Rounded.School, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Cómo leerlas")
+                Icon(Icons.Rounded.School, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text(tr("Cómo leerlas", "How to read them"))
             }
         }
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -107,28 +109,31 @@ fun StatsScreen(nav: NavHostController) {
         LazyColumn(contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { ProgressStoryCard { nav.navigate(Routes.PROGRESS) } }
             item { BodyWeightCard { nav.goToTab(Routes.BODY_WEIGHT) } }
-            if (s == null) { item { LoadingBlock("Calculando tus estadísticas…") }; return@LazyColumn }
+            if (s == null) { item { LoadingBlock(tr("Calculando tus estadísticas…", "Crunching your stats…")) }; return@LazyColumn }
             item {
                 Text(rangeLabel(s), style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
                 Spacer(Modifier.height(8.dp))
                 TileRow {
-                    Tile("Volumen", Fmt.volume(s.totals.volumeKg, unit), sub = delta(s.totals.volumeKg, s.previous?.volumeKg) ?: Fmt.volume(s.totals.volumeKg, unit.other),
+                    Tile(tr("Volumen", "Volume"), Fmt.volume(s.totals.volumeKg, unit), sub = delta(s.totals.volumeKg, s.previous?.volumeKg) ?: Fmt.volume(s.totals.volumeKg, unit.other),
                         subColor = deltaColor(s.totals.volumeKg, s.previous?.volumeKg))
-                    Tile("Entrenos", "${s.totals.workouts}", sub = delta(s.totals.workouts.toDouble(), s.previous?.workouts?.toDouble()),
+                    Tile(tr("Entrenos", "Workouts"), "${s.totals.workouts}", sub = delta(s.totals.workouts.toDouble(), s.previous?.workouts?.toDouble()),
                         subColor = deltaColor(s.totals.workouts.toDouble(), s.previous?.workouts?.toDouble()))
                 }
                 Spacer(Modifier.height(8.dp))
                 TileRow {
-                    Tile("Series", "${s.totals.sets}", sub = delta(s.totals.sets.toDouble(), s.previous?.sets?.toDouble()),
+                    Tile(tr("Series", "Sets"), "${s.totals.sets}", sub = delta(s.totals.sets.toDouble(), s.previous?.sets?.toDouble()),
                         subColor = deltaColor(s.totals.sets.toDouble(), s.previous?.sets?.toDouble()))
-                    Tile("Reps", "${s.totals.reps}")
-                    Tile("Duración media", Fmt.durationHuman(s.totals.avgDurationSec.toLong()))
+                    Tile(tr("Reps", "Reps"), "${s.totals.reps}")
+                    Tile(tr("Duración media", "Average duration"), Fmt.durationHuman(s.totals.avgDurationSec.toLong()))
                 }
             }
             item {
                 SectionCard {
-                    TitleWithHelp("Volumen " + when (s.bucket) { com.rupio.app.data.repo.Bucket.DAY -> "por día"; com.rupio.app.data.repo.Bucket.WEEK -> "por semana"; com.rupio.app.data.repo.Bucket.MONTH -> "por mes"; else -> "por año" }, "volumen")
-                    Text("Peso × repeticiones de tus series efectivas (sin calentamiento). Toca una barra.", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
+                    TitleWithHelp(when (s.bucket) {
+                    com.rupio.app.data.repo.Bucket.DAY -> tr("Volumen por día", "Volume per day"); com.rupio.app.data.repo.Bucket.WEEK -> tr("Volumen por semana", "Volume per week")
+                    com.rupio.app.data.repo.Bucket.MONTH -> tr("Volumen por mes", "Volume per month"); else -> tr("Volumen por año", "Volume per year")
+                }, "volumen")
+                    Text(tr("Peso × repeticiones de tus series efectivas (sin calentamiento). Toca una barra.", "Weight × reps of your working sets (no warm-ups). Tap a bar."), style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
                     Spacer(Modifier.height(8.dp))
                     VolumeBarChart(s.bars, unit)
                 }
@@ -139,21 +144,21 @@ fun StatsScreen(nav: NavHostController) {
             }
             item {
                 SectionCard {
-                    TitleWithHelp("Series por músculo a la semana", "series_semana")
-                    Text("Más series ayudan, pero cada vez menos: no hace falta pasarse.", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
+                    TitleWithHelp(tr("Series por músculo a la semana", "Sets per muscle per week"), "series_semana")
+                    Text(tr("Más series ayudan, pero cada vez menos: no hace falta pasarse.", "More sets help, but less each time: no need to overdo it."), style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
                     Spacer(Modifier.height(10.dp))
-                    if (s.muscles.isEmpty()) Text("Sin series en este periodo.", color = RupioColors.TextDim, style = MaterialTheme.typography.bodySmall)
+                    if (s.muscles.isEmpty()) Text(tr("Sin series en este periodo.", "No sets in this period."), color = RupioColors.TextDim, style = MaterialTheme.typography.bodySmall)
                     else MuscleSetsChart(s.muscles, s.weeksInPeriod, judge = !s.firstWeek)
                 }
             }
             item {
                 SectionCard {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Constancia", style = MaterialTheme.typography.titleMedium)
+                        Text(tr("Constancia", "Consistency"), style = MaterialTheme.typography.titleMedium)
                         HelpIcon("constancia")
                         Spacer(Modifier.weight(1f))
                         val streak = weekStreak(s)
-                        if (streak > 0) Pill("🔥 " + (if (streak == 1) "1 semana seguida" else "$streak semanas seguidas"), RupioColors.Warning)
+                        if (streak > 0) Pill("🔥 " + (if (streak == 1) tr("1 semana seguida", "1 week in a row") else tr("$streak semanas seguidas", "$streak weeks in a row")), RupioColors.Warning)
                     }
                     Spacer(Modifier.height(10.dp))
                     TrainingHeatmap(s.trainingDays, s.heatFrom, s.to)
@@ -161,22 +166,22 @@ fun StatsScreen(nav: NavHostController) {
             }
             if (s.topExercises.isNotEmpty()) item {
                 SectionCard {
-                    TitleWithHelp("Fuerza estimada (1RM)", "1rm")
-                    Text("Lo que podrías levantar una vez, calculado de tu mejor serie de cada sesión.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                    TitleWithHelp(tr("Fuerza estimada (1RM)", "Estimated strength (1RM)"), "1rm")
+                    Text(tr("Lo que podrías levantar una vez, calculado de tu mejor serie de cada sesión.", "What you could lift once, calculated from your best set each session."), style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
                     Spacer(Modifier.height(8.dp))
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         s.topExercises.forEach { e -> FilterChip(vm.exerciseId == e.exerciseId, { vm.selectExercise(e.exerciseId) }, label = { Text(e.name, maxLines = 1) }) }
                     }
                     Spacer(Modifier.height(10.dp))
                     vm.curve?.let { cv ->
-                        ProgressLineChart(cv.points, unit, title = "1RM estimado de ${cv.name}")
-                        TextButton(onClick = { nav.navigate(Routes.exercise(cv.exerciseId)) }) { Text("Ver historial de ${cv.name}") }
+                        ProgressLineChart(cv.points, unit, title = tr("1RM estimado de ${cv.name}", "Estimated 1RM for ${cv.name}"))
+                        TextButton(onClick = { nav.navigate(Routes.exercise(cv.exerciseId)) }) { Text(tr("Ver historial de ${cv.name}", "See ${cv.name} history")) }
                     }
                 }
             }
             if (records.isNotEmpty()) item {
                 SectionCard {
-                    TitleWithHelp("Récords recientes", "record")
+                    TitleWithHelp(tr("Récords recientes", "Recent PRs"), "record")
                     Spacer(Modifier.height(6.dp))
                     records.forEach { r ->
                         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -195,6 +200,12 @@ fun StatsScreen(nav: NavHostController) {
                     }
                 }
             }
+            // v2.0: el muro de agradecimientos, al final de Progreso (después de tus números, sin estorbar).
+            item(key = "muro") {
+                val wall by c.wall.state.collectAsStateWithLifecycle()
+                val support by c.support.state.collectAsStateWithLifecycle()
+                if (!support.isPatron) com.rupio.app.ui.support.WallPreviewCard(wall, leagueAccess, onOpen = { nav.navigate(Routes.WALL) })
+            }
             // Aprende ya no está en la barra (la pestaña es Peso): aquí queda a un toque, junto a tus números.
             item {
                 SectionCard(Modifier.clickable { nav.navigate(Routes.LEARN) }) {
@@ -202,8 +213,8 @@ fun StatsScreen(nav: NavHostController) {
                         Icon(Icons.Rounded.School, null, tint = RupioColors.Primary)
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("Aprende", style = MaterialTheme.typography.titleMedium)
-                            Text("Cómo progresar, cuánto entrenar, nutrición y glosario con estudios", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                            Text(tr("Aprende", "Learn"), style = MaterialTheme.typography.titleMedium)
+                            Text(tr("Cómo progresar, cuánto entrenar, nutrición y glosario con estudios", "How to progress, how much to train, nutrition and a glossary backed by studies"), style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
                         }
                         Icon(Icons.Rounded.ChevronRight, null, tint = RupioColors.TextFaint)
                     }
@@ -213,8 +224,8 @@ fun StatsScreen(nav: NavHostController) {
     }
 }
 
-internal fun rangeLabel(s: StatsSnapshot) = if (s.period == Period.ALL) "Desde ${Dates.formatDayShort(s.from)} ${s.from.year} · todo tu historial"
-    else rangeText(s.from, s.to) + " · comparado con el periodo anterior"
+internal fun rangeLabel(s: StatsSnapshot) = if (s.period == Period.ALL) tr("Desde ${Dates.formatDayShort(s.from)} ${s.from.year} · todo tu historial", "Since ${Dates.formatDayShort(s.from)}, ${s.from.year} · all your history")
+    else rangeText(s.from, s.to) + tr(" · comparado con el periodo anterior", " · compared with the previous period")
 
 /** v1.9: con años distintos, el año va en las dos fechas ("1 dic 2025 – 18 nov 2026"; antes "1 dic – 18 nov 2026"). */
 internal fun rangeText(from: java.time.LocalDate, to: java.time.LocalDate): String =
@@ -223,9 +234,9 @@ internal fun rangeText(from: java.time.LocalDate, to: java.time.LocalDate): Stri
 
 private fun delta(now: Double, prev: Double?): String? {
     if (prev == null) return null
-    if (prev <= 0.0) return if (now > 0) "nuevo" else "igual"
+    if (prev <= 0.0) return if (now > 0) tr("nuevo", "new") else tr("igual", "same")
     val pct = (now - prev) / prev * 100
-    if (kotlin.math.abs(pct) < 0.5) return "= igual"
+    if (kotlin.math.abs(pct) < 0.5) return tr("= igual", "= same")
     return (if (pct >= 0) "▲ " else "▼ ") + Fmt.num(kotlin.math.abs(pct), 0) + " %"
 }
 

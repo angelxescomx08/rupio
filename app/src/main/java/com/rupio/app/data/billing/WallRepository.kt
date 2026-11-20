@@ -38,21 +38,29 @@ data class WallState(
 )
 
 /** Por qué el servidor no aceptó algo. [userText] es lo que ve la persona. */
-enum class WallError(val code: String, val userText: String) {
-    NOT_CONFIGURED("rupio:not_configured", "Tu aporte quedó guardado. Aparecerás en el muro en cuanto el servidor lo confirme."),
-    BAD_SIGNATURE("rupio:bad_signature", "Google Play no confirmó esta compra. Si se te cobró, escríbenos y lo revisamos."),
-    BAD_PURCHASE("rupio:bad_purchase", "No se pudo leer la compra. Si se te cobró, escríbenos y lo revisamos."),
-    NOT_COMPLETED("rupio:not_completed", "El pago sigue pendiente. Cuando se complete, aparecerás en el muro."),
-    OTHER_ACCOUNT("rupio:other_account", "Esta compra se hizo con otra cuenta de Rupio. Entra con esa cuenta para registrarla."),
-    TOKEN_USED("rupio:token_used", "Esta compra ya está registrada en otra cuenta."),
-    UNKNOWN_PRODUCT("rupio:unknown_product", "Ese producto no es del muro."),
-    NAME_REQUIRED("rupio:name_required", "Escribe cómo quieres aparecer en el muro."),
-    NAME_LENGTH("rupio:name_length", "El nombre debe tener de 2 a 30 caracteres."),
-    NAME_INVALID("rupio:name_invalid", "El nombre no puede llevar enlaces ni correos."),
-    NO_ENTRY("rupio:no_entry", "Todavía no estás en el muro."),
-    NO_ACCOUNT("", "Para el muro necesitas entrar con tu cuenta de Rupio (y confirmar tu correo)."),
-    OFFLINE("", "Sin conexión. Revisa tu internet e inténtalo de nuevo."),
-    SERVER("", "El servidor no respondió. Inténtalo en un rato.");
+enum class WallError(val code: String, private val es: String, private val en: String) {
+    NOT_CONFIGURED("rupio:not_configured", "Tu aporte quedó guardado. Aparecerás en el muro en cuanto el servidor lo confirme.",
+        "Your contribution was saved. You'll appear on the wall as soon as the server confirms it."),
+    BAD_SIGNATURE("rupio:bad_signature", "Google Play no confirmó esta compra. Si se te cobró, escríbenos y lo revisamos.",
+        "Google Play didn't confirm this purchase. If you were charged, write to us and we'll look into it."),
+    BAD_PURCHASE("rupio:bad_purchase", "No se pudo leer la compra. Si se te cobró, escríbenos y lo revisamos.",
+        "The purchase couldn't be read. If you were charged, write to us and we'll look into it."),
+    NOT_COMPLETED("rupio:not_completed", "El pago sigue pendiente. Cuando se complete, aparecerás en el muro.",
+        "The payment is still pending. Once it completes, you'll appear on the wall."),
+    OTHER_ACCOUNT("rupio:other_account", "Esta compra se hizo con otra cuenta de Rupio. Entra con esa cuenta para registrarla.",
+        "This purchase was made with another Rupio account. Sign in with that account to register it."),
+    TOKEN_USED("rupio:token_used", "Esta compra ya está registrada en otra cuenta.", "This purchase is already registered to another account."),
+    UNKNOWN_PRODUCT("rupio:unknown_product", "Ese producto no es del muro.", "That product isn't part of the wall."),
+    NAME_REQUIRED("rupio:name_required", "Escribe cómo quieres aparecer en el muro.", "Enter how you want to appear on the wall."),
+    NAME_LENGTH("rupio:name_length", "El nombre debe tener de 2 a 30 caracteres.", "The name must be 2 to 30 characters."),
+    NAME_INVALID("rupio:name_invalid", "El nombre no puede llevar enlaces ni correos.", "The name can't include links or emails."),
+    NO_ENTRY("rupio:no_entry", "Todavía no estás en el muro.", "You're not on the wall yet."),
+    NO_ACCOUNT("", "Para el muro necesitas entrar con tu cuenta de Rupio (y confirmar tu correo).", "For the wall you need to sign in with your Rupio account (and confirm your email)."),
+    OFFLINE("", "Sin conexión. Revisa tu internet e inténtalo de nuevo.", "No connection. Check your internet and try again."),
+    SERVER("", "El servidor no respondió. Inténtalo en un rato.", "The server didn't respond. Try again in a bit.");
+
+    /** Lo que ve la persona, en el idioma de la app. */
+    val userText: String get() = com.rupio.app.core.tr(es, en)
 
     /** ¿Vale la pena reintentar más tarde con la misma compra? */
     val retryLater: Boolean get() = this == NOT_CONFIGURED || this == OFFLINE || this == SERVER || this == NO_ACCOUNT || this == NOT_COMPLETED

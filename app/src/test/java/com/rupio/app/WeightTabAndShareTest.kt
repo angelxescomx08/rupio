@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit
 /** v1.5: Peso como pestaña propia, peso corporal en kg (con cambio a lb) y compartir la app. */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w393dp-h852dp-xhdpi")
+@Config(sdk = [34], qualifiers = "es-rMX-w393dp-h852dp-night-xhdpi")
 class WeightTabAndShareTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val app get() = ApplicationProvider.getApplicationContext<RupioApp>()
@@ -147,8 +147,9 @@ class WeightTabAndShareTest {
         val inner = started.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)!!
         assertEquals(Intent.ACTION_SEND, inner.action)
         val text = inner.getStringExtra(Intent.EXTRA_TEXT)!!
-        assertTrue(text, text.contains("https://play.google.com/store/apps/details?id=com.rupio.app"))
+        // v2.1: el enlace usa el id de Play (applicationId), no el paquete de Kotlin.
+        assertTrue(text, text.contains("https://play.google.com/store/apps/details?id=mx.rupio.app"))
         assertTrue(text.contains("gratis"))
-        assertEquals(ShareApp.message("com.rupio.app"), text)
+        assertEquals(ShareApp.message("mx.rupio.app"), text)
     }
 }

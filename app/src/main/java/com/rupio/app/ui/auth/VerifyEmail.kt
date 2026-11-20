@@ -1,5 +1,7 @@
 package com.rupio.app.ui.auth
 
+
+import com.rupio.app.core.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -41,7 +43,7 @@ fun cleanOtp(raw: String): String = raw.filter { it.isDigit() }.take(6)
 /**
  * v1.7 (N6): la cuenta recién creada no está lista hasta escribir el código de 6 dígitos que llega al correo.
  * Así un correo mal escrito no se queda con tus datos, y "¿Olvidaste tu contraseña?" sí te va a llegar.
- * Mientras tanto no se sube nada a la nube. "Usar otro correo" cancela la cuenta nueva (vacía) y regresa.
+ * Mientras tanto no se sube nada a la nube. tr("Usar otro correo", "Use another email") cancela la cuenta nueva (vacía) y regresa.
  */
 @Composable
 fun VerifyEmailScreen(email: String, newAccount: Boolean = true) {
@@ -58,12 +60,12 @@ fun VerifyEmailScreen(email: String, newAccount: Boolean = true) {
 
     fun confirm() {
         if (busy) return
-        if (code.length != 6) { error = "Escribe los 6 dígitos del código."; return }
+        if (code.length != 6) { error = tr("Escribe los 6 dígitos del código.", "Enter the 6 digits of the code."); return }
         error = null; info = null; busy = true
         scope.launch {
             try { c.verifyEmail(code) }
             catch (e: AuthException) { error = e.message }
-            catch (e: Exception) { error = "Algo salió mal (código V1). Inténtalo de nuevo." }
+            catch (e: Exception) { error = tr("Algo salió mal (código V1). Inténtalo de nuevo.", "Something went wrong (code V1). Please try again.") }
             busy = false
         }
     }
@@ -76,16 +78,16 @@ fun VerifyEmailScreen(email: String, newAccount: Boolean = true) {
             Icon(Icons.Rounded.MarkEmailUnread, null, tint = RupioColors.Primary, modifier = Modifier.size(34.dp))
         }
         Spacer(Modifier.height(20.dp))
-        Text("Confirma tu correo", style = MaterialTheme.typography.displaySmall)
+        Text(tr("Confirma tu correo", "Confirm your email"), style = MaterialTheme.typography.displaySmall)
         Spacer(Modifier.height(8.dp))
-        Text("Te enviamos un código de 6 dígitos a $email. Escríbelo para terminar de crear tu cuenta.",
+        Text(tr("Te enviamos un código de 6 dígitos a $email. Escríbelo para terminar de crear tu cuenta.", "We sent a 6-digit code to $email. Enter it to finish creating your account."),
             style = MaterialTheme.typography.bodyLarge, color = RupioColors.TextDim)
         Spacer(Modifier.height(4.dp))
-        Text("Si no lo ves en unos minutos, revisa la carpeta de spam o de promociones.", style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
+        Text(tr("Si no lo ves en unos minutos, revisa la carpeta de spam o de promociones.", "If you don't see it in a few minutes, check your spam or promotions folder."), style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
         Spacer(Modifier.height(24.dp))
         OutlinedTextField(
             code, { code = cleanOtp(it); error = null; if (code.length == 6) confirm() },
-            label = { Text("Código de 6 dígitos") }, singleLine = true,
+            label = { Text(tr("Código de 6 dígitos", "6-digit code")) }, singleLine = true,
             textStyle = TextStyle(fontSize = 24.sp, letterSpacing = 6.sp, textAlign = TextAlign.Center),
             modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.SmsOtpCode },
             leadingIcon = { Icon(Icons.Rounded.Pin, null) }, shape = RoundedCornerShape(14.dp),
@@ -103,36 +105,37 @@ fun VerifyEmailScreen(email: String, newAccount: Boolean = true) {
             }
         }
         Spacer(Modifier.height(20.dp))
-        LoadingButton("Confirmar", loading = busy, onClick = { confirm() }, modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), loadingText = "Confirmando…")
+        LoadingButton(tr("Confirmar", "Confirm"), loading = busy, onClick = { confirm() }, modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), loadingText = tr("Confirmando…", "Confirming…"))
         TextButton(enabled = wait == 0 && !busy, onClick = {
             error = null; info = null
             scope.launch {
-                try { c.auth.sendVerificationCode(); info = "Te enviamos un código nuevo. El anterior ya no sirve."; wait = RESEND_COOLDOWN_SEC }
+                try { c.auth.sendVerificationCode(); info = tr("Te enviamos un código nuevo. El anterior ya no sirve.", "We sent you a new code. The previous one no longer works."); wait = RESEND_COOLDOWN_SEC }
                 catch (e: AuthException) { error = e.message }
-                catch (e: Exception) { error = "No se pudo enviar el código (código V2). Inténtalo de nuevo." }
+                catch (e: Exception) { error = tr("No se pudo enviar el código (código V2). Inténtalo de nuevo.", "The code couldn't be sent (code V2). Please try again.") }
             }
         }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text(if (wait > 0) "Reenviar código en $wait s" else "Reenviar código")
+            Text(if (wait > 0) tr("Reenviar código en $wait s", "Resend code in $wait s") else tr("Reenviar código", "Resend code"))
         }
         Spacer(Modifier.height(8.dp))
         HorizontalDivider(color = RupioColors.Outline)
         Spacer(Modifier.height(8.dp))
         TextButton(enabled = !busy && !leaving, onClick = { leave = true }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text("¿Correo equivocado? Usar otro correo")
+            Text(tr("¿Correo equivocado? Usar otro correo", "Wrong email? Use another one"))
         }
-        Text("Mientras no confirmes tu correo, nada se sube a la nube.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim,
+        Text(tr("Mientras no confirmes tu correo, nada se sube a la nube.", "Until you confirm your email, nothing is uploaded to the cloud."), style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim,
             modifier = Modifier.align(Alignment.CenterHorizontally), textAlign = TextAlign.Center)
     }
 
-    if (leave) ConfirmDialog("¿Usar otro correo?",
-        if (newAccount) "Se cancela la cuenta de $email (todavía está vacía) y puedes crearla otra vez con el correo correcto. Lo que tenías en este teléfono se queda aquí."
-        else "Se cierra la sesión de $email. Lo que tenías en este teléfono antes de entrar se queda aquí.",
-        "Usar otro correo", { leave = false }) {
+    if (leave) ConfirmDialog(tr("¿Usar otro correo?", "Use another email?"),
+        if (newAccount) tr("Se cancela la cuenta de $email (todavía está vacía) y puedes crearla otra vez con el correo correcto. Lo que tenías en este teléfono se queda aquí.",
+                    "The account for $email is canceled (it's still empty) and you can create it again with the right email. What you had on this phone stays here.")
+                else tr("Se cierra la sesión de $email. Lo que tenías en este teléfono antes de entrar se queda aquí.", "You're signed out of $email. What you had on this phone before signing in stays here."),
+        tr("Usar otro correo", "Use another email"), { leave = false }) {
         leave = false; leaving = true
         scope.launch {
             try { c.leaveUnverifiedAccount() }
             catch (e: AuthException) { error = e.message }
-            catch (e: Exception) { error = "Algo salió mal (código V3). Inténtalo de nuevo." }
+            catch (e: Exception) { error = tr("Algo salió mal (código V3). Inténtalo de nuevo.", "Something went wrong (code V3). Please try again.") }
             leaving = false
         }
     }

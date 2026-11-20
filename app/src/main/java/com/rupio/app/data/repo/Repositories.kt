@@ -1,5 +1,7 @@
 package com.rupio.app.data.repo
 
+import com.rupio.app.core.tr
+
 import com.rupio.app.core.Dates
 import com.rupio.app.core.Ids
 import com.rupio.app.core.searchKey
@@ -31,7 +33,7 @@ class ExerciseRepository(private val db: RupioDatabase, private val userId: () -
 
 /** "Pierna casa" → "Pierna casa (2)", "(3)"… si ya hay una con ese nombre (sin distinguir mayúsculas ni acentos). */
 fun uniqueName(base: String, taken: Collection<String>): String {
-    val name = base.trim().ifBlank { "Mi rutina" }
+    val name = base.trim().ifBlank { tr("Mi rutina", "My routine") }
     val keys = taken.map { it.trim().searchKey() }.toSet()
     if (name.searchKey() !in keys) return name
     val clean = name.replace(Regex("\\s*\\(\\d+\\)$"), "")
@@ -96,7 +98,7 @@ class RoutineRepository(private val db: RupioDatabase, private val userId: () ->
         if (db.routines().count() > 0) return
         val uid = userId() ?: return
         val t = System.currentTimeMillis()
-        val r = RoutineEntity(Ids.uuidV7(t), uid, "Cuerpo completo · Ejemplo", "Rutina de ejemplo. Edítala o crea la tuya.", 0, t, t)
+        val r = RoutineEntity(Ids.uuidV7(t), uid, tr("Cuerpo completo · Ejemplo", "Full body · Sample"), tr("Rutina de ejemplo. Edítala o crea la tuya.", "Sample routine. Edit it or create your own."), 0, t, t)
         val ss = Ids.uuidV7(t)
         fun item(ex: String, sets: Int, mn: Int, mx: Int, rest: Int, superset: String? = null, mode: Int = 0, ssRest: Int? = null) =
             RoutineExerciseEntity(Ids.uuidV7(), r.id, uid, ex, 0, superset, mode, ssRest, rest, sets, mn, mx, updatedAt = t)
@@ -112,8 +114,12 @@ class RoutineRepository(private val db: RupioDatabase, private val userId: () ->
 }
 
 // ------------------------------------------------------------------ estadísticas
-enum class Period(val label: String, val short: String) {
-    WEEK("Semana", "1S"), MONTH("Mes", "1M"), QUARTER("3 meses", "3M"), YEAR("Año", "1A"), ALL("Histórico", "Todo")
+enum class Period {
+    WEEK, MONTH, QUARTER, YEAR, ALL;
+    val label: String get() = when (this) {
+        WEEK -> tr("Semana", "Week"); MONTH -> tr("Mes", "Month"); QUARTER -> tr("3 meses", "3 months"); YEAR -> tr("Año", "Year"); ALL -> tr("Histórico", "All time")
+    }
+    val short: String get() = when (this) { WEEK -> tr("1S", "1W"); MONTH -> "1M"; QUARTER -> "3M"; YEAR -> tr("1A", "1Y"); ALL -> tr("Todo", "All") }
 }
 
 enum class Bucket { DAY, WEEK, MONTH, YEAR }

@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit
 /** v1.7: las pantallas nuevas (editar entreno, casilla de consentimiento, código del correo, exportar, aviso al juntar). */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w393dp-h852dp-xhdpi")
+@Config(sdk = [34], qualifiers = "es-rMX-w393dp-h852dp-night-xhdpi")
 class V17UiTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val app get() = ApplicationProvider.getApplicationContext<RupioApp>()
@@ -173,7 +173,7 @@ class V17UiTest {
 /** N7: con letra al 200 % en una pantalla angosta, las tarjetas usan hasta 3 líneas y no bajan de ~150 %. */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w320dp-h640dp-xhdpi", fontScale = 2.0f)
+@Config(sdk = [34], qualifiers = "es-rMX-w320dp-h640dp-night-xhdpi", fontScale = 2.0f)
 class V17FitTextUiTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 

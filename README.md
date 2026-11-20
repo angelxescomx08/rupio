@@ -1,6 +1,6 @@
 # Rupio · registro de entrenamiento en español (Android · Kotlin)
 
-App tipo Hevy, 100 % en español y con tema negro, que **te dice cuándo subir el peso** con reglas basadas en estudios ([docs/CIENCIA.md](docs/CIENCIA.md)).
+App tipo Hevy, en español (y en inglés desde la v2.0), con tema oscuro o claro, que **te dice cuándo subir el peso** con reglas basadas en estudios ([docs/CIENCIA.md](docs/CIENCIA.md)).
 
 ## Qué incluye
 
@@ -37,6 +37,7 @@ App tipo Hevy, 100 % en español y con tema negro, que **te dice cuándo subir e
 - **Auditoría QA v1.5 → arreglos v1.6**: [docs/QA_V16.md](docs/QA_V16.md).
 - **Segunda revisión QA → v1.7**: editar un entreno terminado (y "Corregir" en Revisar), permiso expreso para el peso corporal (se retira en Perfil y borra el historial), código de 6 dígitos al crear la cuenta, exportar tus datos en CSV, récords que no se pisan al juntar cuentas: [docs/QA_V17.md](docs/QA_V17.md).
 - **v1.8**: nivel **Mecenas** ($499) con **muro de agradecimientos** (nombre, lugar y fecha; aportes extra de $99/$249/$499 suben de lugar; cada compra se verifica en el servidor con la firma de Google Play, en SQL: `db/migrations/007_supporters_wall.sql`); **gráfica del ejercicio dentro del entreno** (peso máx., 1RM, volumen); **kilos dentro de la cajita** del peso (filas alineadas, también en el editor de rutina y al editar un entreno); más aire en la serie completada; **calorías estimadas** (MET del Compendio 2024) y **reparto de músculos** al terminar y en el detalle; el **aviso de descanso** ahora suena en modo vibración y sobre un video (por defecto con el volumen de la música) y avisa si el volumen está en 0: [docs/QA_V18.md](docs/QA_V18.md).
+- **v2.0**: **inglés** (Perfil → Idioma: Automático / Español / English; en Android 13+ también desde los ajustes del sistema), con el catálogo de ejercicios y el aviso de privacidad traducidos y búsqueda en los dos idiomas. Textos con `tr("es", "en")` en `core/I18n.kt`. **Modo claro** (Perfil → Tema: Sistema / Claro / Oscuro) con contraste medido según WCAG: todo el texto ≥ 4.5:1 y los bordes de controles ≥ 3:1. **Más recompensas** en cada nivel, todas adornos (anillo del avatar por metal, íconos plateado y Aurora, colores plata y Aurora, confeti en cada entreno para Fan) y cada una dice de qué nivel viene. El **muro de agradecimientos** sale en Inicio (desde el 3.er entreno, se puede ocultar), Progreso, Perfil y Apoyar. Quien ya tenía la app sigue en español y oscuro. Investigación y fuentes: [docs/TEMA_IDIOMA_APOYO.md](docs/TEMA_IDIOMA_APOYO.md).
 - **QA en casos extremos** (pruebas automáticas, auditoría de 95 consultas, carga y seguridad en el servidor real, cuenta demo de 8 años): [docs/QA_RENDIMIENTO.md](docs/QA_RENDIMIENTO.md).
 
 ## Backend: Neon (equivalente a Supabase)

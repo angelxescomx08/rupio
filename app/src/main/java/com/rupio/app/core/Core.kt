@@ -58,7 +58,8 @@ enum class WeightUnit(val code: String, val label: String) {
 }
 
 object Fmt {
-    val locale: Locale = Locale.forLanguageTag("es-MX")
+    /** es-MX o en-US según el idioma de la app. */
+    val locale: Locale get() = I18n.locale
 
     /** 225 → "225", 102.06 → "102.1" */
     fun num(v: Double, decimals: Int = 1): String {
@@ -85,7 +86,7 @@ object Fmt {
         val v = unit.fromKg(kg)
         return when {
             v >= 1_000_000 -> "${num(v / 1_000_000, 2)} M ${unit.label}"
-            v >= 10_000 -> "${num(v / 1000, 1)} mil ${unit.label}"
+            v >= 10_000 -> "${num(v / 1000, 1)}${tr(" mil", "k")} ${unit.label}"
             else -> "${String.format(locale, "%,d", v.roundToInt())} ${unit.label}"
         }
     }
@@ -108,7 +109,7 @@ object Fmt {
     }
 
     fun restLabel(sec: Int): String = when {
-        sec <= 0 -> "Sin descanso"
+        sec <= 0 -> tr("Sin descanso", "No rest")
         sec % 60 == 0 -> "${sec / 60} min"
         sec > 60 -> "${sec / 60} min ${sec % 60} s"
         else -> "$sec s"
@@ -116,13 +117,13 @@ object Fmt {
 
     /** Versión corta para chips: "Sin", "45 s", "2 min", "1:30". */
     fun restShort(sec: Int): String = when {
-        sec <= 0 -> "Sin"
+        sec <= 0 -> tr("Sin", "Off")
         sec < 60 -> "$sec s"
         sec % 60 == 0 -> "${sec / 60} min"
         else -> String.format(Locale.US, "%d:%02d", sec / 60, sec % 60)
     }
 
-    /** "1 entreno", "3 entrenos": nunca "1 entrenos". */
+    /** "1 entreno", "3 entrenos": nunca "1 entrenos". Las palabras llegan ya traducidas (tr). */
     fun plural(n: Int, one: String, many: String): String = "$n ${if (n == 1) one else many}"
 
     private fun Double.pow(n: Int): Double { var r = 1.0; repeat(n) { r *= this }; return r }
@@ -140,10 +141,22 @@ fun String.searchKey(): String =
  * - Para mostrar horas se usa la zona ACTUAL del teléfono (se actualiza si la cambia).
  */
 object Dates {
-    private val dayFmt = DateTimeFormatter.ofPattern("EEE d 'de' MMM yyyy", Fmt.locale)
-    private val dayShort = DateTimeFormatter.ofPattern("d MMM", Fmt.locale)
-    private val timeFmt = DateTimeFormatter.ofPattern("HH:mm", Fmt.locale)
-    private val monthFmt = DateTimeFormatter.ofPattern("MMM yy", Fmt.locale)
+    /** Formatos de cada idioma (se crean una vez): "mar 11 de nov 2026" / "Tue, Nov 11, 2026"; 24 h en español, 12 h en inglés. */
+    private class Formats(val day: DateTimeFormatter, val dayShort: DateTimeFormatter, val time: DateTimeFormatter,
+                          val month: DateTimeFormatter, val spoken: DateTimeFormatter)
+    private val es = Formats(
+        DateTimeFormatter.ofPattern("EEE d 'de' MMM yyyy", I18n.SPANISH_MX), DateTimeFormatter.ofPattern("d MMM", I18n.SPANISH_MX),
+        DateTimeFormatter.ofPattern("HH:mm", I18n.SPANISH_MX), DateTimeFormatter.ofPattern("MMM yy", I18n.SPANISH_MX),
+        DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", I18n.SPANISH_MX))
+    private val en = Formats(
+        DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", Locale.US), DateTimeFormatter.ofPattern("MMM d", Locale.US),
+        DateTimeFormatter.ofPattern("h:mm a", Locale.US), DateTimeFormatter.ofPattern("MMM yy", Locale.US),
+        DateTimeFormatter.ofPattern("EEEE, MMMM d", Locale.US))
+    private val f: Formats get() = if (I18n.isEnglish) en else es
+    private val dayFmt get() = f.day
+    private val dayShort get() = f.dayShort
+    private val timeFmt get() = f.time
+    private val monthFmt get() = f.month
 
     fun localEpochDay(epochMs: Long, zone: ZoneId): Int =
         Instant.ofEpochMilli(epochMs).atZone(zone).toLocalDate().toEpochDay().toInt()
@@ -169,20 +182,19 @@ object Dates {
      */
     fun relative(epochMs: Long, nowMs: Long, zone: ZoneId): String {
         val diff = nowMs - epochMs
-        if (diff in 0 until 60_000) return "hace un momento"
-        if (diff in 60_000 until 3_600_000) return "hace ${diff / 60_000} min"
+        if (diff in 0 until 60_000) return tr("hace un momento", "just now")
+        if (diff in 60_000 until 3_600_000) return tr("hace ${diff / 60_000} min", "${diff / 60_000} min ago")
         val then = Instant.ofEpochMilli(epochMs).atZone(zone)
         val today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
         return when (then.toLocalDate()) {
-            today -> "hoy " + then.format(timeFmt)
-            today.minusDays(1) -> "ayer " + then.format(timeFmt)
+            today -> tr("hoy ", "today ") + then.format(timeFmt)
+            today.minusDays(1) -> tr("ayer ", "yesterday ") + then.format(timeFmt)
             else -> if (then.year == today.year) then.toLocalDate().format(dayShort) else then.toLocalDate().format(dayShort) + " " + then.year
         }
     }
 
     /** "martes 11 de noviembre" (para lectores de pantalla). */
-    fun spokenDay(date: LocalDate): String = date.format(spokenFmt)
-    private val spokenFmt = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Fmt.locale)
+    fun spokenDay(date: LocalDate): String = date.format(f.spoken)
 
     /** ¿Ese momento se vivió en otra hora que la de [current]? (entrenaste de viaje). */
     fun isOtherZone(epochMs: Long, current: ZoneId, origin: String): Boolean {
@@ -192,11 +204,11 @@ object Dates {
 
     /** "Hoy", "Ayer", "Hace 3 días", "Hace 2 semanas" (para "Última vez" de una rutina). */
     fun daysAgo(day: Int, today: Int): String = when (val d = today - day) {
-        in Int.MIN_VALUE..0 -> "Hoy"
-        1 -> "Ayer"
-        in 2..13 -> "Hace $d días"
-        in 14..59 -> "Hace ${d / 7} semanas"
-        else -> "Hace ${d / 30} meses"
+        in Int.MIN_VALUE..0 -> tr("Hoy", "Today")
+        1 -> tr("Ayer", "Yesterday")
+        in 2..13 -> tr("Hace $d días", "$d days ago")
+        in 14..59 -> tr("Hace ${d / 7} semanas", "${d / 7} weeks ago")
+        else -> tr("Hace ${d / 30} meses", "${d / 30} months ago")
     }
 
     /** "19:05" o "03:05 (19:05 hora de Ciudad de México)" si se entrenó en otra zona. */
@@ -205,6 +217,6 @@ object Dates {
         val originZone = runCatching { ZoneId.of(origin) }.getOrNull() ?: return now
         if (!isOtherZone(epochMs, current, origin)) return now
         val city = origin.substringAfterLast('/').replace('_', ' ')
-        return "$now (${formatTime(epochMs, originZone)} hora de $city)"
+        return tr("$now (${formatTime(epochMs, originZone)} hora de $city)", "$now (${formatTime(epochMs, originZone)} $city time)")
     }
 }

@@ -16,6 +16,8 @@ import com.rupio.app.data.auth.AuthRepository
 import com.rupio.app.data.auth.AuthState
 import com.rupio.app.data.auth.NeonAuthClient
 import com.rupio.app.data.billing.SupportRepository
+import com.rupio.app.core.tr
+import com.rupio.app.data.prefs.AppearancePrefs
 import com.rupio.app.data.local.CatalogSeeder
 import com.rupio.app.data.local.RupioDatabase
 import com.rupio.app.data.prefs.SecureStore
@@ -89,6 +91,15 @@ class AppContainer(val app: Application) {
                 if (uid != null) runCatching { wall.load() }
             }
         }
+    }
+
+    /**
+     * v2.0: se cambió el idioma (en Perfil o en Ajustes de Android). El catálogo de ejercicios se vuelve a escribir en
+     * ese idioma y los canales de notificación cambian de nombre (Android lo permite sin perder los ajustes del usuario).
+     */
+    fun onLanguageChanged() {
+        scope.launch { CatalogSeeder.seedIfNeeded(app, db) }
+        (app as? RupioApp)?.createChannels()
     }
 
     /** La cuenta se acaba de eliminar: MainActivity muestra la confirmación encima de la pantalla de inicio de sesión. */
@@ -178,10 +189,10 @@ class AppContainer(val app: Application) {
     suspend fun leaveUnverifiedAccount() {
         val s = auth.state.value as? AuthState.SignedIn ?: return
         if (s.newAccount) {
-            val jwt = auth.validJwt(force = true) ?: throw com.rupio.app.data.auth.AuthException("Sin conexión. Revisa tu internet e inténtalo de nuevo.")
+            val jwt = auth.validJwt(force = true) ?: throw com.rupio.app.data.auth.AuthException(OFFLINE)
             try { rpcRetryingFreshSession(jwt, "rupio_delete_my_account") }
-            catch (e: java.io.IOException) { throw com.rupio.app.data.auth.AuthException("Sin conexión. Revisa tu internet e inténtalo de nuevo.") }
-            catch (e: com.rupio.app.data.remote.DataApiException) { throw com.rupio.app.data.auth.AuthException("No se pudo cancelar la cuenta (código ${e.code}). Inténtalo de nuevo.") }
+            catch (e: java.io.IOException) { throw com.rupio.app.data.auth.AuthException(OFFLINE) }
+            catch (e: com.rupio.app.data.remote.DataApiException) { throw com.rupio.app.data.auth.AuthException(tr("No se pudo cancelar la cuenta (código ${e.code}). Inténtalo de nuevo.", "The account couldn't be canceled (code ${e.code}). Please try again.")) }
         }
         val owner = app.getSharedPreferences("rupio_owner", Context.MODE_PRIVATE)
         if (owner.getBoolean("adopted", false)) {
@@ -239,7 +250,7 @@ class AppContainer(val app: Application) {
      */
     suspend fun deleteAccount(password: String) {
         auth.reauthenticate(password)
-        val jwt = auth.validJwt(force = true) ?: throw com.rupio.app.data.auth.AuthException("No se pudo confirmar tu sesión. Revisa tu internet e inténtalo de nuevo.")
+        val jwt = auth.validJwt(force = true) ?: throw com.rupio.app.data.auth.AuthException(tr("No se pudo confirmar tu sesión. Revisa tu internet e inténtalo de nuevo.", "We couldn't confirm your session. Check your internet and try again."))
         // v1.7 (N5): ninguna sincronización a la vez. Se cancelan las programadas y se espera la que esté en curso;
         // si no, una subida a medias podía volver a crear filas mientras el servidor borraba la cuenta.
         SyncEngine.cancel(app)
@@ -248,10 +259,10 @@ class AppContainer(val app: Application) {
                 rpcRetryingFreshSession(jwt, "rupio_delete_my_account")
             } catch (e: java.io.IOException) {
                 SyncEngine.schedule(app)
-                throw com.rupio.app.data.auth.AuthException("Sin conexión. Revisa tu internet e inténtalo de nuevo.")
+                throw com.rupio.app.data.auth.AuthException(OFFLINE)
             } catch (e: com.rupio.app.data.remote.DataApiException) {
                 SyncEngine.schedule(app)
-                throw com.rupio.app.data.auth.AuthException("No se pudo eliminar la cuenta (código ${e.code}). No se borró nada; inténtalo más tarde.")
+                throw com.rupio.app.data.auth.AuthException(tr("No se pudo eliminar la cuenta (código ${e.code}). No se borró nada; inténtalo más tarde.", "The account couldn't be deleted (code ${e.code}). Nothing was erased; try again later."))
             }
             restTimer.cancel(); runCatching { com.rupio.app.timer.WorkoutService.stop(app) }
             wipeLocalData()
@@ -260,6 +271,8 @@ class AppContainer(val app: Application) {
         auth.signOut()
     }
 }
+
+private val OFFLINE: String get() = tr("Sin conexión. Revisa tu internet e inténtalo de nuevo.", "No connection. Check your internet and try again.")
 
 /** Aviso breve para el snackbar global; [undo] agrega el botón "Deshacer". */
 data class Notice(val text: String, val undo: (suspend () -> Unit)? = null)
@@ -270,6 +283,9 @@ class RupioApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // v2.0: idioma y tema antes de todo (quien ya usaba Rupio se queda en español y oscuro; ver AppearancePrefs).
+        AppearancePrefs.migrateLegacy(this)
+        AppearancePrefs.apply(this)
         container = AppContainer(this)
         createChannels()
         container.scope.launch { CatalogSeeder.seedIfNeeded(this@RupioApp, container.db) }
@@ -306,26 +322,27 @@ class RupioApp : Application() {
         }
     }
 
-    private fun createChannels() {
+    /** Los canales se vuelven a crear al cambiar de idioma: Android solo actualiza el nombre y la descripción. */
+    fun createChannels() {
         val nm = getSystemService(NotificationManager::class.java)
         // Canal SILENCIOSO para la notificación en curso (cronómetro y cuenta regresiva).
-        nm.createNotificationChannel(NotificationChannel(CHANNEL_WORKOUT, "Entrenamiento activo", NotificationManager.IMPORTANCE_LOW).apply {
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_WORKOUT, tr("Entrenamiento activo", "Active workout"), NotificationManager.IMPORTANCE_LOW).apply {
             setSound(null, null); enableVibration(false); setShowBadge(false)
-            description = "Cronómetro de la sesión y cuenta regresiva del descanso"
+            description = tr("Cronómetro de la sesión y cuenta regresiva del descanso", "Session timer and rest countdown")
         })
         // Canal CON SONIDO para el aviso de fin de descanso (el único sonido de la app).
-        nm.createNotificationChannel(NotificationChannel(CHANNEL_REST, "Fin del descanso", NotificationManager.IMPORTANCE_HIGH).apply {
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_REST, tr("Fin del descanso", "Rest finished"), NotificationManager.IMPORTANCE_HIGH).apply {
             setSound(com.rupio.app.timer.RestAlert.soundUri(this@RupioApp), AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
             enableVibration(true); vibrationPattern = longArrayOf(0, 180, 120, 260)
             setShowBadge(false)
-            description = "Suena una vez cuando termina tu descanso entre series"
+            description = tr("Suena una vez cuando termina tu descanso entre series", "Plays once when your rest between sets is over")
         })
         // Mismo aviso sin sonido de canal: para "Solo vibración" y "Con el volumen de la música" (ese sonido lo pone la app).
-        nm.createNotificationChannel(NotificationChannel(CHANNEL_REST_QUIET, "Fin del descanso (sin sonido)", NotificationManager.IMPORTANCE_HIGH).apply {
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_REST_QUIET, tr("Fin del descanso (sin sonido)", "Rest finished (silent)"), NotificationManager.IMPORTANCE_HIGH).apply {
             setSound(null, null); enableVibration(true); vibrationPattern = longArrayOf(0, 180, 120, 260)
             setShowBadge(false)
-            description = "Vibra cuando termina tu descanso (el sonido lo decide el ajuste de Rupio)"
+            description = tr("Vibra cuando termina tu descanso (el sonido lo decide el ajuste de Rupio)", "Vibrates when your rest is over (Rupio's setting decides the sound)")
         })
     }
 

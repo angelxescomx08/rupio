@@ -1,5 +1,7 @@
 package com.rupio.app.data.remote
 
+import com.rupio.app.core.tr
+
 import android.content.Context
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
@@ -207,10 +209,11 @@ data class SyncStatus(
     /** Texto corto del problema (o null si no hay). */
     val lastError: String? get() = when (problem) {
         null -> null
-        SyncProblem.SESSION_EXPIRED -> "Tu sesión venció"
-        SyncProblem.OFFLINE -> "Sin internet"
-        SyncProblem.SERVER -> "Rupio no responde"
-        SyncProblem.REJECTED -> "$rejected ${if (rejected == 1) "cambio no se pudo subir" else "cambios no se pudieron subir"}"
+        SyncProblem.SESSION_EXPIRED -> com.rupio.app.core.tr("Tu sesión venció", "Your session expired")
+        SyncProblem.OFFLINE -> com.rupio.app.core.tr("Sin internet", "No internet")
+        SyncProblem.SERVER -> com.rupio.app.core.tr("Rupio no responde", "Rupio isn't responding")
+        SyncProblem.REJECTED -> com.rupio.app.core.tr("$rejected ${if (rejected == 1) "cambio no se pudo subir" else "cambios no se pudieron subir"}",
+            "$rejected ${if (rejected == 1) "change couldn't be uploaded" else "changes couldn't be uploaded"}")
     }
 }
 
@@ -355,16 +358,16 @@ class SyncEngine(
     suspend fun describeRejected(): List<RejectedChange> {
         val a = db.admin()
         return rejectedStore.all().map { (table, key) ->
-            fun day(d: Int?) = d?.let { " del " + com.rupio.app.core.Dates.formatDayShort(LocalDate.ofEpochDay(it.toLong())) }.orEmpty()
+            fun day(d: Int?) = d?.let { tr(" del ", " on ") + com.rupio.app.core.Dates.formatDayShort(LocalDate.ofEpochDay(it.toLong())) }.orEmpty()
             val (title, detail) = when (table) {
-                "workouts" -> a.workoutLabel(key).let { "Entreno «${it?.name ?: "sin nombre"}»${day(it?.day)}" to "El servidor no aceptó los datos del entreno." }
-                "workout_exercises" -> a.workoutExerciseLabel(key).let { "Ejercicio en «${it?.name ?: "un entreno"}»${day(it?.day)}" to "El servidor no aceptó ese ejercicio." }
-                "workout_sets" -> a.setLabel(key).let { "Serie en «${it?.name ?: "un entreno"}»${day(it?.day)}" to "Revisa el peso, las repeticiones o el tiempo de esa serie." }
-                "routines" -> a.routineLabel(key).let { "Rutina «${it?.name ?: "sin nombre"}»" to "El servidor no aceptó la rutina." }
-                "routine_exercises" -> a.routineExerciseLabel(key).let { "Ejercicio de la rutina «${it?.name ?: "sin nombre"}»" to "El servidor no aceptó ese ejercicio de la rutina." }
-                "exercises" -> a.exerciseLabel(key).let { "Ejercicio «${it?.name ?: "personalizado"}»" to "El servidor no aceptó tu ejercicio personalizado." }
-                "personal_records" -> a.exerciseLabel(key.substringBefore(':')).let { "Récord de ${it?.name ?: "un ejercicio"}" to "Se recalcula solo; puedes descartarlo." }
-                "body_weights" -> "Peso corporal${day(key.substringAfter(':').toIntOrNull())}" to "Revisa que el peso esté entre 20 y 400 kg."
+                "workouts" -> a.workoutLabel(key).let { tr("Entreno «${it?.name ?: "sin nombre"}»", "Workout “${it?.name ?: "untitled"}”") + day(it?.day) to tr("El servidor no aceptó los datos del entreno.", "The server didn't accept the workout data.") }
+                "workout_exercises" -> a.workoutExerciseLabel(key).let { tr("Ejercicio en «${it?.name ?: "un entreno"}»", "Exercise in “${it?.name ?: "a workout"}”") + day(it?.day) to tr("El servidor no aceptó ese ejercicio.", "The server didn't accept that exercise.") }
+                "workout_sets" -> a.setLabel(key).let { tr("Serie en «${it?.name ?: "un entreno"}»", "Set in “${it?.name ?: "a workout"}”") + day(it?.day) to tr("Revisa el peso, las repeticiones o el tiempo de esa serie.", "Check the weight, reps or time of that set.") }
+                "routines" -> a.routineLabel(key).let { tr("Rutina «${it?.name ?: "sin nombre"}»", "Routine “${it?.name ?: "untitled"}”") to tr("El servidor no aceptó la rutina.", "The server didn't accept the routine.") }
+                "routine_exercises" -> a.routineExerciseLabel(key).let { tr("Ejercicio de la rutina «${it?.name ?: "sin nombre"}»", "Exercise in routine “${it?.name ?: "untitled"}”") to tr("El servidor no aceptó ese ejercicio de la rutina.", "The server didn't accept that routine exercise.") }
+                "exercises" -> a.exerciseLabel(key).let { tr("Ejercicio «${it?.name ?: "personalizado"}»", "Exercise “${it?.name ?: "custom"}”") to tr("El servidor no aceptó tu ejercicio personalizado.", "The server didn't accept your custom exercise.") }
+                "personal_records" -> a.exerciseLabel(key.substringBefore(':')).let { tr("Récord de ${it?.name ?: "un ejercicio"}", "PR for ${it?.name ?: "an exercise"}") to tr("Se recalcula solo; puedes descartarlo.", "It's recalculated on its own; you can dismiss it.") }
+                "body_weights" -> tr("Peso corporal", "Body weight") + day(key.substringAfter(':').toIntOrNull()) to tr("Revisa que el peso esté entre 20 y 400 kg.", "Check that the weight is between 20 and 400 kg.")
                 else -> table to key
             }
             RejectedChange(table, key, title, detail)
@@ -441,7 +444,7 @@ class SyncEngine(
         val ex = db.exercises(); val ro = db.routines(); val wo = db.workouts(); val rec = db.records(); val bw = db.bodyWeights()
         pushTable("exercises", "id", { ex.dirty(it) }, { rows ->
             api.upsert(base, jwt, "exercises", "id", rows.map {
-                ExerciseDto(it.id, uid, name(it.name, "Ejercicio"), it.primaryMuscle, it.secondaryMuscles.split(',').filter { s -> s.isNotBlank() },
+                ExerciseDto(it.id, uid, name(it.name, tr("Ejercicio", "Exercise")), it.primaryMuscle, it.secondaryMuscles.split(',').filter { s -> s.isNotBlank() },
                     it.equipment, it.tracking.takeIf { t -> Tracking.entries.any { e -> e.code == t } } ?: "weight_reps", it.isLowerBody, it.deleted)
             }, ExerciseDto.serializer())
         }, { ex.markClean(it.id, it.updatedAt) }, { it.id })
@@ -458,7 +461,7 @@ class SyncEngine(
         pushTable("workouts", "id", { wo.dirtyWorkouts(it) }, { rows ->
             api.upsert(base, jwt, "workouts", "id", rows.map {
                 // Si el reloj del teléfono se movió hacia atrás a media sesión, el fin no puede quedar antes del inicio.
-                WorkoutDto(it.id, uid, it.routineId, name(it.name, "Entrenamiento"), it.startedAt.iso(), it.endedAt?.let { e -> maxOf(e, it.startedAt) }?.iso(), it.timeZone,
+                WorkoutDto(it.id, uid, it.routineId, name(it.name, tr("Entrenamiento", "Workout")), it.startedAt.iso(), it.endedAt?.let { e -> maxOf(e, it.startedAt) }?.iso(), it.timeZone,
                     it.localDate.day(), it.durationSec?.coerceAtLeast(0), it.totalVolumeKg.takeIf { v -> v.isFinite() && v >= 0 } ?: 0.0,
                     it.totalSets.coerceAtLeast(0), it.totalReps.coerceAtLeast(0), it.notes, it.deleted)
             }, WorkoutDto.serializer())
@@ -493,9 +496,9 @@ class SyncEngine(
             pendingDeletes.done(ex2, kind)
         }
         val s = settings.current()
-        val nm = (auth.state.value as? com.rupio.app.data.auth.AuthState.SignedIn)?.name ?: "Atleta"
+        val nm = (auth.state.value as? com.rupio.app.data.auth.AuthState.SignedIn)?.name ?: tr("Atleta", "Athlete")
         authed { api.upsert(base, jwt, "profiles", "user_id", listOf(
-            ProfileDto(uid, name(nm, "Atleta", 80), s.unit.code, ZoneId.systemDefault().id, if (s.weekStart == 7) 7 else 1, rest(s.defaultRestSec), s.onboardingDone)
+            ProfileDto(uid, name(nm, tr("Atleta", "Athlete"), 80), s.unit.code, ZoneId.systemDefault().id, if (s.weekStart == 7) 7 else 1, rest(s.defaultRestSec), s.onboardingDone)
         ), ProfileDto.serializer()) }
         consentUp(base, uid)
     }

@@ -1,5 +1,7 @@
 package com.rupio.app.ui.exercises
 
+
+import com.rupio.app.core.tr
 import com.rupio.app.safePop
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -53,15 +55,15 @@ class ExerciseDetailVM(private val c: AppContainer, val id: String) : ViewModel(
     init {
         viewModelScope.launch {
             val e = exercise.filterNotNull().first()
-            val tr = Tracking.of(e.tracking)
-            curve.value = when (tr) {
+            val trk = Tracking.of(e.tracking)
+            curve.value = when (trk) {
                 Tracking.WEIGHT_REPS, Tracking.WEIGHTED_BODYWEIGHT -> c.stats.e1rm(id, e.name).points
                 Tracking.DURATION -> c.stats.bestPerSession(id, duration = true)
                 else -> c.stats.bestPerSession(id, duration = false)
             }
             sessions.value = c.stats.exerciseHistory(id).groupBy { it.workoutId }.values
                 .map { rows -> rows.sortedBy { it.position } }.sortedByDescending { it.first().performedOn }.take(15)
-            val (mn, mx) = when (tr) { Tracking.REPS_ONLY -> 8 to 15; Tracking.DURATION -> 1 to 1; else -> 8 to 12 }
+            val (mn, mx) = when (trk) { Tracking.REPS_ONLY -> 8 to 15; Tracking.DURATION -> 1 to 1; else -> 8 to 12 }
             recommendation.value = c.workouts.recommendation(e, mn, mx, "")
         }
     }
@@ -81,9 +83,9 @@ fun ExerciseDetailScreen(nav: NavHostController, id: String) {
     val ex = e
 
     Column(Modifier.fillMaxSize()) {
-        RupioTopBar(ex?.name ?: "Ejercicio", onBack = { nav.safePop() })
+        RupioTopBar(ex?.name ?: tr("Ejercicio", "Exercise"), onBack = { nav.safePop() })
         if (ex == null) return@Column
-        val tr = Tracking.of(ex.tracking)
+        val trk = Tracking.of(ex.tracking)
         LazyColumn(contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (ex.image0 != null) item { Column {
                 AnimatedExerciseImage(ex.image0, ex.image1, Modifier.fillMaxWidth().aspectRatio(1.4f))
@@ -97,30 +99,30 @@ fun ExerciseDetailScreen(nav: NavHostController, id: String) {
                     }
                 }
             } }
-            else if (ex.isCustom) item { SectionCard { Text("Ejercicio personalizado (sin imagen)", color = RupioColors.TextDim) } }
+            else if (ex.isCustom) item { SectionCard { Text(tr("Ejercicio personalizado (sin imagen)", "Custom exercise (no image)"), color = RupioColors.TextDim) } }
             item {
                 Button(
                     onClick = { openVideo(context, ex.name) }, modifier = Modifier.fillMaxWidth().height(50.dp), shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = RupioColors.YouTube, contentColor = Color.White),
-                ) { Icon(Icons.Rounded.PlayCircle, null); Spacer(Modifier.width(8.dp)); Text("Buscar videos de cómo hacerlo", fontWeight = FontWeight.SemiBold) }
+                ) { Icon(Icons.Rounded.PlayCircle, null); Spacer(Modifier.width(8.dp)); Text(tr("Buscar videos de cómo hacerlo", "Find videos on how to do it"), fontWeight = FontWeight.SemiBold) }
             }
             item {
                 SectionCard {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Pill(Muscles.label(ex.primaryMuscle), RupioColors.Primary, filled = true)
                         Pill(Muscles.equipmentLabel(ex.equipment), RupioColors.TextDim)
-                        Pill(when (ex.level) { "expert" -> "Avanzado"; "intermediate" -> "Intermedio"; else -> "Principiante" }, RupioColors.TextDim)
+                        Pill(when (ex.level) { "expert" -> tr("Avanzado", "Advanced"); "intermediate" -> tr("Intermedio", "Intermediate"); else -> tr("Principiante", "Beginner") }, RupioColors.TextDim)
                     }
                     val sec = ex.secondaryMuscles.split(',').filter { it.isNotBlank() }
                     if (sec.isNotEmpty()) {
                         Spacer(Modifier.height(8.dp))
-                        Text("También trabaja: " + sec.joinToString { Muscles.label(it) }, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                        Text(tr("También trabaja: ", "Also works: ") + sec.joinToString { Muscles.label(it) }, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
                     }
                     Spacer(Modifier.height(4.dp))
-                    Text("Se registra: ${tr.label}", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                    Text(tr("Se registra: ", "Logged as: ") + trk.label, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
                     if (ex.cue.isNotBlank()) {
                         Spacer(Modifier.height(12.dp))
-                        Text("Técnica", style = MaterialTheme.typography.titleSmall)
+                        Text(tr("Técnica", "Form"), style = MaterialTheme.typography.titleSmall)
                         Spacer(Modifier.height(6.dp))
                         TechniqueSteps(ex.cue)
                     }
@@ -129,7 +131,7 @@ fun ExerciseDetailScreen(nav: NavHostController, id: String) {
             rec?.let { r -> item { RecommendationCard(r, unit, expanded = true) } }
             if (records.isNotEmpty()) item {
                 SectionCard {
-                    Text("Tus récords", style = MaterialTheme.typography.titleMedium)
+                    Text(tr("Tus récords", "Your PRs"), style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(8.dp))
                     records.sortedBy { it.kind }.forEach { r ->
                         val kind = RecordKind.of(r.kind)
@@ -151,21 +153,21 @@ fun ExerciseDetailScreen(nav: NavHostController, id: String) {
             }
             item {
                 SectionCard {
-                    Text(when (tr) { Tracking.WEIGHT_REPS, Tracking.WEIGHTED_BODYWEIGHT -> "1RM estimado por sesión"; Tracking.DURATION -> "Mejor tiempo por sesión"; else -> "Máximo de repeticiones por sesión" },
+                    Text(when (trk) { Tracking.WEIGHT_REPS, Tracking.WEIGHTED_BODYWEIGHT -> tr("1RM estimado por sesión", "Estimated 1RM per session"); Tracking.DURATION -> tr("Mejor tiempo por sesión", "Best time per session"); else -> tr("Máximo de repeticiones por sesión", "Most reps per session") },
                         style = MaterialTheme.typography.titleMedium)
-                    Text(when (tr) { Tracking.WEIGHT_REPS, Tracking.WEIGHTED_BODYWEIGHT -> "Lo que podrías levantar 1 vez, calculado con tu mejor serie (Epley/Brzycki, válido hasta ~10 reps)."; else -> "Tu mejor serie de cada día." },
+                    Text(when (trk) { Tracking.WEIGHT_REPS, Tracking.WEIGHTED_BODYWEIGHT -> tr("Lo que podrías levantar 1 vez, calculado con tu mejor serie (Epley/Brzycki, válido hasta ~10 reps).", "What you could lift once, calculated from your best set (Epley/Brzycki, valid up to ~10 reps)."); else -> tr("Tu mejor serie de cada día.", "Your best set each day.") },
                         style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
                     Spacer(Modifier.height(8.dp))
-                    when (tr) {
-                        Tracking.WEIGHT_REPS, Tracking.WEIGHTED_BODYWEIGHT -> ProgressLineChart(curve, unit, title = "1RM estimado")
-                        Tracking.DURATION -> ProgressLineChart(curve, unit, title = "Mejor tiempo", toDisplay = { it }, label = { Fmt.duration(it.toLong()) }, subLabel = null, deltaLabel = { Fmt.duration(it.toLong()) })
-                        else -> ProgressLineChart(curve, unit, title = "Más repeticiones", toDisplay = { it }, label = { "${it.toInt()} reps" }, subLabel = null, deltaLabel = { "${it.toInt()} reps" })
+                    when (trk) {
+                        Tracking.WEIGHT_REPS, Tracking.WEIGHTED_BODYWEIGHT -> ProgressLineChart(curve, unit, title = tr("1RM estimado", "Estimated 1RM"))
+                        Tracking.DURATION -> ProgressLineChart(curve, unit, title = tr("Mejor tiempo", "Best time"), toDisplay = { it }, label = { Fmt.duration(it.toLong()) }, subLabel = null, deltaLabel = { Fmt.duration(it.toLong()) })
+                        else -> ProgressLineChart(curve, unit, title = tr("Más repeticiones", "Most reps"), toDisplay = { it }, label = { "${it.toInt()} reps" }, subLabel = null, deltaLabel = { "${it.toInt()} reps" })
                     }
                 }
             }
             if (sessions.isNotEmpty()) {
-                item { SectionTitle("Historial") }
-                items(sessions) { rows -> SessionCard(rows, tr, unit) }
+                item { SectionTitle(tr("Historial", "History")) }
+                items(sessions) { rows -> SessionCard(rows, trk, unit) }
             }
         }
     }
@@ -195,13 +197,13 @@ fun TechniqueSteps(cue: String) {
     }
 }
 
-private const val COMMON_ERROR = "Error común:"
+private val COMMON_ERROR: String get() = tr("Error común:", "Common mistake:")
 
 /** Pasos de la técnica: una línea cada uno, sin vacíos. */
 fun techniqueSteps(cue: String): List<String> = cue.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
 
 @Composable
-private fun SessionCard(rows: List<SessionSetRow>, tr: Tracking, unit: WeightUnit) {
+private fun SessionCard(rows: List<SessionSetRow>, trk: Tracking, unit: WeightUnit) {
     SectionCard(padding = 14.dp) {
         Text(Dates.formatDay(rows.first().performedOn), style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(6.dp))
@@ -210,7 +212,7 @@ private fun SessionCard(rows: List<SessionSetRow>, tr: Tracking, unit: WeightUni
                 val type = SetType.of(s.setType)
                 Text(if (type == SetType.NORMAL) "${rows.take(i + 1).count { SetType.of(it.setType) != SetType.WARMUP }}" else type.short,
                     color = if (type == SetType.WARMUP) RupioColors.Warning else RupioColors.TextDim, modifier = Modifier.width(28.dp), style = MaterialTheme.typography.bodyMedium.merge(Tabular))
-                Text(formatSet(s.weightKg, s.reps, s.durationSec, tr, unit), style = MaterialTheme.typography.bodyMedium.merge(Tabular))
+                Text(formatSet(s.weightKg, s.reps, s.durationSec, trk, unit), style = MaterialTheme.typography.bodyMedium.merge(Tabular))
                 s.rpe?.let { Text("  · RPE ${Fmt.num(it)}", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextFaint) }
             }
         }
@@ -218,11 +220,11 @@ private fun SessionCard(rows: List<SessionSetRow>, tr: Tracking, unit: WeightUni
 }
 
 /** "135 lb × 10", "12 reps", "0:45", "+25 lb × 8", "−30 lb × 6 (asist.)". */
-fun formatSet(weightKg: Double?, reps: Int?, durationSec: Int?, tr: Tracking, unit: WeightUnit): String = when (tr) {
+fun formatSet(weightKg: Double?, reps: Int?, durationSec: Int?, trk: Tracking, unit: WeightUnit): String = when (trk) {
     Tracking.DURATION -> Fmt.duration((durationSec ?: 0).toLong())
     Tracking.REPS_ONLY -> "${reps ?: 0} reps"
     Tracking.WEIGHTED_BODYWEIGHT -> if ((weightKg ?: 0.0) > 0) "+${Fmt.weight(weightKg, unit)} × ${reps ?: 0}" else "${reps ?: 0} reps"
-    Tracking.ASSISTED_BODYWEIGHT -> if ((weightKg ?: 0.0) < 0) "${reps ?: 0} reps · ayuda ${Fmt.weight(-(weightKg ?: 0.0), unit)}" else "${reps ?: 0} reps"
+    Tracking.ASSISTED_BODYWEIGHT -> if ((weightKg ?: 0.0) < 0) "${reps ?: 0} reps · " + tr("ayuda", "assist") + " ${Fmt.weight(-(weightKg ?: 0.0), unit)}" else "${reps ?: 0} reps"
     Tracking.WEIGHT_REPS -> "${Fmt.weight(weightKg, unit)} × ${reps ?: 0}"
 }
 
@@ -246,14 +248,14 @@ fun RecommendationCard(r: Recommendation, unit: WeightUnit, expanded: Boolean = 
                 Spacer(Modifier.width(8.dp))
                 Text(r.title, color = color, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 r.targetWeightKg?.takeIf { it > 0 }?.let { Text(Fmt.weight(it, unit.other), style = MaterialTheme.typography.labelSmall.merge(Tabular), color = RupioColors.TextFaint) }
-                Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, if (open) "Ocultar" else "Por qué", tint = RupioColors.TextFaint)
+                Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, if (open) tr("Ocultar", "Hide") else tr("Por qué", "Why"), tint = RupioColors.TextFaint)
             }
             if (open) {
                 Spacer(Modifier.height(4.dp))
                 Text(r.detail, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
                 if (r.sources.isNotEmpty()) {
                     Spacer(Modifier.height(6.dp))
-                    Text("Basado en: " + r.sources.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
+                    Text(tr("Basado en: ", "Based on: ") + r.sources.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
                 }
             }
         }

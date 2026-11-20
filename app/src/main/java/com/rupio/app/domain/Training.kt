@@ -1,5 +1,7 @@
 package com.rupio.app.domain
 
+
+import com.rupio.app.core.tr
 import com.rupio.app.core.Fmt
 import com.rupio.app.core.WeightUnit
 import com.rupio.app.core.searchKey
@@ -24,8 +26,13 @@ enum class Tracking(val code: String) {
     }
 }
 
-enum class SetType(val code: Int, val short: String, val label: String) {
-    NORMAL(0, "", "Normal"), WARMUP(1, "C", "Calentamiento"), DROP(2, "D", "Drop set"), FAILURE(3, "F", "Al fallo");
+enum class SetType(val code: Int) {
+    NORMAL(0), WARMUP(1), DROP(2), FAILURE(3);
+    /** Letra de la serie: C de calentamiento en español, W de warm-up en inglés (D y F sirven en los dos). */
+    val short: String get() = when (this) { NORMAL -> ""; WARMUP -> tr("C", "W"); DROP -> "D"; FAILURE -> "F" }
+    val label: String get() = when (this) {
+        NORMAL -> "Normal"; WARMUP -> tr("Calentamiento", "Warm-up"); DROP -> "Drop set"; FAILURE -> tr("Al fallo", "Failure")
+    }
     fun next() = entries[(ordinal + 1) % entries.size]
     companion object { fun of(code: Int) = entries.firstOrNull { it.code == code } ?: NORMAL }
 }
@@ -122,7 +129,7 @@ object Cardio {
 
 object Sources {
     const val ACSM = "ACSM 2009 · Med Sci Sports Exerc 41(3):687-708"
-    const val NSCA = "NSCA · regla 2×2 (Baechle & Earle)"
+    val NSCA: String get() = tr("NSCA · regla 2×2 (Baechle & Earle)", "NSCA · 2-for-2 rule (Baechle & Earle)")
     const val PLOTKIN = "Plotkin et al. 2022 · PeerJ 10:e14142"
     const val HELMS = "Zourdos et al. 2016 · J Strength Cond Res 30(1):267-275"
     const val ROBINSON = "Robinson et al. 2024 · Sports Med 54:2209-2231"
@@ -130,19 +137,19 @@ object Sources {
     const val SINGER = "Singer et al. 2024 · Front Sports Act Living 6:1429789"
     const val PELLAND = "Pelland et al. 2026 · Sports Med 56(2):481-505"
     const val SCHOENFELD_VOL = "Schoenfeld et al. 2017 · J Sports Sci 35(11):1073-1082"
-    const val ZHANG = "Zhang et al. 2025 · Sports Med (superseries vs. series tradicionales)"
+    val ZHANG: String get() = tr("Zhang et al. 2025 · Sports Med (superseries vs. series tradicionales)", "Zhang et al. 2025 · Sports Med (supersets vs. traditional sets)")
 
     /** Resumen legible para la pantalla "La ciencia detrás de Rupio". */
-    val explained = listOf(
-        ACSM to "Cuándo subir peso: +2–10 % cuando haces 1–2 reps por encima de tu objetivo.",
-        PLOTKIN to "Subir repeticiones con el mismo peso da resultados similares a subir peso (8 semanas, entrenados).",
-        ROBINSON to "El músculo crece más cuanto más cerca del fallo terminas la serie; la fuerza depende más de la carga.",
-        HELMS to "Escala RPE basada en repeticiones en reserva (RIR): RPE 10 = 0 en reserva, RPE 9 = 1, etc.",
-        SINGER to "Descansar más de 60 s entre series ayuda un poco al crecimiento; más de 90 s no mostró diferencias claras.",
-        SCHOENFELD_VOL to "Relación dosis-respuesta: 10+ series por músculo a la semana se asocian con más crecimiento.",
-        PELLAND to "Más volumen semanal = más crecimiento con rendimientos decrecientes; ejercicios secundarios cuentan como media serie.",
-        ZHANG to "Las superseries acortan la sesión sin perder adaptaciones; agonista–antagonista permite más reps.",
-        LESUER to "Las fórmulas de 1RM (Epley, Brzycki) son confiables con menos de ~10 repeticiones.",
+    val explained: List<Pair<String, String>> get() = listOf(
+        ACSM to tr("Cuándo subir peso: +2–10 % cuando haces 1–2 reps por encima de tu objetivo.", "When to add weight: +2–10% when you do 1–2 reps above your target."),
+        PLOTKIN to tr("Subir repeticiones con el mismo peso da resultados similares a subir peso (8 semanas, entrenados).", "Adding reps with the same weight gives results similar to adding weight (8 weeks, trained lifters)."),
+        ROBINSON to tr("El músculo crece más cuanto más cerca del fallo terminas la serie; la fuerza depende más de la carga.", "Muscle grows more the closer to failure you end the set; strength depends more on the load."),
+        HELMS to tr("Escala RPE basada en repeticiones en reserva (RIR): RPE 10 = 0 en reserva, RPE 9 = 1, etc.", "RPE scale based on reps in reserve (RIR): RPE 10 = 0 in reserve, RPE 9 = 1, and so on."),
+        SINGER to tr("Descansar más de 60 s entre series ayuda un poco al crecimiento; más de 90 s no mostró diferencias claras.", "Resting more than 60 s between sets helps growth a little; more than 90 s showed no clear difference."),
+        SCHOENFELD_VOL to tr("Relación dosis-respuesta: 10+ series por músculo a la semana se asocian con más crecimiento.", "Dose-response: 10+ sets per muscle per week are linked to more growth."),
+        PELLAND to tr("Más volumen semanal = más crecimiento con rendimientos decrecientes; ejercicios secundarios cuentan como media serie.", "More weekly volume = more growth, with diminishing returns; secondary muscles count as half a set."),
+        ZHANG to tr("Las superseries acortan la sesión sin perder adaptaciones; agonista–antagonista permite más reps.", "Supersets shorten the session without losing adaptations; agonist–antagonist pairs allow more reps."),
+        LESUER to tr("Las fórmulas de 1RM (Epley, Brzycki) son confiables con menos de ~10 repeticiones.", "1RM formulas (Epley, Brzycki) are reliable under ~10 reps."),
     )
 }
 
@@ -190,19 +197,19 @@ object Progression {
         val best = sessions.first().straight.maxOf { it.durationSec ?: 0 }
         val minutes = (best / 60.0).roundToInt().coerceAtLeast(1)
         val target = max(minutes + 1, (minutes * 1.1).roundToInt())
-        return Recommendation(RecKind.ADD_TIME, "Intenta $target min",
-            "La vez pasada hiciste $minutes min. Suma un par de minutos o sube un poco la velocidad o la inclinación, si te sentiste bien.",
+        return Recommendation(RecKind.ADD_TIME, tr("Intenta $target min", "Try $target min"),
+            tr("La vez pasada hiciste $minutes min. Suma un par de minutos o sube un poco la velocidad o la inclinación, si te sentiste bien.", "Last time you did $minutes min. Add a couple of minutes or raise the speed or incline a little, if you felt good."),
             targetDurationSec = target * 60)
     }
 
-    private fun firstTime(i: ProgressionInput) = if (i.cardio) Recommendation(RecKind.FIRST_TIME, "Primera vez",
-        "Anota cuántos minutos hiciste. La próxima vez, si te sentiste bien, sube un poco la velocidad o la inclinación.")
+    private fun firstTime(i: ProgressionInput) = if (i.cardio) Recommendation(RecKind.FIRST_TIME, tr("Primera vez", "First time"),
+        tr("Anota cuántos minutos hiciste. La próxima vez, si te sentiste bien, sube un poco la velocidad o la inclinación.", "Log how many minutes you did. Next time, if you felt good, raise the speed or incline a little."))
     else when (i.tracking) {
-        Tracking.DURATION -> Recommendation(RecKind.FIRST_TIME, "Primera vez", "Aguanta con buena técnica y anota tu tiempo; la próxima intentarás superarlo.")
-        Tracking.REPS_ONLY -> Recommendation(RecKind.FIRST_TIME, "Primera vez", "Haz las reps que puedas con buena técnica, dejando 1–2 en reserva.", targetReps = i.repMin, sources = listOf(Sources.HELMS))
+        Tracking.DURATION -> Recommendation(RecKind.FIRST_TIME, tr("Primera vez", "First time"), tr("Aguanta con buena técnica y anota tu tiempo; la próxima intentarás superarlo.", "Hold it with good form and log your time; next time you'll try to beat it."))
+        Tracking.REPS_ONLY -> Recommendation(RecKind.FIRST_TIME, tr("Primera vez", "First time"), tr("Haz las reps que puedas con buena técnica, dejando 1–2 en reserva.", "Do as many reps as you can with good form, leaving 1–2 in reserve."), targetReps = i.repMin, sources = listOf(Sources.HELMS))
         else -> Recommendation(
-            RecKind.FIRST_TIME, "Primera vez",
-            "Elige un peso con el que llegues a ${i.repMin}–${i.repMax} reps sintiendo que te quedan 1–3 en reserva. Rupio ajustará desde ahí.",
+            RecKind.FIRST_TIME, tr("Primera vez", "First time"),
+            tr("Elige un peso con el que llegues a ${i.repMin}–${i.repMax} reps sintiendo que te quedan 1–3 en reserva. Rupio ajustará desde ahí.", "Pick a weight that gets you to ${i.repMin}–${i.repMax} reps with 1–3 left in reserve. Rupio will adjust from there."),
             targetReps = i.repMin, sources = listOf(Sources.ACSM, Sources.HELMS),
         )
     }
@@ -220,12 +227,12 @@ object Progression {
         if (topKg <= 0.0 && i.tracking == Tracking.WEIGHTED_BODYWEIGHT) {
             // Sin lastre todavía: progresión por reps hasta el tope del rango, luego lastre.
             return if (minReps >= i.repMax) Recommendation(
-                RecKind.INCREASE_LOAD, "Añade lastre",
-                "Hiciste todas las series en ${i.repMax}+ reps con tu peso corporal. Agrega ${Fmt.weight(step, u)} (cinturón o mancuerna) y vuelve a ${i.repMin} reps.",
+                RecKind.INCREASE_LOAD, tr("Añade lastre", "Add weight"),
+                tr("Hiciste todas las series en ${i.repMax}+ reps con tu peso corporal. Agrega ${Fmt.weight(step, u)} (cinturón o mancuerna) y vuelve a ${i.repMin} reps.", "You did every set at ${i.repMax}+ reps with your bodyweight. Add ${Fmt.weight(step, u)} (belt or dumbbell) and go back to ${i.repMin} reps."),
                 targetWeightKg = step, targetReps = i.repMin, sources = listOf(Sources.ACSM, Sources.PLOTKIN),
             ) else Recommendation(
-                RecKind.ADD_REPS, "Suma repeticiones",
-                "Busca +1 rep en cada serie hasta llegar a ${i.repMax}. Progresar en reps funciona igual de bien que en peso.",
+                RecKind.ADD_REPS, tr("Suma repeticiones", "Add reps"),
+                tr("Busca +1 rep en cada serie hasta llegar a ${i.repMax}. Progresar en reps funciona igual de bien que en peso.", "Aim for +1 rep on every set until you reach ${i.repMax}. Progressing in reps works as well as in weight."),
                 targetReps = (minReps + 1).coerceAtMost(i.repMax), sources = listOf(Sources.PLOTKIN),
             )
         }
@@ -247,11 +254,11 @@ object Progression {
             val raw = topKg * (1 + pct)
             var next = roundToStep(raw, step, up = false)
             if (next < topKg + step - 1e-6) next = roundToStep(topKg + step, step)
-            val why = if (allHitTop) "Completaste todas tus series en ${i.repMax}+ reps con ${Fmt.weight(topKg, u)}."
-                      else "Llevas 2 sesiones haciendo ${i.repMax + 2}+ reps en la última serie con ${Fmt.weight(topKg, u)}."
+            val why = if (allHitTop) tr("Completaste todas tus series en ${i.repMax}+ reps con ${Fmt.weight(topKg, u)}.", "You completed all your sets at ${i.repMax}+ reps with ${Fmt.weight(topKg, u)}.")
+                      else tr("Llevas 2 sesiones haciendo ${i.repMax + 2}+ reps en la última serie con ${Fmt.weight(topKg, u)}.", "For 2 sessions you've done ${i.repMax + 2}+ reps on your last set with ${Fmt.weight(topKg, u)}.")
             return Recommendation(
-                RecKind.INCREASE_LOAD, "Sube a ${Fmt.weight(next, u)}",
-                "$why Sube el peso (+${Fmt.weight(next - topKg, u)}) y vuelve a ${i.repMin} reps.",
+                RecKind.INCREASE_LOAD, tr("Sube a ${Fmt.weight(next, u)}", "Go up to ${Fmt.weight(next, u)}"),
+                tr("$why Sube el peso (+${Fmt.weight(next - topKg, u)}) y vuelve a ${i.repMin} reps.", "$why Add weight (+${Fmt.weight(next - topKg, u)}) and go back to ${i.repMin} reps."),
                 targetWeightKg = next, targetReps = i.repMin, sources = listOf(Sources.ACSM, Sources.NSCA),
             )
         }
@@ -269,9 +276,9 @@ object Progression {
         if (failing || stalled) {
             val down = roundToStep(topKg * 0.9, step, up = false).coerceAtLeast(0.0)
             return Recommendation(
-                RecKind.DELOAD, "Baja a ${Fmt.weight(down, u)}",
-                if (failing) "Dos sesiones seguidas quedaste por debajo de ${i.repMin} reps. Baja ~10 % y reconstruye con buena técnica; revisa descanso y sueño."
-                else "Tu fuerza estimada no ha subido en 4 sesiones. Una descarga de ~10 % suele destrabar el progreso.",
+                RecKind.DELOAD, tr("Baja a ${Fmt.weight(down, u)}", "Drop to ${Fmt.weight(down, u)}"),
+                if (failing) tr("Dos sesiones seguidas quedaste por debajo de ${i.repMin} reps. Baja ~10 % y reconstruye con buena técnica; revisa descanso y sueño.", "Two sessions in a row you fell short of ${i.repMin} reps. Drop ~10% and rebuild with good form; check your rest and sleep.")
+                else tr("Tu fuerza estimada no ha subido en 4 sesiones. Una descarga de ~10 % suele destrabar el progreso.", "Your estimated strength hasn't gone up in 4 sessions. A ~10% deload usually gets progress moving again."),
                 targetWeightKg = down, targetReps = i.repMax, sources = listOf(Sources.ACSM),
             )
         }
@@ -279,8 +286,8 @@ object Progression {
         // 5) Progresión por repeticiones: mismo peso, +1 rep en la serie más floja.
         val target = (minReps + 1).coerceIn(i.repMin, i.repMax)
         return Recommendation(
-            RecKind.ADD_REPS, "Mantén ${Fmt.weight(topKg, u)}",
-            "Busca $target reps en todas las series (la vez pasada tu serie más floja fue de $minReps). Cuando todas lleguen a ${i.repMax}, Rupio te pedirá subir peso.",
+            RecKind.ADD_REPS, tr("Mantén ${Fmt.weight(topKg, u)}", "Stay at ${Fmt.weight(topKg, u)}"),
+            tr("Busca $target reps en todas las series (la vez pasada tu serie más floja fue de $minReps). Cuando todas lleguen a ${i.repMax}, Rupio te pedirá subir peso.", "Aim for $target reps on every set (last time your weakest set was $minReps). When they all reach ${i.repMax}, Rupio will ask you to add weight."),
             targetWeightKg = topKg, targetReps = target, sources = listOf(Sources.PLOTKIN, Sources.ROBINSON),
         )
     }
@@ -289,12 +296,12 @@ object Progression {
         val last = sessions.first().straight
         val minReps = last.minOf { it.reps ?: 0 }
         return if (minReps >= i.repMax) Recommendation(
-            RecKind.HARDER_VARIATION, "¡Dominado! Hazlo más difícil",
-            "Hiciste todas las series en ${i.repMax}+ reps. Pasa a una variante más difícil o añade peso para seguir progresando.",
+            RecKind.HARDER_VARIATION, tr("¡Dominado! Hazlo más difícil", "Mastered! Make it harder"),
+            tr("Hiciste todas las series en ${i.repMax}+ reps. Pasa a una variante más difícil o añade peso para seguir progresando.", "You did every set at ${i.repMax}+ reps. Move to a harder variation or add weight to keep progressing."),
             targetReps = i.repMax, sources = listOf(Sources.PLOTKIN, Sources.ROBINSON),
         ) else Recommendation(
-            RecKind.ADD_REPS, "Suma 1 repetición",
-            "Intenta ${minReps + 1} reps en cada serie. Aumentar repeticiones con la misma carga también es sobrecarga progresiva.",
+            RecKind.ADD_REPS, tr("Suma 1 repetición", "Add 1 rep"),
+            tr("Intenta ${minReps + 1} reps en cada serie. Aumentar repeticiones con la misma carga también es sobrecarga progresiva.", "Try ${minReps + 1} reps on every set. Adding reps with the same load is progressive overload too."),
             targetReps = minReps + 1, sources = listOf(Sources.PLOTKIN),
         )
     }
@@ -307,12 +314,12 @@ object Progression {
         return if (minReps >= i.repMax && assist > 0) {
             val next = (assist - step).coerceAtLeast(0.0)
             Recommendation(
-                RecKind.LESS_ASSISTANCE, if (next == 0.0) "¡Intenta sin asistencia!" else "Menos asistencia: ${Fmt.weight(next, i.unit)}",
-                "Llegaste a ${i.repMax} reps en todas las series. Reduce la ayuda y vuelve a ${i.repMin} reps.",
+                RecKind.LESS_ASSISTANCE, if (next == 0.0) tr("¡Intenta sin asistencia!", "Try it without assistance!") else tr("Menos asistencia: ${Fmt.weight(next, i.unit)}", "Less assistance: ${Fmt.weight(next, i.unit)}"),
+                tr("Llegaste a ${i.repMax} reps en todas las series. Reduce la ayuda y vuelve a ${i.repMin} reps.", "You reached ${i.repMax} reps on every set. Reduce the assistance and go back to ${i.repMin} reps."),
                 targetWeightKg = -next, targetReps = i.repMin, sources = listOf(Sources.ACSM),
             )
         } else Recommendation(
-            RecKind.ADD_REPS, "Suma repeticiones", "Misma asistencia, busca ${(minReps + 1).coerceAtMost(i.repMax)} reps por serie.",
+            RecKind.ADD_REPS, tr("Suma repeticiones", "Add reps"), tr("Misma asistencia, busca ${(minReps + 1).coerceAtMost(i.repMax)} reps por serie.", "Same assistance, aim for ${(minReps + 1).coerceAtMost(i.repMax)} reps per set."),
             targetWeightKg = -assist, targetReps = (minReps + 1).coerceAtMost(i.repMax), sources = listOf(Sources.PLOTKIN),
         )
     }
@@ -320,15 +327,16 @@ object Progression {
     private fun duration(sessions: List<SessionData>): Recommendation {
         val best = sessions.first().straight.maxOf { it.durationSec ?: 0 }
         val target = max(best + 5, (best * 1.1).roundToInt())
-        return Recommendation(RecKind.ADD_TIME, "Intenta ${Fmt.duration(target.toLong())}", "La última vez aguantaste ${Fmt.duration(best.toLong())}. Suma unos segundos manteniendo la técnica.", targetDurationSec = target)
+        return Recommendation(RecKind.ADD_TIME, tr("Intenta ${Fmt.duration(target.toLong())}", "Try ${Fmt.duration(target.toLong())}"), tr("La última vez aguantaste ${Fmt.duration(best.toLong())}. Suma unos segundos manteniendo la técnica.", "Last time you held ${Fmt.duration(best.toLong())}. Add a few seconds while keeping good form."), targetDurationSec = target)
     }
 }
 
 // ---------------------------------------------------------------------------------------------
 // Descansos: superseries y totales de la rutina
 // ---------------------------------------------------------------------------------------------
-enum class SupersetRestMode(val code: Int, val label: String) {
-    INDIVIDUAL(0, "Individual"), SHARED(1, "Compartido");
+enum class SupersetRestMode(val code: Int) {
+    INDIVIDUAL(0), SHARED(1);
+    val label: String get() = if (this == SHARED) tr("Compartido", "Shared") else "Individual"
     companion object { fun of(code: Int) = if (code == 1) SHARED else INDIVIDUAL }
 }
 
@@ -404,13 +412,13 @@ object RestPlanner {
 // ---------------------------------------------------------------------------------------------
 // Récords personales
 // ---------------------------------------------------------------------------------------------
-/** Etiqueta en español de cada forma de registro. */
+/** Etiqueta de cada forma de registro (en el idioma de la app). */
 val Tracking.label: String get() = when (this) {
-    Tracking.WEIGHT_REPS -> "Peso y repeticiones"
-    Tracking.REPS_ONLY -> "Solo repeticiones"
-    Tracking.WEIGHTED_BODYWEIGHT -> "Peso corporal (+ lastre opcional)"
-    Tracking.ASSISTED_BODYWEIGHT -> "Asistido (menos ayuda = más difícil)"
-    Tracking.DURATION -> "Tiempo"
+    Tracking.WEIGHT_REPS -> tr("Peso y repeticiones", "Weight and reps")
+    Tracking.REPS_ONLY -> tr("Solo repeticiones", "Reps only")
+    Tracking.WEIGHTED_BODYWEIGHT -> tr("Peso corporal (+ lastre opcional)", "Bodyweight (+ optional added weight)")
+    Tracking.ASSISTED_BODYWEIGHT -> tr("Asistido (menos ayuda = más difícil)", "Assisted (less help = harder)")
+    Tracking.DURATION -> tr("Tiempo", "Time")
 }
 
 /**
@@ -419,9 +427,13 @@ val Tracking.label: String get() = when (this) {
  */
 fun sameMusclePair(primaryMuscles: List<String>): Boolean = primaryMuscles.size != primaryMuscles.toSet().size
 
-enum class RecordKind(val code: Int, val label: String) {
-    MAX_WEIGHT(1, "Peso máximo"), E1RM(2, "1RM estimado"), SET_VOLUME(3, "Mejor serie (volumen)"),
-    MAX_REPS(4, "Más repeticiones"), MAX_DURATION(5, "Más tiempo");
+enum class RecordKind(val code: Int) {
+    MAX_WEIGHT(1), E1RM(2), SET_VOLUME(3), MAX_REPS(4), MAX_DURATION(5);
+    val label: String get() = when (this) {
+        MAX_WEIGHT -> tr("Peso máximo", "Heaviest weight"); E1RM -> tr("1RM estimado", "Estimated 1RM")
+        SET_VOLUME -> tr("Mejor serie (volumen)", "Best set (volume)"); MAX_REPS -> tr("Más repeticiones", "Most reps")
+        MAX_DURATION -> tr("Más tiempo", "Longest time")
+    }
     companion object { fun of(code: Int) = entries.first { it.code == code } }
 }
 
@@ -470,11 +482,11 @@ object SetNumbering {
         return types.take(index + 1).count { it != SetType.WARMUP.code }
     }
 
-    /** "serie 2" o "calentamiento" (o "calentamiento 2" si hay varios). */
-    fun spoken(types: List<Int>, index: Int): String = working(types, index)?.let { "serie $it" } ?: run {
+    /** "serie 2" o tr("calentamiento", "warm-up") (o "calentamiento 2" si hay varios). */
+    fun spoken(types: List<Int>, index: Int): String = working(types, index)?.let { tr("serie $it", "set $it") } ?: run {
         val warm = types.count { it == SetType.WARMUP.code }
         val k = types.take(index + 1).count { it == SetType.WARMUP.code }
-        if (warm > 1) "calentamiento $k" else "calentamiento"
+        if (warm > 1) tr("calentamiento $k", "warm-up $k") else tr("calentamiento", "warm-up")
     }
 
     /** Descanso después de un calentamiento: corto (no es una serie pesada). */

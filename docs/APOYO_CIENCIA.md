@@ -1,12 +1,15 @@
 # Apoya Rupio · qué dice la investigación y cómo se aplicó
 
-Rupio es gratis y sin anuncios. Quien quiera apoyarlo hace un **pago único** (de por vida, sin suscripción) en uno de tres niveles. Ninguno desbloquea funciones: todos quitan el mensaje de apoyo y solo cambian los adornos.
+Rupio es gratis y sin anuncios. Quien quiera apoyarlo hace un **pago único** (de por vida, sin suscripción) en uno de cuatro niveles. Ninguno desbloquea funciones: todos quitan el mensaje de apoyo y solo cambian los adornos.
 
-| Nivel | ID en Play Console | Precio sugerido | Recompensas |
+| Nivel | ID en Play Console | Precio sugerido | Recompensas (v2.0) |
 |---|---|---|---|
-| ☕ Un café | `rupio_apoyo_cafe` | $49 MXN | Quita el mensaje + insignia ☕ |
-| 💪 Un licuado (recomendado) | `rupio_apoyo_licuado` | $99 MXN | Lo anterior + insignia 💪 + 4 colores (turquesa, rosa, lila) |
-| 🏆 Fan de Rupio | `rupio_apoyo_fan` | $199 MXN | Lo anterior + insignia animada + dorado exclusivo + ícono dorado |
+| ☕ Un café · Bronce | `rupio_apoyo_cafe` | $49 MXN | Quita el mensaje + insignia y anillo bronce + color rosa |
+| 💪 Un licuado · Plata (recomendado) | `rupio_apoyo_licuado` | $99 MXN | Lo anterior + insignia y anillo plata + colores turquesa, lila y plata + ícono plateado |
+| 🏆 Fan de Rupio · Oro | `rupio_apoyo_fan` | $199 MXN | Lo anterior + insignia y anillo dorados animados + color e ícono dorados + confeti al terminar cada entreno |
+| 🌟 Mecenas · Aurora | `rupio_mecenas` | $499 MXN | Lo anterior + insignia y anillo Aurora + color e ícono Aurora + nombre en el muro de agradecimientos |
+
+En la v2.0 el rosa bajó de Licuado a Café y el muro se muestra en Inicio, Progreso, Perfil y Apoyar. Las razones y las fuentes están en `TEMA_IDIOMA_APOYO.md`.
 
 ## Cada decisión y su estudio
 

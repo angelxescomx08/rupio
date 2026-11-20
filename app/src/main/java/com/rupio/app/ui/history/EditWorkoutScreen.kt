@@ -1,5 +1,7 @@
 package com.rupio.app.ui.history
 
+
+import com.rupio.app.core.tr
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -47,7 +49,7 @@ import kotlinx.coroutines.launch
 
 /**
  * v1.7 (N1): corregir un entreno YA terminado (un peso mal escrito, una serie de más o de menos, el tipo de serie).
- * Los cambios se hacen en una copia y solo se guardan al tocar "Guardar": volumen, series, repeticiones y récords se
+ * Los cambios se hacen en una copia y solo se guardan al tocar tr("Guardar", "Save"): volumen, series, repeticiones y récords se
  * recalculan, el entreno se marca para subir y se sincroniza. También se abre desde "Revisar" → "Corregir" ([focusSet]).
  */
 class EditWorkoutVM(private val c: AppContainer, private val workoutId: String) : ViewModel() {
@@ -75,13 +77,13 @@ class EditWorkoutVM(private val c: AppContainer, private val workoutId: String) 
             name = c.workouts.get(workoutId)?.name.orEmpty()
             val exs = c.db.workouts().exercises(workoutId)
             val catalog = c.db.exercises().getMany(exs.map { it.exerciseId }.distinct()).associateBy { it.id }
-            exercises += exs.map { Ex(it.id, it.exerciseId, catalog[it.exerciseId]?.name ?: "Ejercicio", catalog[it.exerciseId]?.image0, Tracking.of(catalog[it.exerciseId]?.tracking ?: "weight_reps"),
+            exercises += exs.map { Ex(it.id, it.exerciseId, catalog[it.exerciseId]?.name ?: tr("Ejercicio", "Exercise"), catalog[it.exerciseId]?.image0, Tracking.of(catalog[it.exerciseId]?.tracking ?: "weight_reps"),
                 cardio = catalog[it.exerciseId]?.let { e -> Cardio.isCardio(e.primaryMuscle, e.tracking) } == true) }
             val sets = c.db.workouts().sets(workoutId).filter { it.completed }
             rows += sets.map { s ->
                 val ex = exercises.firstOrNull { it.weId == s.workoutExerciseId }
-                val tr = ex?.tracking ?: Tracking.WEIGHT_REPS
-                val w = shownWeight(s.weightKg, tr)
+                val trk = ex?.tracking ?: Tracking.WEIGHT_REPS
+                val w = shownWeight(s.weightKg, trk)
                 // v1.9: el cardio se corrige en minutos, como se anotó.
                 val time = if (ex?.cardio == true) Cardio.minutesText(s.durationSec) else s.durationSec?.toString().orEmpty()
                 Row("k${nextKey++}", s.id, s.workoutExerciseId, s.exerciseId, s.setType, w, s.reps?.toString().orEmpty(), time, s.rpe, s.weightKg, w)
@@ -91,8 +93,8 @@ class EditWorkoutVM(private val c: AppContainer, private val workoutId: String) 
         }
     }
 
-    private fun shownWeight(kg: Double?, tr: Tracking): String =
-        kg?.let { Fmt.num(unit.fromKg(if (tr == Tracking.ASSISTED_BODYWEIGHT) -it else it)).replace(",", ".") }.orEmpty()
+    private fun shownWeight(kg: Double?, trk: Tracking): String =
+        kg?.let { Fmt.num(unit.fromKg(if (trk == Tracking.ASSISTED_BODYWEIGHT) -it else it)).replace(",", ".") }.orEmpty()
 
     fun rowsOf(weId: String) = rows.filter { it.weId == weId }
 
@@ -118,9 +120,9 @@ class EditWorkoutVM(private val c: AppContainer, private val workoutId: String) 
 
     /** Lo que cada tipo de ejercicio necesita para contar como serie hecha. */
     private fun problem(r: Row): Boolean {
-        val tr = trackingOf(r)
+        val trk = trackingOf(r)
         val w = r.weight.toDoubleOrNull(); val reps = r.reps.toIntOrNull(); val sec = secondsOf(r)
-        return when (tr) {
+        return when (trk) {
             Tracking.DURATION -> sec == null || sec !in 1..86_400
             Tracking.WEIGHT_REPS -> w == null || w < 0 || reps == null || reps !in 1..1000
             else -> reps == null || reps !in 1..1000 || (r.weight.isNotBlank() && (w == null || w < 0))
@@ -133,15 +135,15 @@ class EditWorkoutVM(private val c: AppContainer, private val workoutId: String) 
         if (bad.isNotEmpty()) { invalid = bad; return false }
         saving = true
         val edited = rows.map { r ->
-            val tr = trackingOf(r)
+            val trk = trackingOf(r)
             val kg = when {
-                !tr.usesWeight -> null
+                !trk.usesWeight -> null
                 r.weight == r.origWeight && r.id != null -> r.origKg               // sin tocar: el peso exacto de siempre
-                else -> r.weight.toDoubleOrNull()?.let { v -> unit.toKg(v).let { if (tr == Tracking.ASSISTED_BODYWEIGHT) -it else it } }
+                else -> r.weight.toDoubleOrNull()?.let { v -> unit.toKg(v).let { if (trk == Tracking.ASSISTED_BODYWEIGHT) -it else it } }
             }
             EditedSet(r.id, r.weId, r.exerciseId, r.setType, kg,
-                if (tr == Tracking.DURATION) null else r.reps.toIntOrNull(),
-                if (tr == Tracking.DURATION) secondsOf(r) else null, r.rpe)
+                if (trk == Tracking.DURATION) null else r.reps.toIntOrNull(),
+                if (trk == Tracking.DURATION) secondsOf(r) else null, r.rpe)
         }
         val res = c.workouts.saveEdits(workoutId, edited)
         // Lo que el servidor había rechazado: corregido se vuelve a intentar; quitado deja de intentarse.
@@ -174,23 +176,23 @@ fun EditWorkoutScreen(nav: NavHostController, workoutId: String, focusSet: Strin
     }
 
     Scaffold(containerColor = RupioColors.Background, topBar = {
-        RupioTopBar("Editar entreno", onBack = { back() }, subtitle = vm.name.ifBlank { null }) {
+        RupioTopBar(tr("Editar entreno", "Edit workout"), onBack = { back() }, subtitle = vm.name.ifBlank { null }) {
             TextButton(enabled = vm.loaded && !vm.saving, onClick = {
                 scope.launch { if (vm.save()) nav.safePop() }
-            }) { Text("Guardar") }
+            }) { Text(tr("Guardar", "Save")) }
         }
     }) { pad ->
         if (!vm.loaded) return@Scaffold
         LazyColumn(Modifier.padding(pad), state = list, contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
-                Text("Corrige peso, repeticiones, tiempo o tipo de serie; agrega o borra series. Al guardar se recalculan el volumen y tus récords.",
+                Text(tr("Corrige peso, repeticiones, tiempo o tipo de serie; agrega o borra series. Al guardar se recalculan el volumen y tus récords.", "Fix weight, reps, time or set type; add or delete sets. Saving recalculates the volume and your PRs."),
                     style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
                 if (vm.invalid.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
                     Surface(color = RupioColors.Danger.copy(alpha = 0.12f), shape = RoundedCornerShape(12.dp)) {
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Rounded.ErrorOutline, null, tint = RupioColors.Danger); Spacer(Modifier.width(8.dp))
-                            Text("Completa las series marcadas en rojo o bórralas.", style = MaterialTheme.typography.bodyMedium)
+                            Text(tr("Completa las series marcadas en rojo o bórralas.", "Complete the sets marked in red or delete them."), style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
@@ -198,7 +200,7 @@ fun EditWorkoutScreen(nav: NavHostController, workoutId: String, focusSet: Strin
             items(vm.exercises, key = { it.weId }) { ex -> ExerciseEditor(ex, vm, focusSet) }
         }
     }
-    if (discard) ConfirmDialog("¿Descartar los cambios?", "El entreno se queda como estaba.", "Descartar", { discard = false }, danger = true) {
+    if (discard) ConfirmDialog(tr("¿Descartar los cambios?", "Discard the changes?"), tr("El entreno se queda como estaba.", "The workout stays as it was."), tr("Descartar", "Discard"), { discard = false }, danger = true) {
         discard = false; nav.safePop()
     }
 }
@@ -206,7 +208,7 @@ fun EditWorkoutScreen(nav: NavHostController, workoutId: String, focusSet: Strin
 @Composable
 private fun ExerciseEditor(ex: EditWorkoutVM.Ex, vm: EditWorkoutVM, focusSet: String?) {
     val unit = vm.unit
-    val tr = ex.tracking
+    val trk = ex.tracking
     val rows = vm.rowsOf(ex.weId)
     Surface(shape = RoundedCornerShape(16.dp), color = RupioColors.Surface, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
@@ -218,18 +220,18 @@ private fun ExerciseEditor(ex: EditWorkoutVM.Ex, vm: EditWorkoutVM, focusSet: St
             Spacer(Modifier.height(8.dp))
             val st = MaterialTheme.typography.labelSmall
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("SERIE", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_TYPE), textAlign = TextAlign.Center)
-                if (tr.usesWeight) Text(when (tr) { Tracking.ASSISTED_BODYWEIGHT -> "AYUDA"; Tracking.WEIGHTED_BODYWEIGHT -> "+" + unit.label.uppercase(); else -> unit.label.uppercase() },
+                Text(tr("SERIE", "SET"), style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_TYPE), textAlign = TextAlign.Center)
+                if (trk.usesWeight) Text(when (trk) { Tracking.ASSISTED_BODYWEIGHT -> tr("AYUDA", "ASSIST"); Tracking.WEIGHTED_BODYWEIGHT -> "+" + unit.label.uppercase(); else -> unit.label.uppercase() },
                     style = st, color = RupioColors.TextFaint, modifier = Modifier.width(W_W), textAlign = TextAlign.Center)
-                Text(if (ex.cardio) "MIN" else if (tr == Tracking.DURATION) "SEGUNDOS" else "REPS", style = st, color = RupioColors.TextFaint,
-                    modifier = Modifier.width(if (tr == Tracking.DURATION) W_W else W_R), textAlign = TextAlign.Center)
+                Text(if (ex.cardio) "MIN" else if (trk == Tracking.DURATION) tr("SEGUNDOS", "SECONDS") else "REPS", style = st, color = RupioColors.TextFaint,
+                    modifier = Modifier.width(if (trk == Tracking.DURATION) W_W else W_R), textAlign = TextAlign.Center)
                 Spacer(Modifier.weight(1f))
             }
-            if (rows.isEmpty()) Text("Sin series: al guardar se quita este ejercicio del entreno.", style = MaterialTheme.typography.bodySmall,
+            if (rows.isEmpty()) Text(tr("Sin series: al guardar se quita este ejercicio del entreno.", "No sets: saving removes this exercise from the workout."), style = MaterialTheme.typography.bodySmall,
                 color = RupioColors.Warning, modifier = Modifier.padding(vertical = 6.dp))
             rows.forEachIndexed { i, r -> EditSetRow(ex, r, i, rows, vm, highlight = r.id != null && r.id == focusSet) }
             TextButton(onClick = { vm.add(ex.weId) }) {
-                Icon(Icons.Rounded.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Agregar serie")
+                Icon(Icons.Rounded.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text(tr("Agregar serie", "Add set"))
             }
         }
     }
@@ -238,7 +240,7 @@ private fun ExerciseEditor(ex: EditWorkoutVM.Ex, vm: EditWorkoutVM, focusSet: St
 /** Una serie en el editor: tipo (toca para cambiarlo), peso, reps o segundos y borrar. Mismas celdas que al entrenar. */
 @Composable
 private fun EditSetRow(ex: EditWorkoutVM.Ex, r: EditWorkoutVM.Row, index: Int, all: List<EditWorkoutVM.Row>, vm: EditWorkoutVM, highlight: Boolean) {
-    val tr = ex.tracking
+    val trk = ex.tracking
     val unit = vm.unit
     val type = SetType.of(r.setType)
     val bad = r.key in vm.invalid
@@ -252,33 +254,34 @@ private fun EditSetRow(ex: EditWorkoutVM.Ex, r: EditWorkoutVM.Row, index: Int, a
     ) {
         Box(
             Modifier.width(W_TYPE).heightIn(min = 50.dp).clip(RoundedCornerShape(8.dp)).background(RupioColors.Surface2)
-                .clickable(onClickLabel = "cambiar el tipo de serie", role = Role.Button) { vm.cycleType(r.key) }
-                .clearAndSetSemantics { contentDescription = "${spoken.replaceFirstChar { it.uppercase() }} de ${ex.name}, ${type.label.lowercase()}. Toca para cambiar el tipo"; role = Role.Button },
+                .clickable(onClickLabel = tr("cambiar el tipo de serie", "change the set type"), role = Role.Button) { vm.cycleType(r.key) }
+                .clearAndSetSemantics { contentDescription = tr("${spoken.replaceFirstChar { it.uppercase() }} de ${ex.name}, ${type.label.lowercase()}. Toca para cambiar el tipo",
+                        "${spoken.replaceFirstChar { it.uppercase() }} of ${ex.name}, ${type.label.lowercase()}. Tap to change the type"); role = Role.Button },
             contentAlignment = Alignment.Center,
         ) {
             Text(if (type == SetType.NORMAL) "$working" else type.short, style = MaterialTheme.typography.titleSmall.merge(Tabular),
                 color = when (type) { SetType.WARMUP -> RupioColors.Warning; SetType.DROP -> RupioColors.Rest; SetType.FAILURE -> RupioColors.Danger; else -> RupioColors.Text })
         }
-        if (tr.usesWeight) {
-            val what = when (tr) { Tracking.WEIGHTED_BODYWEIGHT -> "Lastre"; Tracking.ASSISTED_BODYWEIGHT -> "Ayuda"; else -> "Peso" }
+        if (trk.usesWeight) {
+            val what = when (trk) { Tracking.WEIGHTED_BODYWEIGHT -> tr("Lastre", "Added weight"); Tracking.ASSISTED_BODYWEIGHT -> tr("Ayuda", "Assistance"); else -> tr("Peso", "Weight") }
             // v1.8: la otra unidad dentro de la misma cajita (como al entrenar).
             val other = r.weight.toDoubleOrNull()?.takeIf { it != 0.0 }?.let { com.rupio.app.core.Fmt.weight(unit.toKg(kotlin.math.abs(it)), unit.other) }
             NumberCell(r.weight, unit.label, { t -> vm.update(r.key) { it.copy(weight = t.replace("-", "")) } },
-                Modifier.width(W_W), label = "$what en ${if (unit == WeightUnit.LB) "libras" else "kilos"}, $spoken, ${ex.name}", sub = other, minHeight = 50.dp)
+                Modifier.width(W_W), label = tr("$what en ${if (unit == WeightUnit.LB) "libras" else "kilos"}, $spoken, ${ex.name}", "$what in ${if (unit == WeightUnit.LB) "pounds" else "kilos"}, $spoken, ${ex.name}"), sub = other, minHeight = 50.dp)
         }
         if (ex.cardio) {
             NumberCell(r.seconds, "min", { t -> vm.update(r.key) { it.copy(seconds = t.replace("-", "")) } }, Modifier.width(W_W),
-                decimal = true, label = "Minutos, $spoken, ${ex.name}", minHeight = 50.dp)
-        } else if (tr == Tracking.DURATION) {
-            NumberCell(r.seconds, "seg", { t -> vm.update(r.key) { it.copy(seconds = t.filter(Char::isDigit)) } }, Modifier.width(W_W),
-                decimal = false, label = "Segundos, $spoken, ${ex.name}", minHeight = 50.dp)
+                decimal = true, label = tr("Minutos, $spoken, ${ex.name}", "Minutes, $spoken, ${ex.name}"), minHeight = 50.dp)
+        } else if (trk == Tracking.DURATION) {
+            NumberCell(r.seconds, tr("seg", "sec"), { t -> vm.update(r.key) { it.copy(seconds = t.filter(Char::isDigit)) } }, Modifier.width(W_W),
+                decimal = false, label = tr("Segundos, $spoken, ${ex.name}", "Seconds, $spoken, ${ex.name}"), minHeight = 50.dp)
         } else {
             NumberCell(r.reps, "reps", { t -> vm.update(r.key) { it.copy(reps = t.filter(Char::isDigit)) } }, Modifier.width(W_R),
-                decimal = false, label = "Repeticiones, $spoken, ${ex.name}", minHeight = 50.dp)
+                decimal = false, label = tr("Repeticiones, $spoken, ${ex.name}", "Reps, $spoken, ${ex.name}"), minHeight = 50.dp)
         }
         Spacer(Modifier.weight(1f))
         IconButton(onClick = { vm.remove(r.key) }, modifier = Modifier.size(48.dp)) {
-            Icon(Icons.Rounded.DeleteOutline, "Borrar $spoken de ${ex.name}", tint = RupioColors.TextDim)
+            Icon(Icons.Rounded.DeleteOutline, tr("Borrar $spoken de ${ex.name}", "Delete $spoken of ${ex.name}"), tint = RupioColors.TextDim)
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.rupio.app.ui.history
 
+
+import com.rupio.app.core.tr
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -131,11 +133,11 @@ fun HistoryScreen(nav: NavHostController) {
     Column(Modifier.fillMaxSize()) {
         // v1.9: la zona horaria solo se menciona si algún entreno se hizo en otra (antes "Horas en tu zona: GMT" salía siempre).
         val otherZone = vm.items.any { Dates.isOtherZone(it.startedAt, zone, it.timeZone) }
-        RupioTopBar("Historial", onBack = null, subtitle = if (otherZone && !searching) "Horas en tu zona: ${zone.id}" else null) {
+        RupioTopBar(tr("Historial", "History"), onBack = null, subtitle = if (otherZone && !searching) tr("Horas en tu zona: ${zone.id}", "Times in your zone: ${zone.id}") else null) {
             IconButton(onClick = { searching = !searching; if (!searching) text = "" }) {
-                Icon(if (searching) Icons.Rounded.SearchOff else Icons.Rounded.Search, if (searching) "Cerrar búsqueda" else "Buscar por ejercicio")
+                Icon(if (searching) Icons.Rounded.SearchOff else Icons.Rounded.Search, if (searching) tr("Cerrar búsqueda", "Close search") else tr("Buscar por ejercicio", "Search by exercise"))
             }
-            IconButton(onClick = { picking = true }) { Icon(Icons.Rounded.CalendarMonth, "Ir a un mes") }
+            IconButton(onClick = { picking = true }) { Icon(Icons.Rounded.CalendarMonth, tr("Ir a un mes", "Go to a month")) }
             SyncStatusIcon()
         }
         // v1.9: al tocar la lupa el campo ya tiene el foco y abre el teclado (antes lo que escribías se perdía).
@@ -143,19 +145,19 @@ fun HistoryScreen(nav: NavHostController) {
         LaunchedEffect(searching) { if (searching && text.isEmpty()) runCatching { focus.requestFocus() } }
         if (searching) OutlinedTextField(text, { text = it }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
             .focusRequester(focus),
-            placeholder = { Text("Buscar ejercicio o entreno (p. ej. sentadilla)") }, singleLine = true, leadingIcon = { Icon(Icons.Rounded.Search, null) },
-            trailingIcon = { if (text.isNotEmpty()) IconButton(onClick = { text = "" }) { Icon(Icons.Rounded.Close, "Borrar búsqueda") } },
+            placeholder = { Text(tr("Buscar ejercicio o entreno (p. ej. sentadilla)", "Search exercise or workout (e.g. squat)")) }, singleLine = true, leadingIcon = { Icon(Icons.Rounded.Search, null) },
+            trailingIcon = { if (text.isNotEmpty()) IconButton(onClick = { text = "" }) { Icon(Icons.Rounded.Close, tr("Borrar búsqueda", "Clear search")) } },
             shape = RoundedCornerShape(14.dp))
         vm.fromMonth?.let { m ->
             FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                InputChip(selected = true, onClick = { vm.jumpTo(null) }, label = { Text("Desde " + monthName(m)) },
-                    trailingIcon = { Icon(Icons.Rounded.Close, "Volver a lo más reciente", Modifier.size(18.dp)) })
+                InputChip(selected = true, onClick = { vm.jumpTo(null) }, label = { Text(tr("Desde ", "From ") + monthName(m)) },
+                    trailingIcon = { Icon(Icons.Rounded.Close, tr("Volver a lo más reciente", "Back to most recent"), Modifier.size(18.dp)) })
             }
         }
         LazyColumn(state = list, contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (vm.loaded && vm.items.isEmpty()) item {
-                if (vm.query.isNotBlank()) EmptyState(Icons.Rounded.SearchOff, "Sin resultados", "Ningún entreno tiene «${vm.query}»" + (vm.fromMonth?.let { " antes de " + monthName(it.plusMonths(1)) } ?: "") + ".")
-                else EmptyState(Icons.Rounded.History, "Aún no hay entrenamientos", "Cuando termines tu primer entrenamiento aparecerá aquí con tu volumen, récords y series.")
+                if (vm.query.isNotBlank()) EmptyState(Icons.Rounded.SearchOff, tr("Sin resultados", "No results"), tr("Ningún entreno tiene «${vm.query}»", "No workout has “${vm.query}”") + (vm.fromMonth?.let { tr(" antes de ", " before ") + monthName(it.plusMonths(1)) } ?: "") + ".")
+                else EmptyState(Icons.Rounded.History, tr("Aún no hay entrenamientos", "No workouts yet"), tr("Cuando termines tu primer entrenamiento aparecerá aquí con tu volumen, récords y series.", "When you finish your first workout, it'll show up here with your volume, PRs and sets."))
             }
             byMonth.forEach { (month, ws) ->
                 item(key = "m$month") {
@@ -163,14 +165,14 @@ fun HistoryScreen(nav: NavHostController) {
                     FlowRow(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.Bottom) {
                         Text(month.month.getDisplayName(TextStyle.FULL_STANDALONE, Fmt.locale).replaceFirstChar { it.uppercase() } + " " + month.year,
                             style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() }.padding(end = 8.dp))
-                        Text("${Fmt.plural(ws.size, "entreno", "entrenos")} · ${Fmt.volume(ws.sumOf { it.totalVolumeKg }, unit)}", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim,
+                        Text("${Fmt.plural(ws.size, tr("entreno", "workout"), tr("entrenos", "workouts"))} · ${Fmt.volume(ws.sumOf { it.totalVolumeKg }, unit)}", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim,
                             modifier = Modifier.align(Alignment.Bottom))
                     }
                 }
                 items(ws, key = { it.id }) { w -> WorkoutCard(w, vm.summaries[w.id].orEmpty(), unit, zone) { nav.navigate(Routes.detail(w.id)) } }
             }
             if (!vm.end && vm.items.isNotEmpty()) item {
-                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { RupioSpinner(size = 24.dp, label = "Cargando más entrenamientos") }
+                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) { RupioSpinner(size = 24.dp, label = tr("Cargando más entrenamientos", "Loading more workouts")) }
             }
         }
     }
@@ -180,16 +182,16 @@ fun HistoryScreen(nav: NavHostController) {
         LaunchedEffect(Unit) { months = vm.months() }
         ModalBottomSheet(onDismissRequest = { picking = false }, containerColor = RupioColors.Surface) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
-                Text("Ir a un mes", style = MaterialTheme.typography.titleMedium)
+                Text(tr("Ir a un mes", "Go to a month"), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
                 val ms = months
                 if (ms == null) RupioSpinner(size = 24.dp)
-                else if (ms.isEmpty()) Text("Aún no hay entrenamientos.", color = RupioColors.TextDim)
+                else if (ms.isEmpty()) Text(tr("Aún no hay entrenamientos.", "No workouts yet."), color = RupioColors.TextDim)
                 else LazyColumn(Modifier.heightIn(max = 460.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    item { AssistChip(onClick = { vm.jumpTo(null); picking = false; scope.launch { list.scrollToItem(0) } }, label = { Text("Lo más reciente") }) }
+                    item { AssistChip(onClick = { vm.jumpTo(null); picking = false; scope.launch { list.scrollToItem(0) } }, label = { Text(tr("Lo más reciente", "Most recent")) }) }
                     ms.groupBy { it.ym.take(4) }.forEach { (year, inYear) ->
                         item(key = year) {
-                            Text("$year · ${Fmt.plural(inYear.sumOf { it.n }, "entreno", "entrenos")}", style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
+                            Text("$year · ${Fmt.plural(inYear.sumOf { it.n }, tr("entreno", "workout"), tr("entrenos", "workouts"))}", style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
                             Spacer(Modifier.height(6.dp))
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 inYear.forEach { mc ->
@@ -227,7 +229,7 @@ private fun WorkoutCard(w: WorkoutEntity, ex: List<WorkoutExerciseSummary>, unit
                 Metric(Icons.Rounded.Schedule, Fmt.durationHuman((w.durationSec ?: 0).toLong()))
                 // v1.9: sin "0 lb" en un entreno de cardio o de peso corporal.
                 if (w.totalVolumeKg > 0) Metric(Icons.Rounded.FitnessCenter, Fmt.volume(w.totalVolumeKg, unit), Fmt.volume(w.totalVolumeKg, unit.other))
-                Metric(Icons.Rounded.Repeat, Fmt.plural(w.totalSets, "serie", "series"))
+                Metric(Icons.Rounded.Repeat, Fmt.plural(w.totalSets, tr("serie", "set"), tr("series", "sets")))
             }
             if (ex.isNotEmpty()) {
                 Spacer(Modifier.height(10.dp))
@@ -238,7 +240,7 @@ private fun WorkoutCard(w: WorkoutEntity, ex: List<WorkoutExerciseSummary>, unit
                         Text("${s.sets} × ${s.name}", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
-                if (ex.size > 6) Text("y ${ex.size - 6} más", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
+                if (ex.size > 6) Text(tr("y ${ex.size - 6} más", "and ${ex.size - 6} more"), style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
             }
         }
     }

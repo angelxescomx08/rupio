@@ -1,5 +1,7 @@
 package com.rupio.app.ui.routine
 
+
+import com.rupio.app.core.tr
 import com.rupio.app.safePop
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -119,7 +121,7 @@ class RoutineEditorVM(private val c: AppContainer, private val routineId: String
 
     fun canMove(key: String, delta: Int) = ReorderOps.canMove(items.toList(), key, delta, { it.key }, { it.supersetId })
 
-    /** v1.9: el orden que dejaste en "Ordenar ejercicios" (si partiera una superserie, no se aplica). */
+    /** v1.9: el orden que dejaste en tr("Ordenar ejercicios", "Reorder exercises") (si partiera una superserie, no se aplica). */
     fun reorder(keys: List<String>) {
         ReorderOps.applyOrder(items.toList(), keys, { it.key }, { it.supersetId })?.let { setOrder(it) }
     }
@@ -178,8 +180,8 @@ class RoutineEditorVM(private val c: AppContainer, private val routineId: String
         if (!canSave) return false
         val uid = c.auth.currentUserId ?: return false
         val t = System.currentTimeMillis()
-        val r = existing?.copy(name = name.trim().ifBlank { "Mi rutina" }, notes = notes.ifBlank { null })
-            ?: RoutineEntity(Ids.uuidV7(t), uid, name.trim().ifBlank { "Mi rutina" }, notes.ifBlank { null }, c.routines.count(), t, t)
+        val r = existing?.copy(name = name.trim().ifBlank { tr("Mi rutina", "My routine") }, notes = notes.ifBlank { null })
+            ?: RoutineEntity(Ids.uuidV7(t), uid, name.trim().ifBlank { tr("Mi rutina", "My routine") }, notes.ifBlank { null }, c.routines.count(), t, t)
         c.routines.save(r, items.map {
             // Si no escribiste ningún objetivo ni tipo, no se guarda plan (solo el número de series).
             val meaningful = it.plan.any { p -> p.w != null || p.r != null || p.d != null || p.t != 0 }
@@ -213,7 +215,7 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
     var restFor by remember { mutableStateOf<String?>(null) }
     var repsFor by remember { mutableStateOf<String?>(null) }
     var confirmExit by remember { mutableStateOf(false) }
-    // v1.9: pantalla "Ordenar ejercicios" (null = cerrada; "" = abierta sin resaltar ninguno).
+    // v1.9: pantalla tr("Ordenar ejercicios", "Reorder exercises") (null = cerrada; "" = abierta sin resaltar ninguno).
     var reorderFocus by remember { mutableStateOf<String?>(null) }
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     fun openReorder(key: String?) {
@@ -232,9 +234,9 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
     var needExercise by remember { mutableStateOf(false) }
     LaunchedEffect(vm.items.size) { if (vm.items.isNotEmpty()) needExercise = false }
     Column(Modifier.fillMaxSize()) {
-        RupioTopBar(if (vm.isNew) "Nueva rutina" else "Editar rutina", onBack = { exit() }) {
+        RupioTopBar(if (vm.isNew) tr("Nueva rutina", "New routine") else tr("Editar rutina", "Edit routine"), onBack = { exit() }) {
             Button(onClick = { if (!vm.canSave) needExercise = true else scope.launch { if (vm.save()) nav.safePop() } },
-                shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(end = 8.dp)) { Text("Guardar") }
+                shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(end = 8.dp)) { Text(tr("Guardar", "Save")) }
         }
         LazyColumn(
             Modifier.weight(1f),
@@ -242,50 +244,50 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item {
-                OutlinedTextField(vm.name, { vm.name = it; vm.touch() }, label = { Text("Nombre de la rutina") }, placeholder = { Text("Ej. Pierna, Empuje, Cuerpo completo") },
+                OutlinedTextField(vm.name, { vm.name = it; vm.touch() }, label = { Text(tr("Nombre de la rutina", "Routine name")) }, placeholder = { Text(tr("Ej. Pierna, Empuje, Cuerpo completo", "E.g. Legs, Push, Full body")) },
                     singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp))
             }
             item {
-                OutlinedTextField(vm.notes, { vm.notes = it; vm.touch() }, label = { Text("Notas (opcional)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), maxLines = 3)
+                OutlinedTextField(vm.notes, { vm.notes = it; vm.touch() }, label = { Text(tr("Notas (opcional)", "Notes (optional)")) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), maxLines = 3)
             }
             item {
                 SectionCard(padding = 14.dp) {
                     TileRow {
-                        Tile("Ejercicios", "${vm.items.size}")
-                        Tile("Series", "${summary.totalSets}")
-                        Tile("Duración", "≈ " + Fmt.durationHuman(summary.estimatedSec.toLong()))
+                        Tile(tr("Ejercicios", "Exercises"), "${vm.items.size}")
+                        Tile(tr("Series", "Sets"), "${summary.totalSets}")
+                        Tile(tr("Duración", "Duration"), "≈ " + Fmt.durationHuman(summary.estimatedSec.toLong()))
                     }
                     Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.Timer, null, tint = RupioColors.Rest, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Descanso total: ${Fmt.durationHuman(summary.totalRestSec.toLong())}", color = RupioColors.Rest, style = MaterialTheme.typography.titleSmall)
+                        Text(tr("Descanso total: ", "Total rest: ") + Fmt.durationHuman(summary.totalRestSec.toLong()), color = RupioColors.Rest, style = MaterialTheme.typography.titleSmall)
                     }
-                    Text("Suma de todos los descansos entre series (las superseries con descanso compartido cuentan uno por ronda).",
+                    Text(tr("Suma de todos los descansos entre series (las superseries con descanso compartido cuentan uno por ronda).", "Sum of all rests between sets (supersets with shared rest count one per round)."),
                         style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
                 }
             }
             if (vm.items.size >= 2) item {
-                // v1.9: "Ordenar" junto a "Crear superserie"; con letra grande los botones bajan de renglón.
+                // v1.9: tr("Ordenar", "Reorder") junto a tr("Crear superserie", "Create superset"); con letra grande los botones bajan de renglón.
                 @OptIn(ExperimentalLayoutApi::class)
                 FlowRow(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(if (selecting) "Toca los ejercicios que quieres unir" else "Ejercicios", style = MaterialTheme.typography.titleMedium,
+                    Text(if (selecting) tr("Toca los ejercicios que quieres unir", "Tap the exercises you want to combine") else tr("Ejercicios", "Exercises"), style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(end = 4.dp))
                     if (!selecting) FilterChip(
                         selected = false, onClick = { openReorder(null) },
-                        label = { Text("Ordenar") },
+                        label = { Text(tr("Ordenar", "Reorder")) },
                         leadingIcon = { Icon(Icons.Rounded.SwapVert, null, modifier = Modifier.size(18.dp)) },
                     )
                     FilterChip(
                         selected = selecting, onClick = { selecting = !selecting; selected.clear() },
-                        label = { Text(if (selecting) "Cancelar" else "Crear superserie") },
+                        label = { Text(if (selecting) tr("Cancelar", "Cancel") else tr("Crear superserie", "Create superset")) },
                         leadingIcon = { Icon(Icons.Rounded.Link, null, modifier = Modifier.size(18.dp)) },
                     )
                 }
             }
             if (vm.loaded && vm.items.isEmpty()) item {
-                EmptyState(Icons.Rounded.FitnessCenter, "Agrega ejercicios", "Busca por nombre o músculo. Los del catálogo traen imágenes y un botón para buscar videos de cómo hacerlos.")
-                if (needExercise) Text("Agrega al menos un ejercicio para guardar la rutina.", color = RupioColors.Danger, style = MaterialTheme.typography.bodyMedium,
+                EmptyState(Icons.Rounded.FitnessCenter, tr("Agrega ejercicios", "Add exercises"), tr("Busca por nombre o músculo. Los del catálogo traen imágenes y un botón para buscar videos de cómo hacerlos.", "Search by name or muscle. Catalog exercises include images and a button to find videos on how to do them."))
+                if (needExercise) Text(tr("Agrega al menos un ejercicio para guardar la rutina.", "Add at least one exercise to save the routine."), color = RupioColors.Danger, style = MaterialTheme.typography.bodyMedium,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth()
                         .semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
             }
@@ -317,14 +319,14 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
                 OutlinedButton(
                     onClick = { nav.navigate(Routes.picker("routine", routineId)) },
                     modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp),
-                ) { Icon(Icons.Rounded.Add, null); Spacer(Modifier.width(6.dp)); Text("Agregar ejercicios") }
+                ) { Icon(Icons.Rounded.Add, null); Spacer(Modifier.width(6.dp)); Text(tr("Agregar ejercicios", "Add exercises")) }
             }
         }
         if (selecting) Surface(color = RupioColors.Surface, tonalElevation = 4.dp) {
             Button(
                 onClick = { ssDialog = selected.toList() }, enabled = selected.size >= 2,
                 modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp).height(52.dp), shape = RoundedCornerShape(14.dp),
-            ) { Icon(Icons.Rounded.Link, null); Spacer(Modifier.width(6.dp)); Text(if (selected.size < 2) "Elige al menos 2" else "Unir ${selected.size} en superserie") }
+            ) { Icon(Icons.Rounded.Link, null); Spacer(Modifier.width(6.dp)); Text(if (selected.size < 2) tr("Elige al menos 2", "Pick at least 2") else tr("Unir ${selected.size} en superserie", "Superset ${selected.size} exercises")) }
         }
     }
 
@@ -333,21 +335,21 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
         val muscles = keys.mapNotNull { k -> vm.items.firstOrNull { it.key == k }?.let { byId[it.exerciseId]?.primaryMuscle } }
         // v1.9: el descanso que ya tenía el ejercicio (antes volvía a 90 s sin avisar).
         SupersetRestDialog(
-            "Nueva superserie", if (first?.supersetId != null) SupersetRestMode.of(first.ssMode) else SupersetRestMode.SHARED,
+            tr("Nueva superserie", "New superset"), if (first?.supersetId != null) SupersetRestMode.of(first.ssMode) else SupersetRestMode.SHARED,
             first?.ssRest ?: first?.restSec ?: 90, sameMusclePair(muscles), { ssDialog = null },
         ) { mode, rest -> vm.createSuperset(keys, mode, rest); ssDialog = null; selecting = false; selected.clear() }
     }
     ssEdit?.let { ss ->
         val first = vm.items.firstOrNull { it.supersetId == ss }
         val muscles = vm.items.filter { it.supersetId == ss }.mapNotNull { byId[it.exerciseId]?.primaryMuscle }
-        SupersetRestDialog("Descanso de la superserie", SupersetRestMode.of(first?.ssMode ?: 1), first?.ssRest ?: 90, sameMusclePair(muscles), { ssEdit = null }) { mode, rest ->
+        SupersetRestDialog(tr("Descanso de la superserie", "Superset rest"), SupersetRestMode.of(first?.ssMode ?: 1), first?.ssRest ?: 90, sameMusclePair(muscles), { ssEdit = null }) { mode, rest ->
             vm.updateSuperset(ss, mode, rest); ssEdit = null
         }
     }
     restFor?.let { key ->
         val it = vm.items.firstOrNull { e -> e.key == key }
-        if (it != null) RestPickerDialog("Descanso después de cada serie", it.restSec, { restFor = null }, { s -> vm.update(key) { e -> e.copy(restSec = s) }; restFor = null }) {
-            Text("Recomendado: 1–2 min en aislamiento, 2–3 min en ejercicios pesados (más de 60–90 s ayuda a mantener el rendimiento).",
+        if (it != null) RestPickerDialog(tr("Descanso después de cada serie", "Rest after each set"), it.restSec, { restFor = null }, { s -> vm.update(key) { e -> e.copy(restSec = s) }; restFor = null }) {
+            Text(tr("Recomendado: 1–2 min en aislamiento, 2–3 min en ejercicios pesados (más de 60–90 s ayuda a mantener el rendimiento).", "Recommended: 1–2 min for isolation, 2–3 min for heavy lifts (more than 60–90 s helps keep performance up)."),
                 style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint, modifier = Modifier.padding(top = 10.dp))
         }
     }
@@ -357,12 +359,12 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
     }
     reorderFocus?.let { focus ->
         ReorderDialog(
-            "Ordenar ejercicios", "Arrastra con ≡ o mantén presionado un ejercicio. Las superseries se mueven juntas.",
-            vm.items.map { ReorderEntry(it.key, byId[it.exerciseId]?.name ?: "Ejercicio", reorderSubtitle(it, byId[it.exerciseId]), byId[it.exerciseId]?.image0, it.supersetId) },
+            tr("Ordenar ejercicios", "Reorder exercises"), tr("Arrastra con ≡ o mantén presionado un ejercicio. Las superseries se mueven juntas.", "Drag with ≡ or press and hold an exercise. Supersets move together."),
+            vm.items.map { ReorderEntry(it.key, byId[it.exerciseId]?.name ?: tr("Ejercicio", "Exercise"), reorderSubtitle(it, byId[it.exerciseId]), byId[it.exerciseId]?.image0, it.supersetId) },
             onDismiss = { reorderFocus = null }, focusKey = focus.ifEmpty { null },
         ) { keys -> vm.reorder(keys); reorderFocus = null }
     }
-    if (confirmExit) ConfirmDialog("¿Salir sin guardar?", "Perderás los cambios de esta rutina.", "Salir", { confirmExit = false }, danger = true) {
+    if (confirmExit) ConfirmDialog(tr("¿Salir sin guardar?", "Leave without saving?"), tr("Perderás los cambios de esta rutina.", "You'll lose the changes to this routine."), tr("Salir", "Leave"), { confirmExit = false }, danger = true) {
         confirmExit = false; nav.safePop()
     }
 }
@@ -384,31 +386,31 @@ private fun ItemCard(
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (selecting) { Checkbox(isSelected, null); Spacer(Modifier.width(4.dp)) }
-                Box(Modifier.clickable(onClickLabel = "ver técnica", onClick = onOpen)
-                    .clearAndSetSemantics { contentDescription = "Ver técnica de ${ex?.name ?: "el ejercicio"}"; role = androidx.compose.ui.semantics.Role.Button }) { ExerciseThumb(ex?.image0, 44.dp) }
+                Box(Modifier.clickable(onClickLabel = tr("ver técnica", "see form"), onClick = onOpen)
+                    .clearAndSetSemantics { contentDescription = tr("Ver técnica de ${ex?.name ?: "el ejercicio"}", "See form for ${ex?.name ?: "the exercise"}"); role = androidx.compose.ui.semantics.Role.Button }) { ExerciseThumb(ex?.image0, 44.dp) }
                 Spacer(Modifier.width(10.dp))
-                // v1.9: mantener presionado el nombre abre "Ordenar ejercicios" con este resaltado.
+                // v1.9: mantener presionado el nombre abre tr("Ordenar ejercicios", "Reorder exercises") con este resaltado.
                 Column(Modifier.weight(1f).then(if (selecting) Modifier else Modifier.combinedClickable(
-                    onClickLabel = "ver técnica", onLongClickLabel = "ordenar ejercicios", onLongClick = onReorder, onClick = onOpen))) {
+                    onClickLabel = tr("ver técnica", "see form"), onLongClickLabel = tr("ordenar ejercicios", "reorder exercises"), onLongClick = onReorder, onClick = onOpen))) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (ssIdx != null && member != null) { SupersetTag(ssIdx, member); Spacer(Modifier.width(6.dp)) }
-                        Text(ex?.name ?: "Ejercicio", style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(ex?.name ?: tr("Ejercicio", "Exercise"), style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
                     Text(Muscles.label(ex?.primaryMuscle ?: "") + " · " + tracking.label, style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim, maxLines = 1)
                 }
                 if (!selecting) Box {
-                    IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, "Opciones") }
+                    IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, tr("Opciones", "Options")) }
                     DropdownMenu(menu, { menu = false }) {
-                        DropdownMenuItem(text = { Text("Unir en superserie con el siguiente") }, leadingIcon = { Icon(Icons.Rounded.Link, null) }, onClick = { menu = false; onSupersetNext() })
-                        if (inSuperset) DropdownMenuItem(text = { Text("Sacar de la superserie") }, leadingIcon = { Icon(Icons.Rounded.LinkOff, null) }, onClick = {
+                        DropdownMenuItem(text = { Text(tr("Unir en superserie con el siguiente", "Superset with the next one")) }, leadingIcon = { Icon(Icons.Rounded.Link, null) }, onClick = { menu = false; onSupersetNext() })
+                        if (inSuperset) DropdownMenuItem(text = { Text(tr("Sacar de la superserie", "Remove from superset")) }, leadingIcon = { Icon(Icons.Rounded.LinkOff, null) }, onClick = {
                             menu = false; vm.removeFromSuperset(item.key)
                         })
                         if (vm.items.size >= 2) {
-                            DropdownMenuItem(text = { Text("Ordenar ejercicios") }, leadingIcon = { Icon(Icons.Rounded.SwapVert, null) }, onClick = { menu = false; onReorder() })
-                            DropdownMenuItem(text = { Text("Subir") }, leadingIcon = { Icon(Icons.Rounded.ArrowUpward, null) }, enabled = vm.canMove(item.key, -1), onClick = { menu = false; vm.move(item.key, -1) })
-                            DropdownMenuItem(text = { Text("Bajar") }, leadingIcon = { Icon(Icons.Rounded.ArrowDownward, null) }, enabled = vm.canMove(item.key, 1), onClick = { menu = false; vm.move(item.key, 1) })
+                            DropdownMenuItem(text = { Text(tr("Ordenar ejercicios", "Reorder exercises")) }, leadingIcon = { Icon(Icons.Rounded.SwapVert, null) }, onClick = { menu = false; onReorder() })
+                            DropdownMenuItem(text = { Text(tr("Subir", "Move up")) }, leadingIcon = { Icon(Icons.Rounded.ArrowUpward, null) }, enabled = vm.canMove(item.key, -1), onClick = { menu = false; vm.move(item.key, -1) })
+                            DropdownMenuItem(text = { Text(tr("Bajar", "Move down")) }, leadingIcon = { Icon(Icons.Rounded.ArrowDownward, null) }, enabled = vm.canMove(item.key, 1), onClick = { menu = false; vm.move(item.key, 1) })
                         }
-                        DropdownMenuItem(text = { Text("Quitar", color = RupioColors.Danger) }, leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = RupioColors.Danger) }, onClick = { menu = false; vm.remove(item.key) })
+                        DropdownMenuItem(text = { Text(tr("Quitar", "Remove"), color = RupioColors.Danger) }, leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = RupioColors.Danger) }, onClick = { menu = false; vm.remove(item.key) })
                     }
                 }
             }
@@ -438,10 +440,10 @@ private fun PlanRows(item: EditItem, tracking: Tracking, vm: RoutineEditorVM) {
     val assisted = tracking == Tracking.ASSISTED_BODYWEIGHT
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         val st = MaterialTheme.typography.labelSmall
-        Text("SERIE", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(P_TYPE), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-        if (tracking.usesWeight) Text(when (tracking) { Tracking.WEIGHTED_BODYWEIGHT -> "+" + unit.label.uppercase(); Tracking.ASSISTED_BODYWEIGHT -> "AYUDA"; else -> unit.label.uppercase() },
+        Text(tr("SERIE", "SET"), style = st, color = RupioColors.TextFaint, modifier = Modifier.width(P_TYPE), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        if (tracking.usesWeight) Text(when (tracking) { Tracking.WEIGHTED_BODYWEIGHT -> "+" + unit.label.uppercase(); Tracking.ASSISTED_BODYWEIGHT -> tr("AYUDA", "ASSIST"); else -> unit.label.uppercase() },
             style = st, color = RupioColors.TextFaint, modifier = Modifier.width(P_VAL), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-        Text(if (tracking == Tracking.DURATION) "SEGUNDOS" else "REPS", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(P_VAL), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        Text(if (tracking == Tracking.DURATION) tr("SEGUNDOS", "SECONDS") else "REPS", style = st, color = RupioColors.TextFaint, modifier = Modifier.width(P_VAL), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         Spacer(Modifier.weight(1f))
     }
     var normalIndex = 0
@@ -473,14 +475,14 @@ private fun PlanRows(item: EditItem, tracking: Tracking, vm: RoutineEditorVM) {
             }
             Spacer(Modifier.weight(1f))
             IconButton(onClick = { vm.updatePlan(item.key) { l -> l.filterIndexed { k, _ -> k != i } } }, enabled = item.plan.size > 1, modifier = Modifier.size(P_DEL)) {
-                Icon(Icons.Rounded.Close, "Quitar serie", tint = RupioColors.TextFaint, modifier = Modifier.size(18.dp))
+                Icon(Icons.Rounded.Close, tr("Quitar serie", "Remove set"), tint = RupioColors.TextFaint, modifier = Modifier.size(18.dp))
             }
         }
     }
     TextButton(onClick = { vm.updatePlan(item.key) { l -> l + (l.lastOrNull()?.copy(t = SetType.NORMAL.code) ?: PlanSet()) } }, modifier = Modifier.fillMaxWidth()) {
-        Icon(Icons.Rounded.Add, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Agregar serie")
+        Icon(Icons.Rounded.Add, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text(tr("Agregar serie", "Add set"))
     }
-    Text("Toca el número para marcar calentamiento (C), drop set (D) o al fallo (F). Peso y reps son opcionales: se usan como sugerencia la primera vez.",
+    Text(tr("Toca el número para marcar calentamiento (C), drop set (D) o al fallo (F). Peso y reps son opcionales: se usan como sugerencia la primera vez.", "Tap the number to mark a warm-up (W), drop set (D) or failure set (F). Weight and reps are optional: they're used as suggestions the first time."),
         style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
 }
 
@@ -497,9 +499,9 @@ private fun Chip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: St
     }
 }
 
-/** Lo que se ve bajo el nombre en "Ordenar": series y repeticiones (o "tiempo"). */
+/** Lo que se ve bajo el nombre en tr("Ordenar", "Reorder"): series y repeticiones (o "tiempo"). */
 private fun reorderSubtitle(item: EditItem, ex: ExerciseEntity?): String {
     val tracking = Tracking.of(ex?.tracking ?: "weight_reps")
-    val series = Fmt.plural(item.plan.size, "serie", "series")
-    return if (tracking == Tracking.DURATION) "$series · tiempo" else "$series · ${item.repMin}–${item.repMax} reps"
+    val series = Fmt.plural(item.plan.size, tr("serie", "set"), tr("series", "sets"))
+        return if (tracking == Tracking.DURATION) "$series · " + tr("tiempo", "time") else "$series · ${item.repMin}–${item.repMax} reps"
 }

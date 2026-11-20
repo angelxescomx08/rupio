@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -75,13 +76,43 @@ import com.rupio.app.ui.routine.RoutineGuideScreen
 import com.rupio.app.ui.stats.ProgressStoryScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.rupio.app.core.I18n
+import com.rupio.app.core.tr
+import com.rupio.app.data.prefs.AppearancePrefs
+import com.rupio.app.ui.theme.Appearance
 
 class MainActivity : ComponentActivity() {
+    /**
+     * v2.0: antes de Android 13 el idioma elegido en Rupio se aplica aquí a la configuración de la pantalla, para que
+     * los textos propios de Android y Material (p. ej. "Cerrar" de un menú) salgan en el mismo idioma. En Android 13+
+     * lo hace el sistema (LocaleManager).
+     */
+    override fun attachBaseContext(newBase: android.content.Context) {
+        val choice = if (Build.VERSION.SDK_INT < 33) AppearancePrefs.languageChoice(newBase) else null
+        if (choice == null) { super.attachBaseContext(newBase); return }
+        val config = android.content.res.Configuration(newBase.resources.configuration)
+        config.setLocales(android.os.LocaleList.forLanguageTags(choice.code))
+        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(0xFF0A0A0C.toInt()), navigationBarStyle = SystemBarStyle.dark(0xFF0A0A0C.toInt()))
         val container = (application as RupioApp).container
+        // Android recrea la pantalla al cambiar el idioma de la app (Ajustes o Perfil) o el modo oscuro del teléfono.
+        val before = I18n.language
+        I18n.set(AppearancePrefs.resolvedLanguage(this))
+        if (I18n.language != before) container.onLanguageChanged()
+        Appearance.setSystemDark(AppearancePrefs.systemDark(this))
         setContent {
+            // Barras del sistema y fondo de la ventana del color del tema (íconos claros en oscuro y oscuros en claro).
+            val dark = Appearance.isDark
+            val bg = RupioColors.Background
+            LaunchedEffect(dark) {
+                val c = bg.toArgb()
+                val style = if (dark) SystemBarStyle.dark(c) else SystemBarStyle.light(c, c)
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+                window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(c))
+            }
             RupioTheme {
                 Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
                   // Arriba y a los lados nada se dibuja bajo la barra de estado ni el recorte de la cámara.
@@ -208,7 +239,7 @@ fun MainShell() {
         c.notices.collect { n ->
             // v1.9: 10 s para "Deshacer" (con 5 s se iba mientras lo tocabas).
             val r = kotlinx.coroutines.withTimeoutOrNull(if (n.undo != null) com.rupio.app.ui.components.UNDO_MS else 3_000L) {
-                snackbar.showSnackbar(n.text, actionLabel = if (n.undo != null) "Deshacer" else null, duration = SnackbarDuration.Indefinite)
+                snackbar.showSnackbar(n.text, actionLabel = if (n.undo != null) tr("Deshacer", "Undo") else null, duration = SnackbarDuration.Indefinite)
             }
             if (r == null) snackbar.currentSnackbarData?.dismiss()
             if (r == SnackbarResult.ActionPerformed) n.undo?.let { c.scope.launch { it() } }
@@ -216,10 +247,10 @@ fun MainShell() {
     }
 
     val tabs = listOf(
-        Tab(Routes.HOME, "Entrenar", Icons.Rounded.FitnessCenter), Tab(Routes.HISTORY, "Historial", Icons.Rounded.History),
+        Tab(Routes.HOME, tr("Entrenar", "Workout"), Icons.Rounded.FitnessCenter), Tab(Routes.HISTORY, tr("Historial", "History"), Icons.Rounded.History),
         // Peso corporal tiene su propia pestaña (antes estaba escondido dentro de Progreso/Perfil). Aprende vive en Perfil y Progreso.
-        Tab(Routes.STATS, "Progreso", Icons.Rounded.Insights), Tab(Routes.BODY_WEIGHT, "Peso", Icons.Rounded.MonitorWeight),
-        Tab(Routes.PROFILE, "Perfil", Icons.Rounded.Person),
+        Tab(Routes.STATS, tr("Progreso", "Progress"), Icons.Rounded.Insights), Tab(Routes.BODY_WEIGHT, tr("Peso", "Weight"), Icons.Rounded.MonitorWeight),
+        Tab(Routes.PROFILE, tr("Perfil", "Profile"), Icons.Rounded.Person),
     )
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
@@ -269,7 +300,7 @@ fun MainShell() {
             c.scope.launch {
                 val wid = c.db.workouts().getSet(setId)?.workoutId
                 if (wid != null) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) { nav.navigate(Routes.edit(wid, setId)) }
-                else c.notices.emit(Notice("Esa serie ya no existe en este teléfono. Puedes descartarla."))
+                else c.notices.emit(Notice(tr("Esa serie ya no existe en este teléfono. Puedes descartarla.", "That set no longer exists on this phone. You can dismiss it.")))
             }
         })
     }
@@ -321,7 +352,7 @@ private fun ActiveWorkoutBanner(name: String, startedAt: Long, restDone: Boolean
         Icon(Icons.Rounded.PlayCircle, null, tint = RupioColors.OnPrimary)
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(if (restDone) "¡Descanso terminado! A la siguiente serie" else "Entrenamiento en curso", style = MaterialTheme.typography.labelMedium, color = RupioColors.OnPrimary.copy(alpha = 0.8f))
+            Text(if (restDone) tr("¡Descanso terminado! A la siguiente serie", "Rest's over! On to the next set") else tr("Entrenamiento en curso", "Workout in progress"), style = MaterialTheme.typography.labelMedium, color = RupioColors.OnPrimary.copy(alpha = 0.8f))
             Text(name, style = MaterialTheme.typography.titleSmall, color = RupioColors.OnPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Text(Fmt.duration(((now - startedAt) / 1000).coerceAtLeast(0)), style = MaterialTheme.typography.titleMedium.merge(Tabular), color = RupioColors.OnPrimary)
@@ -343,7 +374,7 @@ private fun SupportThanksHost() {
         }
     }
     thanks?.let { t ->
-        ThanksDialog(t.tier, state, onAccent = { c.support.setAccent(it) }, onGoldIcon = { c.support.setGoldIcon(it) }, onClose = { thanks = null },
+        ThanksDialog(t.tier, state, onAccent = { c.support.setAccent(it) }, onIcon = { c.support.setAppIcon(it) }, onClose = { thanks = null },
             wallRank = t.wallRank, onSeeWall = { thanks = null; c.navRequests.tryEmit(Routes.WALL) })
     }
     raised?.let { r ->
@@ -351,9 +382,9 @@ private fun SupportThanksHost() {
     }
     // Llegó una compra del muro sin nombre (p. ej. se pagó y se cerró la app antes): se pide aquí, con el permiso.
     if (state.wallNeedsName) com.rupio.app.ui.support.WallNameDialog(
-        title = "¡Gracias! ¿Cómo quieres aparecer?",
-        intro = "Tu aporte llegó. Escribe el nombre que verán en el muro de agradecimientos.",
+        title = tr("¡Gracias! ¿Cómo quieres aparecer?", "Thank you! How do you want to appear?"),
+        intro = tr("Tu aporte llegó. Escribe el nombre que verán en el muro de agradecimientos.", "Your contribution arrived. Enter the name people will see on the thank-you wall."),
         initial = wall.me?.name ?: (auth as? com.rupio.app.data.auth.AuthState.SignedIn)?.name.orEmpty(),
-        confirm = "Aparecer en el muro", askConsent = true, onDismiss = { c.support.dismissWallName() },
+        confirm = tr("Aparecer en el muro", "Show me on the wall"), askConsent = true, onDismiss = { c.support.dismissWallName() },
     ) { name -> c.support.completeWallName(name) }
 }

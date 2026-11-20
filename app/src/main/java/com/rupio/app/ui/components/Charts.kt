@@ -1,5 +1,7 @@
 package com.rupio.app.ui.components
 
+
+import com.rupio.app.core.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -60,13 +62,13 @@ fun VolumeBarChart(bars: List<Bar>, unit: WeightUnit, modifier: Modifier = Modif
     val maxV = niceMax(bars.maxOf { unit.fromKg(it.volumeKg) })
     val density = LocalDensity.current
     val sel = bars.getOrNull(selected)
-    Column(modifier.semantics { contentDescription = "Gráfica de volumen: " + bars.joinToString { "${it.label} ${Fmt.volume(it.volumeKg, unit)}" } }) {
+    Column(modifier.semantics { contentDescription = tr("Gráfica de volumen: ", "Volume chart: ") + bars.joinToString { "${it.label} ${Fmt.volume(it.volumeKg, unit)}" } }) {
         // Tooltip fijo arriba (no tapa las barras)
         Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
             if (sel != null) {
                 Column(Modifier.weight(1f)) {
                     Text(Fmt.volume(sel.volumeKg, unit) + "  ·  " + Fmt.volume(sel.volumeKg, unit.other), style = MaterialTheme.typography.titleSmall.merge(Tabular))
-                    Text("${sel.label} · ${Fmt.plural(sel.workouts, "entreno", "entrenos")} · ${Fmt.plural(sel.sets, "serie", "series")}", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim)
+                    Text("${sel.label} · ${Fmt.plural(sel.workouts, tr("entreno", "workout"), tr("entrenos", "workouts"))} · ${Fmt.plural(sel.sets, tr("serie", "set"), tr("series", "sets"))}", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim)
                 }
             }
         }
@@ -134,9 +136,9 @@ fun ProgressLineChart(
     subLabel: ((Double) -> String)? = { Fmt.weight(it, unit.other) },
     deltaLabel: (Double) -> String = { "${Fmt.num(it)} ${unit.label}" },
     /** Qué mide la gráfica, para el resumen que lee TalkBack ("1RM estimado"). */
-    title: String = "Progreso",
+    title: String = tr("Progreso", "Progress"),
     chartHeight: androidx.compose.ui.unit.Dp = 160.dp,
-    emptyText: String = "Registra al menos dos sesiones para ver tu curva de progreso.",
+    emptyText: String = tr("Registra al menos dos sesiones para ver tu curva de progreso.", "Log at least two sessions to see your progress curve."),
 ) {
     if (points.size < 2) {
         Text(emptyText, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = modifier.padding(vertical = 16.dp))
@@ -151,8 +153,10 @@ fun ProgressLineChart(
     val sel = points[selected]
     val first = vals.first(); val last = vals.last()
     // Resumen hablado: "1RM estimado: de 80 kg a 95 kg entre marzo de 2019 y el 14 de noviembre de 2026".
-    val spoken = "$title: de ${label(points.first().second)} a ${label(points.last().second)} entre " +
-        Dates.spokenDay(points.first().first) + " de ${points.first().first.year} y " + Dates.spokenDay(points.last().first) + " de ${points.last().first.year}"
+    val spoken = tr("$title: de ${label(points.first().second)} a ${label(points.last().second)} entre " +
+        Dates.spokenDay(points.first().first) + " de ${points.first().first.year} y " + Dates.spokenDay(points.last().first) + " de ${points.last().first.year}",
+        "$title: from ${label(points.first().second)} to ${label(points.last().second)} between " +
+            Dates.spokenDay(points.first().first) + ", ${points.first().first.year} and " + Dates.spokenDay(points.last().first) + ", ${points.last().first.year}")
     Column(modifier.semantics { contentDescription = spoken }) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text(label(sel.second), style = MaterialTheme.typography.titleLarge.merge(Tabular))
@@ -160,7 +164,7 @@ fun ProgressLineChart(
             if (subLabel != null) Text(subLabel(sel.second), style = MaterialTheme.typography.labelMedium.merge(Tabular), color = RupioColors.TextFaint, modifier = Modifier.padding(bottom = 3.dp))
             Spacer(Modifier.weight(1f))
             val delta = last - first
-            Text((if (delta >= 0) "+" else "−") + deltaLabel(kotlin.math.abs(delta)) + " desde el inicio", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
+            Text((if (delta >= 0) "+" else "−") + deltaLabel(kotlin.math.abs(delta)) + tr(" desde el inicio", " since the start"), style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
         }
         Text(Dates.formatDayShort(sel.first) + " " + sel.first.year, style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim)
         Spacer(Modifier.height(8.dp))
@@ -201,15 +205,15 @@ fun MuscleSetsChart(rows: List<MuscleLoad>, weeks: Double, modifier: Modifier = 
     val perWeek = rows.map { it to it.sets / weeks.coerceAtLeast(1.0) }
     val maxV = max(20.0, perWeek.maxOfOrNull { it.second } ?: 0.0)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // v1.9: en tu primera semana solo el número: decir "poco" a quien acaba de empezar no ayuda.
-        if (!judge) Text("Llevas menos de una semana: aquí verás si cada músculo recibe lo que necesita.",
+        // v1.9: en tu primera semana solo el número: decir tr("poco", "low") a quien acaba de empezar no ayuda.
+        if (!judge) Text(tr("Llevas menos de una semana: aquí verás si cada músculo recibe lo que necesita.", "It's been less than a week: here you'll see whether each muscle is getting what it needs."),
             style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
         perWeek.forEach { (row, pw) ->
-            val status = when { !judge -> null; pw < 4 -> "poco"; pw < 10 -> "moderado"; else -> "10+ ✓" }
+            val status = when { !judge -> null; pw < 4 -> tr("poco", "low"); pw < 10 -> tr("moderado", "moderate"); else -> "10+ ✓" }
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(Muscles.label(row.muscle), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text("${Fmt.num(pw, 1)} ${if (Fmt.num(pw, 1) == "1") "serie" else "series"}/sem" + (status?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelMedium.merge(Tabular), color = RupioColors.TextDim)
+                    Text("${Fmt.num(pw, 1)} ${if (Fmt.num(pw, 1) == "1") tr("serie", "set") else tr("series", "sets")}" + tr("/sem", "/wk") + (status?.let { " · $it" } ?: ""), style = MaterialTheme.typography.labelMedium.merge(Tabular), color = RupioColors.TextDim)
                 }
                 Spacer(Modifier.height(4.dp))
                 Canvas(Modifier.fillMaxWidth().height(10.dp)) {
@@ -221,7 +225,7 @@ fun MuscleSetsChart(rows: List<MuscleLoad>, weeks: Double, modifier: Modifier = 
                 }
             }
         }
-        Text("La rayita marca 10 series por semana: a partir de ahí la evidencia muestra más crecimiento; más series siguen sumando, pero cada vez menos. Los músculos secundarios cuentan como media serie.",
+        Text(tr("La rayita marca 10 series por semana: a partir de ahí la evidencia muestra más crecimiento; más series siguen sumando, pero cada vez menos. Los músculos secundarios cuentan como media serie.", "The line marks 10 sets per week: from there the evidence shows more growth; more sets keep adding, but less each time. Secondary muscles count as half a set."),
             style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
     }
 }
@@ -244,12 +248,13 @@ fun TrainingHeatmap(days: Map<Int, Int>, from: LocalDate, to: LocalDate, modifie
         }
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("${Fmt.plural(days.size, "día entrenado", "días entrenados")} en ${Fmt.plural(weeks, "semana", "semanas")}", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim, modifier = Modifier.weight(1f))
-            Text("Menos ", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
+            Text(tr("${Fmt.plural(days.size, "día entrenado", "días entrenados")} en ${Fmt.plural(weeks, "semana", "semanas")}",
+                "${Fmt.plural(days.size, "day trained", "days trained")} in ${Fmt.plural(weeks, "week", "weeks")}"), style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim, modifier = Modifier.weight(1f))
+            Text(tr("Menos ", "Less "), style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
             (listOf(RupioColors.Surface3) + RupioColors.Heat.drop(2)).forEach {
                 Box(Modifier.padding(horizontal = 1.dp).size(10.dp).clip(RoundedCornerShape(2.dp)).background(it))
             }
-            Text(" Más", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
+            Text(tr(" Más", " More"), style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
         }
     }
 }
@@ -264,12 +269,12 @@ fun MuscleSplitBars(shares: List<com.rupio.app.domain.MuscleShare>, modifier: Mo
     val top = shares.maxOf { it.share }.coerceAtLeast(0.01)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(9.dp)) {
         shares.forEach { s ->
-            val name = if (s.muscle.isBlank()) "Otros" else Muscles.label(s.muscle)
+            val name = if (s.muscle.isBlank()) tr("Otros", "Other") else Muscles.label(s.muscle)
             val pct = (s.share * 100).roundToInt()
-            Column(Modifier.semantics(mergeDescendants = true) { contentDescription = "$name: ${Fmt.num(s.sets, 1)} series, $pct por ciento" }) {
+            Column(Modifier.semantics(mergeDescendants = true) { contentDescription = tr("$name: ${Fmt.num(s.sets, 1)} series, $pct por ciento", "$name: ${Fmt.num(s.sets, 1)} sets, $pct percent") }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 1)
-                    Text("${Fmt.num(s.sets, 1)} ${if (s.sets == 1.0) "serie" else "series"}", style = MaterialTheme.typography.labelMedium.merge(Tabular), color = RupioColors.TextDim)
+                    Text("${Fmt.num(s.sets, 1)} ${if (s.sets == 1.0) tr("serie", "set") else tr("series", "sets")}", style = MaterialTheme.typography.labelMedium.merge(Tabular), color = RupioColors.TextDim)
                     Text("$pct %", style = MaterialTheme.typography.labelLarge.merge(Tabular), modifier = Modifier.widthIn(min = 48.dp), textAlign = TextAlign.End)
                 }
                 Spacer(Modifier.height(4.dp))
@@ -281,7 +286,7 @@ fun MuscleSplitBars(shares: List<com.rupio.app.domain.MuscleShare>, modifier: Mo
                 }
             }
         }
-        Text("Cada serie cuenta 1 para el músculo principal y media para los que ayudan. Los calentamientos no cuentan.",
+        Text(tr("Cada serie cuenta 1 para el músculo principal y media para los que ayudan. Los calentamientos no cuentan.", "Each set counts 1 for the main muscle and half for the helpers. Warm-ups don't count."),
             style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint)
     }
 }

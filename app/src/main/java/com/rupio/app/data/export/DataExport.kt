@@ -1,5 +1,7 @@
 package com.rupio.app.data.export
 
+import com.rupio.app.core.tr
+
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
@@ -56,7 +58,8 @@ object DataExport {
     }.orEmpty()
 
     fun workoutsCsv(ws: List<WorkoutEntity>): String = buildString {
-        append(BOM).append("id,fecha,nombre,inicio,fin,zona_horaria,duracion_min,volumen_kg,series,repeticiones,records,notas\n")
+        append(BOM).append(tr("id,fecha,nombre,inicio,fin,zona_horaria,duracion_min,volumen_kg,series,repeticiones,records,notas\n",
+                "id,date,name,start,end,time_zone,duration_min,volume_kg,sets,reps,prs,notes\n"))
         ws.forEach { w ->
             val min = (w.durationSec ?: w.endedAt?.let { ((it - w.startedAt) / 1000).toInt() })?.let { Math.round(it / 60.0) }
             append(listOf(w.id, day(w.localDate), text(w.name), time(w.startedAt, w.timeZone), time(w.endedAt, w.timeZone), w.timeZone,
@@ -67,19 +70,20 @@ object DataExport {
 
     /** [names]: nombre de cada ejercicio por id. La serie se numera dentro de cada ejercicio del entreno. */
     fun setsCsv(sets: List<WorkoutSetEntity>, workouts: Map<String, WorkoutEntity>, names: Map<String, String>): String = buildString {
-        append(BOM).append("entrenamiento_id,fecha,entrenamiento,ejercicio,serie,tipo,peso_kg,repeticiones,segundos,rpe,record\n")
+        append(BOM).append(tr("entrenamiento_id,fecha,entrenamiento,ejercicio,serie,tipo,peso_kg,repeticiones,segundos,rpe,record\n",
+                "workout_id,date,workout,exercise,set,type,weight_kg,reps,seconds,rpe,pr\n"))
         val counter = HashMap<String, Int>()
         sets.forEach { s ->
             val n = (counter[s.workoutExerciseId] ?: 0) + 1; counter[s.workoutExerciseId] = n
             val w = workouts[s.workoutId]
-            append(listOf(s.workoutId, day(w?.localDate ?: s.performedOn), text(w?.name), text(names[s.exerciseId] ?: "Ejercicio"), n.toString(),
+            append(listOf(s.workoutId, day(w?.localDate ?: s.performedOn), text(w?.name), text(names[s.exerciseId] ?: tr("Ejercicio", "Exercise")), n.toString(),
                 SetType.of(s.setType).label, num(s.weightKg), s.reps?.toString().orEmpty(), s.durationSec?.toString().orEmpty(), num(s.rpe),
-                if (s.isPr) "sí" else "no").joinToString(",")).append('\n')
+                if (s.isPr) tr("sí", "yes") else "no").joinToString(",")).append('\n')
         }
     }
 
     fun bodyWeightCsv(list: List<BodyWeightEntity>): String = buildString {
-        append(BOM).append("fecha,peso_kg\n")
+        append(BOM).append(tr("fecha,peso_kg\n", "date,weight_kg\n"))
         list.forEach { append(day(it.measuredOn)).append(',').append(num(it.weightKg)).append('\n') }
     }
 
@@ -105,8 +109,8 @@ object DataExport {
         val send = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
             type = "text/csv"
             putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
-            putExtra(Intent.EXTRA_SUBJECT, "Mis datos de Rupio")
-            putExtra(Intent.EXTRA_TEXT, "Mis entrenamientos, series y peso corporal exportados de Rupio (archivos CSV).")
+            putExtra(Intent.EXTRA_SUBJECT, tr("Mis datos de Rupio", "My Rupio data"))
+                putExtra(Intent.EXTRA_TEXT, tr("Mis entrenamientos, series y peso corporal exportados de Rupio (archivos CSV).", "My workouts, sets and body weight exported from Rupio (CSV files)."))
             clipData = ClipData.newUri(context.contentResolver, "Rupio", uris.first()).also { c -> uris.drop(1).forEach { c.addItem(ClipData.Item(it)) } }
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }

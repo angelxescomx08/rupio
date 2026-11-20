@@ -52,7 +52,7 @@ import java.util.concurrent.TimeUnit
 /** v1.9: Apoya Rupio con pestañas, ligas y metales (capturas en app/screenshots/1xx). */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w393dp-h852dp-xhdpi")
+@Config(sdk = [34], qualifiers = "es-rMX-w393dp-h852dp-night-xhdpi")
 class V19UiTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val app get() = ApplicationProvider.getApplicationContext<RupioApp>()
@@ -183,7 +183,7 @@ class V19UiTest {
     }
 
     /** Peor caso: 320 dp y letra al 200 %. Nada se corta, todo se puede tocar. */
-    @Config(qualifiers = "w320dp-h640dp-xhdpi", fontScale = 2.0f)
+    @Config(qualifiers = "es-rMX-w320dp-h640dp-night-xhdpi", fontScale = 2.0f)
     @Test fun i_peor_caso_letra_200() = runBlocking {
         val problems = mutableListOf<String>()
         app { league(LeagueState(league = group(), loaded = true)) }

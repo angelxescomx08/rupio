@@ -1,5 +1,7 @@
 package com.rupio.app.ui.tutorial
 
+
+import com.rupio.app.core.tr
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -114,16 +116,16 @@ private fun CoachOverlay(c: CoachController) {
             shape = RoundedCornerShape(20.dp), color = RupioColors.Surface2, tonalElevation = 6.dp,
         ) {
             Column(Modifier.padding(18.dp)) {
-                Text("${c.index + 1} de ${c.steps.size}", style = MaterialTheme.typography.labelMedium, color = RupioColors.Primary)
+                Text(tr("${c.index + 1} de ${c.steps.size}", "${c.index + 1} of ${c.steps.size}"), style = MaterialTheme.typography.labelMedium, color = RupioColors.Primary)
                 Spacer(Modifier.height(4.dp))
                 Text(step.title, style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(6.dp))
                 Text(step.body, style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
                 Spacer(Modifier.height(12.dp))
                 Row {
-                    TextButton(onClick = { c.finish() }) { Text("Saltar tutorial") }
+                    TextButton(onClick = { c.finish() }) { Text(tr("Saltar tutorial", "Skip tutorial")) }
                     Spacer(Modifier.weight(1f))
-                    Button(onClick = { c.next() }) { Text(if (c.index == c.steps.lastIndex) "¡Entendido!" else "Siguiente") }
+                    Button(onClick = { c.next() }) { Text(if (c.index == c.steps.lastIndex) tr("¡Entendido!", "Got it!") else tr("Siguiente", "Next")) }
                 }
             }
         }
@@ -144,15 +146,17 @@ fun OnboardingScreen(name: String, onDone: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Rupio", style = MaterialTheme.typography.titleLarge, color = RupioColors.Primary)
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = onDone) { Text("Saltar") }
+            TextButton(onClick = onDone) { Text(tr("Saltar", "Skip")) }
         }
         HorizontalPager(pager, Modifier.weight(1f)) { page ->
             Column(Modifier.fillMaxSize().padding(top = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 when (page) {
-                    0 -> Page(Icons.Rounded.CheckCircle, "¡Hola, ${name.substringBefore(' ')}! Registra cada serie",
-                        "Escribe el peso y las repeticiones y toca ✓ al terminar. Si lo dejas vacío, se usa el valor sugerido en gris. Pruébalo 👇") { DemoSetRow() }
-                    else -> Page(Icons.Rounded.TrendingUp, "Te dice cuándo subir",
-                        "Cuando completas todas tus series en el máximo de repeticiones, Rupio te pide subir el peso un poco (2.5–5 %). Si no, te propone sumar una repetición. No necesitas saber de gimnasio.") { DemoRecommendation() }
+                    0 -> Page(Icons.Rounded.CheckCircle, tr("¡Hola, ${name.substringBefore(' ')}! Registra cada serie", "Hi, ${name.substringBefore(' ')}! Log every set"),
+                tr("Escribe el peso y las repeticiones y toca ✓ al terminar. Si lo dejas vacío, se usa el valor sugerido en gris. Pruébalo 👇",
+                    "Enter the weight and reps and tap ✓ when you're done. If you leave it empty, the suggested gray value is used. Try it 👇")) { DemoSetRow() }
+            else -> Page(Icons.Rounded.TrendingUp, tr("Te dice cuándo subir", "It tells you when to go up"),
+                tr("Cuando completas todas tus series en el máximo de repeticiones, Rupio te pide subir el peso un poco (2.5–5 %). Si no, te propone sumar una repetición. No necesitas saber de gimnasio.",
+                    "When you complete all your sets at the top of the rep range, Rupio asks you to add a little weight (2.5–5%). If not, it suggests adding a rep. You don't need to know anything about the gym.")) { DemoRecommendation() }
                 }
             }
         }
@@ -166,7 +170,7 @@ fun OnboardingScreen(name: String, onDone: () -> Unit) {
         Button(
             onClick = { if (pager.currentPage < last) scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } else onDone() },
             modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp),
-        ) { Text(if (pager.currentPage < last) "Siguiente" else "Empezar", style = MaterialTheme.typography.titleMedium) }
+        ) { Text(if (pager.currentPage < last) tr("Siguiente", "Next") else tr("Empezar", "Start"), style = MaterialTheme.typography.titleMedium) }
     }
 }
 
@@ -198,13 +202,13 @@ private fun DemoSetRow() {
             Box(
                 Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(if (done) RupioColors.Success else RupioColors.Surface3).clickable { done = !done },
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Rounded.Check, "Completar", tint = if (done) Color.Black else RupioColors.TextDim) }
+            ) { Icon(Icons.Rounded.Check, tr("Completar", "Complete"), tint = if (done) RupioColors.OnFill else RupioColors.TextDim) }
         }
         AnimatedVisibility(done) {
             Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Timer, null, tint = RupioColors.Rest)
                 Spacer(Modifier.width(8.dp))
-                Text(if (left > 0) "Descanso: 0:0$left" else "¡Descanso terminado! (suena una sola vez)", color = RupioColors.Rest, style = MaterialTheme.typography.labelLarge)
+                Text(if (left > 0) tr("Descanso: 0:0$left", "Rest: 0:0$left") else tr("¡Descanso terminado! (suena una sola vez)", "Rest's over! (plays only once)"), color = RupioColors.Rest, style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -217,8 +221,8 @@ private fun DemoRecommendation() {
             Icon(Icons.Rounded.ArrowUpward, null, tint = RupioColors.Warning)
             Spacer(Modifier.width(10.dp))
             Column {
-                Text("Sube a 140 lb", fontWeight = FontWeight.SemiBold, color = RupioColors.Warning)
-                Text("Completaste 3 × 12 con 135 lb. Vuelve a 8 reps con el nuevo peso.", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                Text(tr("Sube a 140 lb", "Go up to 140 lb"), fontWeight = FontWeight.SemiBold, color = RupioColors.Warning)
+                Text(tr("Completaste 3 × 12 con 135 lb. Vuelve a 8 reps con el nuevo peso.", "You completed 3 × 12 with 135 lb. Go back to 8 reps with the new weight."), style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
             }
         }
     }

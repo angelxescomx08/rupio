@@ -62,8 +62,8 @@ Otras decisiones medibles:
 ```powershell
 .\gradlew.bat :app:assembleBenchmark
 adb install -r app/build/outputs/apk/benchmark/app-benchmark.apk
-adb shell am start -W -n com.rupio.app.bench/com.rupio.app.bench.LeagueBenchActivity --es screen group   # o global / wall
-adb shell dumpsys gfxinfo com.rupio.app.bench reset   # deslizar unas veces y luego:
-adb shell dumpsys gfxinfo com.rupio.app.bench
+adb shell am start -W -n mx.rupio.app.bench/com.rupio.app.bench.LeagueBenchActivity --es screen group   # o global / wall
+adb shell dumpsys gfxinfo mx.rupio.app.bench reset   # deslizar unas veces y luego:
+adb shell dumpsys gfxinfo mx.rupio.app.bench
 .\gradlew.bat :app:testDebugUnitTest --tests "com.rupio.app.LeaguePerfTest"
 ```

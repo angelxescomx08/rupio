@@ -1,5 +1,7 @@
 package com.rupio.app.data.repo
 
+import com.rupio.app.core.tr
+
 import androidx.room.withTransaction
 import com.rupio.app.core.Dates
 import com.rupio.app.core.Ids
@@ -69,7 +71,7 @@ class WorkoutRepository(
     }
 
     // ------------------------------------------------------------------ iniciar
-    suspend fun startEmpty(name: String = "Entrenamiento libre"): String {
+    suspend fun startEmpty(name: String = tr("Entrenamiento libre", "Empty workout")): String {
         dao.active()?.let { return it.id }
         val zone = ZoneId.systemDefault(); val t = now()
         val w = WorkoutEntity(Ids.uuidV7(t), uid(), null, name, t, null, zone.id, Dates.localEpochDay(t, zone), updatedAt = t)
@@ -109,8 +111,8 @@ class WorkoutRepository(
         val catalog = db.exercises().getMany(exerciseIds).associateBy { it.id }
         db.withTransaction {
             for (id in exerciseIds) {
-                val tr = Tracking.of(catalog[id]?.tracking ?: "weight_reps")
-                val (mn, mx) = defaultsFor(tr)
+                val trk = Tracking.of(catalog[id]?.tracking ?: "weight_reps")
+                val (mn, mx) = defaultsFor(trk)
                 // v1.9 (N1): el cardio trae 1 serie y no arranca descanso (antes 3 series con 1:30 entre ellas, como una plancha).
                 val cardio = catalog[id]?.isCardio == true
                 val we = WorkoutExerciseEntity(Ids.uuidV7(), workoutId, user, id, pos++, restSec = if (cardio) 0 else s.defaultRestSec, repMin = mn, repMax = mx, updatedAt = t)

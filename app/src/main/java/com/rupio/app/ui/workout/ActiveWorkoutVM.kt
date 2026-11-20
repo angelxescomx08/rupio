@@ -1,5 +1,7 @@
 package com.rupio.app.ui.workout
 
+
+import com.rupio.app.core.tr
 import kotlinx.coroutines.flow.first
 
 import androidx.compose.runtime.mutableStateMapOf
@@ -22,7 +24,7 @@ import kotlinx.coroutines.sync.withLock
 /** Un ejercicio del entrenamiento con su catálogo y sus series (en orden). */
 data class ExUi(val we: WorkoutExerciseEntity, val ex: ExerciseEntity?, val sets: List<WorkoutSetEntity>) {
     val tracking get() = Tracking.of(ex?.tracking ?: "weight_reps")
-    val name get() = ex?.name ?: "Ejercicio"
+    val name get() = ex?.name ?: tr("Ejercicio", "Exercise")
     val infoKey get() = "${we.id}:${we.repMin}:${we.repMax}"
     /** v1.9: cardio por tiempo: se anota en minutos. */
     val isCardio get() = ex?.let { Cardio.isCardio(it.primaryMuscle, it.tracking) } == true
@@ -171,20 +173,20 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
         toggleMutex.withLock {
             editJobs.remove(set.id)?.cancel(); flushNow(set.id)
             val fresh = c.workouts.getSet(set.id) ?: return@withLock
-            val tr = item.tracking
+            val trk = item.tracking
             val sug = suggestion(item, set)
             if (!fresh.completed) {
                 val missing = when {
-                    tr == Tracking.WEIGHT_REPS && fresh.weightKg == null && sug.weightKg == null -> "Escribe el peso antes de marcar la serie."
-                    tr == Tracking.ASSISTED_BODYWEIGHT && fresh.weightKg == null && sug.weightKg == null -> "Escribe cuánta ayuda usaste (0 si fue sin ayuda)."
-                    tr.usesReps && fresh.reps == null && sug.reps == null -> "Escribe las repeticiones antes de marcar la serie."
-                    tr == Tracking.DURATION && fresh.durationSec == null && sug.durationSec == null ->
-                        if (item.isCardio) "Escribe los minutos antes de marcar." else "Escribe los segundos antes de marcar la serie."
+                    trk == Tracking.WEIGHT_REPS && fresh.weightKg == null && sug.weightKg == null -> tr("Escribe el peso antes de marcar la serie.", "Enter the weight before checking the set.")
+                    trk == Tracking.ASSISTED_BODYWEIGHT && fresh.weightKg == null && sug.weightKg == null -> tr("Escribe cuánta ayuda usaste (0 si fue sin ayuda).", "Enter how much assistance you used (0 if none).")
+                    trk.usesReps && fresh.reps == null && sug.reps == null -> tr("Escribe las repeticiones antes de marcar la serie.", "Enter the reps before checking the set.")
+                    trk == Tracking.DURATION && fresh.durationSec == null && sug.durationSec == null ->
+                        if (item.isCardio) tr("Escribe los minutos antes de marcar.", "Enter the minutes before checking.") else tr("Escribe los segundos antes de marcar la serie.", "Enter the seconds before checking the set.")
                     else -> null
                 }
                 if (missing != null) { _events.tryEmit(WorkoutEvent.Message(missing)); return@withLock }
             }
-            val res = c.workouts.toggleComplete(set.id, tr, sug.weightKg, sug.reps, sug.durationSec)
+            val res = c.workouts.toggleComplete(set.id, trk, sug.weightKg, sug.reps, sug.durationSec)
             if (res.completed) {
                 val all = ui.value?.items.orEmpty()
                 val group = groupOf(all, item)
@@ -219,17 +221,17 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
         val group = groupOf(all, item)
         if (group.size > 1) {
             group.dropWhile { it.we.id != item.we.id }.drop(1).firstOrNull { it.sets.getOrNull(setIndex)?.completed == false }
-                ?.let { return "Siguiente: ${it.name} · ${setName(it, setIndex)}" }
+                ?.let { return tr("Siguiente: ", "Next: ") + "${it.name} · ${setName(it, setIndex)}" }
             group.firstOrNull { it.sets.getOrNull(setIndex + 1)?.completed == false }
-                ?.let { return "Siguiente: ${it.name} · ${setName(it, setIndex + 1)}" }
+                ?.let { return tr("Siguiente: ", "Next: ") + "${it.name} · ${setName(it, setIndex + 1)}" }
         } else {
             item.sets.withIndex().drop(setIndex + 1).firstOrNull { !it.value.completed }
-                ?.let { return "Siguiente: ${item.name} · ${setName(item, it.index)}" }
+                ?.let { return tr("Siguiente: ", "Next: ") + "${item.name} · ${setName(item, it.index)}" }
         }
         val lastOfGroup = all.indexOfLast { g -> group.any { it.we.id == g.we.id } }
         val next = all.drop(lastOfGroup + 1).firstOrNull { it.sets.any { s -> !s.completed } }
             ?: all.firstOrNull { it.sets.any { s -> !s.completed && s.id != item.sets.getOrNull(setIndex)?.id } }
-        return next?.let { "Siguiente: ${it.name}" } ?: "¡Última serie! Termina cuando quieras"
+        return next?.let { tr("Siguiente: ", "Next: ") + it.name } ?: tr("¡Última serie! Termina cuando quieras", "Last set! Finish whenever you want")
     }
 
     // ------------------------------------------------------------------ acciones simples
@@ -258,23 +260,24 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
             val fresh = c.workouts.getSet(s.id) ?: continue
             if (fresh.completed) continue
             val sug = suggestion(e, fresh)
-            val tr = e.tracking
+            val trk = e.tracking
             val missing = when {
-                tr == Tracking.WEIGHT_REPS && fresh.weightKg == null && sug.weightKg == null -> "el peso"
-                tr == Tracking.ASSISTED_BODYWEIGHT && fresh.weightKg == null && sug.weightKg == null -> "la ayuda"
-                tr.usesReps && fresh.reps == null && sug.reps == null -> "las repeticiones"
-                tr == Tracking.DURATION && fresh.durationSec == null && sug.durationSec == null -> if (e.isCardio) "los minutos" else "los segundos"
+                trk == Tracking.WEIGHT_REPS && fresh.weightKg == null && sug.weightKg == null -> tr("el peso", "the weight")
+                trk == Tracking.ASSISTED_BODYWEIGHT && fresh.weightKg == null && sug.weightKg == null -> tr("la ayuda", "the assistance")
+                trk.usesReps && fresh.reps == null && sug.reps == null -> tr("las repeticiones", "the reps")
+                trk == Tracking.DURATION && fresh.durationSec == null && sug.durationSec == null -> if (e.isCardio) tr("los minutos", "the minutes") else tr("los segundos", "the seconds")
                 else -> null
             }
             if (missing != null) {
                 val label = SetNumbering.spoken(e.sets.map { it.setType }, e.sets.indexOfFirst { it.id == s.id })
                 val where = (if (label.startsWith("serie")) "la " else "el ") + label
-                _events.tryEmit(WorkoutEvent.Message("Escribe ${missing} en $where de ${e.name} (o bórrala) y vuelve a terminar."))
+                _events.tryEmit(WorkoutEvent.Message(tr("Escribe ${missing} en $where de ${e.name} (o bórrala) y vuelve a terminar.",
+                    "Enter ${missing} for $label of ${e.name} (or delete it) and finish again.")))
                 return null
             }
-            ready += Triple(fresh, tr, sug)
+            ready += Triple(fresh, trk, sug)
         }
-        ready.forEach { (s, tr, sug) -> c.workouts.toggleComplete(s.id, tr, sug.weightKg, sug.reps, sug.durationSec) }
+        ready.forEach { (s, trk, sug) -> c.workouts.toggleComplete(s.id, trk, sug.weightKg, sug.reps, sug.durationSec) }
         return finish(workoutId, name, notes)
     }
 
@@ -284,7 +287,7 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
         c.restTimer.cancelIfSource(set.id)
         val before = c.workouts.snapshot(set.workoutId, null).let { snap -> snap.copy(exercises = emptyList(), sets = snap.sets.filter { it.id == set.id }) }
         c.workouts.removeSet(set.id)
-        _events.tryEmit(WorkoutEvent.Undoable("Serie eliminada") { c.workouts.restore(before) })
+        _events.tryEmit(WorkoutEvent.Undoable(tr("Serie eliminada", "Set deleted")) { c.workouts.restore(before) })
     }
     fun setType(set: WorkoutSetEntity, type: SetType) = viewModelScope.launch { c.workouts.editSet(set.id) { it.copy(setType = type.code) } }
     fun setRpe(set: WorkoutSetEntity, rpe: Double?) = viewModelScope.launch { c.workouts.editSet(set.id) { it.copy(rpe = rpe) } }
@@ -298,14 +301,14 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
     /** v1.9: el orden de "Ordenar ejercicios", con "Deshacer" (vuelve al orden de antes). */
     fun reorder(workoutId: String, before: List<String>, ids: List<String>) = viewModelScope.launch {
         if (ids == before) return@launch
-        if (c.workouts.reorder(workoutId, ids)) _events.tryEmit(WorkoutEvent.Undoable("Orden de ejercicios cambiado") { c.workouts.reorder(workoutId, before) })
-        else _events.tryEmit(WorkoutEvent.Message("No se pudo cambiar el orden: el entreno cambió mientras tanto. Inténtalo de nuevo."))
+        if (c.workouts.reorder(workoutId, ids)) _events.tryEmit(WorkoutEvent.Undoable(tr("Orden de ejercicios cambiado", "Exercise order changed")) { c.workouts.reorder(workoutId, before) })
+        else _events.tryEmit(WorkoutEvent.Message(tr("No se pudo cambiar el orden: el entreno cambió mientras tanto. Inténtalo de nuevo.", "The order couldn't be changed: the workout changed in the meantime. Please try again.")))
     }
     fun remove(item: ExUi) = viewModelScope.launch {
         item.sets.forEach { c.restTimer.cancelIfSource(it.id) }
         val before = c.workouts.snapshot(item.we.workoutId, item.we.id)
         c.workouts.removeExercise(item.we.id, item.we.workoutId)
-        _events.tryEmit(WorkoutEvent.Undoable("${item.name} quitado") { c.workouts.restore(before) })
+        _events.tryEmit(WorkoutEvent.Undoable(tr("${item.name} quitado", "${item.name} removed")) { c.workouts.restore(before) })
     }
     fun removeFromSuperset(item: ExUi) = viewModelScope.launch { c.workouts.removeFromSuperset(item.we.workoutId, item.we.id) }
 
@@ -329,7 +332,7 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
         c.workouts.ungroup(workoutId, ss)
     }
 
-    fun rename(workoutId: String, name: String) = viewModelScope.launch { c.workouts.renameActive(workoutId, name.trim().ifBlank { "Entrenamiento" }) }
+    fun rename(workoutId: String, name: String) = viewModelScope.launch { c.workouts.renameActive(workoutId, name.trim().ifBlank { tr("Entrenamiento", "Workout") }) }
 
     suspend fun finish(workoutId: String, name: String, notes: String): Int {
         flushAll()

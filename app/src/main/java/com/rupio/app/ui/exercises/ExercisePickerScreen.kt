@@ -1,5 +1,7 @@
 package com.rupio.app.ui.exercises
 
+
+import com.rupio.app.core.tr
 import com.rupio.app.safePop
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -71,7 +73,7 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
         }.sortedWith(compareBy<ExerciseEntity>({ com.rupio.app.domain.ExerciseSearch.rank(it.searchKey, query) }, { !it.isCustom }, { it.searchKey }))
     }
     val usedMuscles = remember(catalog) { Muscles.names.keys.filter { m -> catalog.any { it.primaryMuscle == m } } }
-    // v1.9: "Espalda" junta dorsales, espalda media, lumbar y trapecio; al elegirla aparecen las partes por si buscas una.
+    // v1.9: tr("Espalda", "Back") junta dorsales, espalda media, lumbar y trapecio; al elegirla aparecen las partes por si buscas una.
     val backOpen = muscle == BACK_GROUP || muscle in Muscles.BACK
     val usedEquip = remember(catalog) { Muscles.equipment.keys.filter { q -> catalog.any { it.equipment == q } } }
 
@@ -83,28 +85,28 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        RupioTopBar(if (browse) "Ejercicios" else "Agregar ejercicios", onBack = { nav.safePop() }, subtitle = "${filtered.size} de ${catalog.size}") {
-            IconButton(onClick = { creating = true }) { Icon(Icons.Rounded.AddCircleOutline, "Crear ejercicio") }
+        RupioTopBar(if (browse) tr("Ejercicios", "Exercises") else tr("Agregar ejercicios", "Add exercises"), onBack = { nav.safePop() }, subtitle = tr("${filtered.size} de ${catalog.size}", "${filtered.size} of ${catalog.size}")) {
+            IconButton(onClick = { creating = true }) { Icon(Icons.Rounded.AddCircleOutline, tr("Crear ejercicio", "Create exercise")) }
         }
         OutlinedTextField(
-            query, { query = it }, placeholder = { Text("Buscar: press banca, sentadilla, bíceps…") },
+            query, { query = it }, placeholder = { Text(tr("Buscar: press banca, sentadilla, bíceps…", "Search: bench press, squat, biceps…")) },
             leadingIcon = { Icon(Icons.Rounded.Search, null) },
-            trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Rounded.Close, "Borrar") } },
+            trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { query = "" }) { Icon(Icons.Rounded.Close, tr("Borrar", "Clear")) } },
             singleLine = true, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         )
-        // v1.9: cada fila dice qué filtra ("Músculo", "Equipo"): antes eran dos filas de chips sin título.
+        // v1.9: cada fila dice qué filtra (tr("Músculo", "Muscle"), tr("Equipo", "Equipment")): antes eran dos filas de chips sin título.
         // En horizontal (o con poca altura) los filtros se van con el scroll: fijos solo dejaban ver un ejercicio (N9).
         val short = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp < 480
         val filters: @Composable (androidx.compose.ui.unit.Dp) -> Unit = { hPad ->
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = hPad, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                FilterRowTitle("Músculo")
-                FilterChip(muscle == null, { muscle = null }, label = { Text("Todos") })
+                FilterRowTitle(tr("Músculo", "Muscle"))
+                FilterChip(muscle == null, { muscle = null }, label = { Text(tr("Todos", "All")) })
                 val back = usedMuscles.filter { it in Muscles.BACK }
                 usedMuscles.filter { it !in Muscles.BACK }.forEachIndexed { i, m ->
                     FilterChip(muscle == m, { muscle = if (muscle == m) null else m }, label = { Text(Muscles.label(m)) })
                     if (i == 0 && back.isNotEmpty()) {
-                        FilterChip(muscle == BACK_GROUP, { muscle = if (muscle == BACK_GROUP) null else BACK_GROUP }, label = { Text("Espalda") })
+                        FilterChip(muscle == BACK_GROUP, { muscle = if (muscle == BACK_GROUP) null else BACK_GROUP }, label = { Text(tr("Espalda", "Back")) })
                         if (backOpen) back.forEach { b ->
                             FilterChip(muscle == b, { muscle = if (muscle == b) BACK_GROUP else b }, label = { Text(Muscles.label(b)) },
                                 colors = FilterChipDefaults.filterChipColors(containerColor = RupioColors.Surface2))
@@ -114,7 +116,7 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
             }
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = hPad), horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                FilterRowTitle("Equipo")
+                FilterRowTitle(tr("Equipo", "Equipment"))
                 usedEquip.forEach { q ->
                     FilterChip(equipment == q, { equipment = if (equipment == q) null else q }, label = { Text(Muscles.equipmentLabel(q)) },
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = RupioColors.Rest.copy(alpha = 0.25f)))
@@ -125,8 +127,8 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
         LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (short) item(key = "filtros") { Column { filters(0.dp) } }
             if (filtered.isEmpty()) item {
-                EmptyState(Icons.Rounded.SearchOff, "Sin resultados", "Prueba con otra palabra o crea tu propio ejercicio.") {
-                    Button(onClick = { creating = true }) { Text("Crear ejercicio") }
+                EmptyState(Icons.Rounded.SearchOff, tr("Sin resultados", "No results"), tr("Prueba con otra palabra o crea tu propio ejercicio.", "Try another word or create your own exercise.")) {
+                    Button(onClick = { creating = true }) { Text(tr("Crear ejercicio", "Create exercise")) }
                 }
             }
             items(filtered, key = { it.id }) { e ->
@@ -141,13 +143,13 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
                 onClick = { confirm() },
                 modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = if (short) 6.dp else 16.dp).height(if (short) 46.dp else 54.dp),
                 shape = RoundedCornerShape(16.dp),
-            ) { Text(if (selected.size == 1) "Agregar 1 ejercicio" else "Agregar ${selected.size} ejercicios", style = MaterialTheme.typography.titleMedium) }
+            ) { Text(if (selected.size == 1) tr("Agregar 1 ejercicio", "Add 1 exercise") else tr("Agregar ${selected.size} ejercicios", "Add ${selected.size} exercises"), style = MaterialTheme.typography.titleMedium) }
         }
     }
 
-    if (creating) CreateExerciseDialog(query, { creating = false }) { name, m, eq, tr ->
+    if (creating) CreateExerciseDialog(query, { creating = false }) { name, m, eq, trk ->
         scope.launch {
-            val id = c.exercises.createCustom(name, m, eq, tr.code, m in setOf("cuadriceps", "isquiotibiales", "gluteos", "pantorrillas", "aductores", "abductores", "lumbar"))
+            val id = c.exercises.createCustom(name, m, eq, trk.code, m in setOf("cuadriceps", "isquiotibiales", "gluteos", "pantorrillas", "aductores", "abductores", "lumbar"))
             if (!browse) selected.add(id)
             creating = false
         }
@@ -176,13 +178,13 @@ private fun ExerciseRow(e: ExerciseEntity, order: Int, browse: Boolean, onClick:
         Column(Modifier.weight(1f)) {
             Text(e.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text("${Muscles.label(e.primaryMuscle)} · ${Muscles.equipmentLabel(e.equipment)}", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim, maxLines = 1)
-            val tr = Tracking.of(e.tracking)
-            if (tr != Tracking.WEIGHT_REPS || e.isCustom) Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 3.dp)) {
-                if (tr != Tracking.WEIGHT_REPS) Pill(tr.label, RupioColors.Rest)
-                if (e.isCustom) Pill("Personalizado", RupioColors.Warning)
+            val trk = Tracking.of(e.tracking)
+            if (trk != Tracking.WEIGHT_REPS || e.isCustom) Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 3.dp)) {
+                if (trk != Tracking.WEIGHT_REPS) Pill(trk.label, RupioColors.Rest)
+                if (e.isCustom) Pill(tr("Personalizado", "Custom"), RupioColors.Warning)
             }
         }
-        if (!browse) IconButton(onClick = onInfo) { Icon(Icons.Rounded.Info, "Ver detalles", tint = RupioColors.TextDim) }
+        if (!browse) IconButton(onClick = onInfo) { Icon(Icons.Rounded.Info, tr("Ver detalles", "See details"), tint = RupioColors.TextDim) }
         if (!browse) Box(
             Modifier.size(28.dp).clip(CircleShape).background(if (sel) RupioColors.Primary else RupioColors.Surface3),
             contentAlignment = Alignment.Center,
@@ -200,17 +202,17 @@ private fun CreateExerciseDialog(initial: String, onDismiss: () -> Unit, onCreat
     var tracking by remember { mutableStateOf(Tracking.WEIGHT_REPS) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Crear ejercicio") },
+        title = { Text(tr("Crear ejercicio", "Create exercise")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Nombre") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                Dropdown("Músculo principal", Muscles.names.entries.map { it.key to it.value }, muscle) { muscle = it }
-                Dropdown("Equipo", Muscles.equipment.entries.map { it.key to it.value }, equip) { equip = it }
-                Dropdown("Cómo se registra", Tracking.entries.map { it.code to it.label }, tracking.code) { tracking = Tracking.of(it) }
+                OutlinedTextField(name, { name = it }, label = { Text(tr("Nombre", "Name")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Dropdown(tr("Músculo principal", "Main muscle"), Muscles.names.entries.map { it.key to it.value }, muscle) { muscle = it }
+                Dropdown(tr("Equipo", "Equipment"), Muscles.equipment.entries.map { it.key to it.value }, equip) { equip = it }
+                Dropdown(tr("Cómo se registra", "How it's logged"), Tracking.entries.map { it.code to it.label }, tracking.code) { tracking = Tracking.of(it) }
             }
         },
-        confirmButton = { TextButton(onClick = { if (name.isNotBlank()) onCreate(name, muscle, equip, tracking) }, enabled = name.isNotBlank()) { Text("Crear") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        confirmButton = { TextButton(onClick = { if (name.isNotBlank()) onCreate(name, muscle, equip, tracking) }, enabled = name.isNotBlank()) { Text(tr("Crear", "Create")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancelar", "Cancel")) } },
     )
 }
 

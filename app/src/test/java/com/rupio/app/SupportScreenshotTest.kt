@@ -47,7 +47,7 @@ import java.util.concurrent.TimeUnit
 /** Capturas de lo nuevo en la v1.4: apoyo (mensaje, niveles, gracias, recompensas), carga y cierre de sesión. */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w393dp-h852dp-xhdpi")
+@Config(sdk = [34], qualifiers = "es-rMX-w393dp-h852dp-night-xhdpi")
 class SupportScreenshotTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val app get() = ApplicationProvider.getApplicationContext<RupioApp>()
@@ -101,7 +101,7 @@ class SupportScreenshotTest {
         c.support.debugReset()
         c.support.debugGrant(SupportTier.FAN)
         compose.mainClock.autoAdvance = false
-        app { ThanksDialog(SupportTier.FAN, c.support.state.value, onAccent = {}, onGoldIcon = {}, onClose = {}) }
+        app { ThanksDialog(SupportTier.FAN, c.support.state.value, onAccent = {}, onIcon = {}, onClose = {}) }
         repeat(12) { compose.mainClock.advanceTimeBy(100); ShadowLooper.idleMainLooper(100, TimeUnit.MILLISECONDS) }
         captureScreenRoboImage("screenshots/51_gracias_fan.png")
     }

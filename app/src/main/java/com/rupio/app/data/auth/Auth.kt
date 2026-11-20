@@ -1,5 +1,7 @@
 package com.rupio.app.data.auth
 
+
+import com.rupio.app.core.tr
 import android.util.Base64
 import com.rupio.app.core.Ids
 import com.rupio.app.data.prefs.SecureStore
@@ -149,8 +151,8 @@ class AuthRepository(
 
     private suspend fun authenticate(path: String, body: JsonObject, email: String, name: String?, adopt: (suspend (String) -> Unit)?) {
         val r = postAuth(path, body)
-        val user = r.body?.get("user")?.jsonObject ?: throw AuthException("Respuesta inesperada del servidor (código R1).")
-        val uid = user["id"]?.jsonPrimitive?.content ?: throw AuthException("Respuesta inesperada del servidor (código R2).")
+        val user = r.body?.get("user")?.jsonObject ?: throw AuthException(tr("Respuesta inesperada del servidor (código R1).", "Unexpected server response (code R1)."))
+        val uid = user["id"]?.jsonPrimitive?.content ?: throw AuthException(tr("Respuesta inesperada del servidor (código R2).", "Unexpected server response (code R2)."))
         val displayName = user["name"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: name ?: email.substringBefore('@')
         // v1.7 (N6): la cuenta no está lista hasta confirmar el correo con el código de 6 dígitos.
         val verified = (user["emailVerified"] as? kotlinx.serialization.json.JsonPrimitive)?.booleanOrNull ?: true
@@ -170,13 +172,13 @@ class AuthRepository(
 
     /** Manda (otra vez) el código de 6 dígitos al correo de la cuenta. */
     suspend fun sendVerificationCode() {
-        val s = state.value as? AuthState.SignedIn ?: throw AuthException("No hay una cuenta abierta.")
+        val s = state.value as? AuthState.SignedIn ?: throw AuthException(tr("No hay una cuenta abierta.", "No account is signed in."))
         postAuth("/email-otp/send-verification-otp", buildJsonObject { put("email", s.email); put("type", "email-verification") })
     }
 
     /** Confirma el correo con el código. Desde aquí la cuenta queda lista y empieza a respaldarse. */
     suspend fun verifyEmail(code: String) {
-        val s = state.value as? AuthState.SignedIn ?: throw AuthException("No hay una cuenta abierta.")
+        val s = state.value as? AuthState.SignedIn ?: throw AuthException(tr("No hay una cuenta abierta.", "No account is signed in."))
         val r = postAuth("/email-otp/verify-email", buildJsonObject { put("email", s.email); put("otp", code.filter { it.isDigit() }) })
         saveCookies(r.cookies, merge = true)
         r.jwt?.let { storeJwt(it) }
@@ -190,11 +192,11 @@ class AuthRepository(
      * antes de una acción delicada (eliminar la cuenta).
      */
     suspend fun reauthenticate(password: String) {
-        val s = state.value as? AuthState.SignedIn ?: throw AuthException("No hay una cuenta abierta.")
-        if (s.localOnly) throw AuthException("Estás usando la app sin cuenta.")
+        val s = state.value as? AuthState.SignedIn ?: throw AuthException(tr("No hay una cuenta abierta.", "No account is signed in."))
+        if (s.localOnly) throw AuthException(tr("Estás usando la app sin cuenta.", "You're using the app without an account."))
         val r = postAuth("/sign-in/email", buildJsonObject { put("email", s.email); put("password", password); put("rememberMe", true) })
-        val uid = r.body?.get("user")?.jsonObject?.get("id")?.jsonPrimitive?.content ?: throw AuthException("Respuesta inesperada del servidor (código R2).")
-        if (uid != s.userId) throw AuthException("Esa no es la cuenta de este teléfono.")
+        val uid = r.body?.get("user")?.jsonObject?.get("id")?.jsonPrimitive?.content ?: throw AuthException(tr("Respuesta inesperada del servidor (código R2).", "Unexpected server response (code R2)."))
+        if (uid != s.userId) throw AuthException(tr("Esa no es la cuenta de este teléfono.", "That isn't the account on this phone."))
         saveCookies(r.cookies, merge = false)
         secure.put("session_expired", null)
         r.jwt?.let { storeJwt(it) }
@@ -218,8 +220,8 @@ class AuthRepository(
 
     private suspend fun postAuth(path: String, body: JsonObject): NeonAuthClient.Result {
         val base = settings.current().authUrl
-        if (base.isBlank()) throw AuthException("No se pudo conectar con el servidor. Inténtalo más tarde.")
-        val r = try { client.post(base, path, body) } catch (e: IOException) { throw AuthException("Sin conexión. Revisa tu internet e inténtalo de nuevo.") }
+        if (base.isBlank()) throw AuthException(tr("No se pudo conectar con el servidor. Inténtalo más tarde.", "Couldn't connect to the server. Try again later."))
+        val r = try { client.post(base, path, body) } catch (e: IOException) { throw AuthException(tr("Sin conexión. Revisa tu internet e inténtalo de nuevo.", "No connection. Check your internet and try again.")) }
         if (r.code !in 200..299) throw AuthException(errorMessage(r))
         return r
     }
@@ -231,8 +233,8 @@ class AuthRepository(
      */
     fun useLocalMode(name: String, restoredOwner: String? = null) {
         val uid = secure.get("local_uid") ?: (restoredOwner ?: Ids.uuidV7()).also { secure.put("local_uid", it) }
-        secure.put("user_id", uid); secure.put("email", ""); secure.put("name", name.trim().ifBlank { "Atleta" }); secure.put("local_only", "1")
-        _state.value = AuthState.SignedIn(uid, "", name.trim().ifBlank { "Atleta" }, localOnly = true)
+        secure.put("user_id", uid); secure.put("email", ""); secure.put("name", name.trim().ifBlank { tr("Atleta", "Athlete") }); secure.put("local_only", "1")
+        _state.value = AuthState.SignedIn(uid, "", name.trim().ifBlank { tr("Atleta", "Athlete") }, localOnly = true)
     }
 
     /** El siguiente "modo sin cuenta" usa este id (para regresar a él sin perder los datos del teléfono). */
@@ -321,20 +323,20 @@ class AuthRepository(
     private fun errorMessage(r: NeonAuthClient.Result): String {
         val code = r.body?.get("code")?.jsonPrimitive?.content.orEmpty()
         return when {
-            code.contains("INVALID_OTP") -> "El código no es correcto. Revisa el correo o pide otro."
-            code.contains("OTP_EXPIRED") -> "El código ya venció. Pide uno nuevo."
-            code.contains("TOO_MANY_ATTEMPTS") -> "Demasiados intentos con ese código. Pide uno nuevo."
-            code.contains("INVALID_EMAIL_OR_PASSWORD") || r.code == 401 -> "Correo o contraseña incorrectos."
-            code.contains("USER_ALREADY_EXISTS") || r.code == 422 -> "Ya existe una cuenta con ese correo. Inicia sesión."
-            code.contains("PASSWORD_TOO_SHORT") -> "La contraseña debe tener al menos 8 caracteres."
-            code.contains("PASSWORD_TOO_LONG") -> "La contraseña es demasiado larga."
-            code.contains("INVALID_EMAIL") -> "Ese correo no parece válido."
-            code.contains("EMAIL_NOT_VERIFIED") -> "Confirma tu correo con el código que te enviamos y vuelve a intentar."
-            code.contains("USER_NOT_FOUND") -> "No encontramos esa cuenta."
-            r.code == 403 -> "No se pudo conectar con el servidor. Inténtalo más tarde."
-            r.code == 429 -> "Demasiados intentos. Espera un momento."
-            r.code >= 500 -> "El servidor no responde (código ${r.code}). Inténtalo en unos minutos."
-            else -> "No se pudo completar (código ${r.code}). Inténtalo de nuevo."
+            code.contains("INVALID_OTP") -> tr("El código no es correcto. Revisa el correo o pide otro.", "That code isn't right. Check the email or request another one.")
+            code.contains("OTP_EXPIRED") -> tr("El código ya venció. Pide uno nuevo.", "The code expired. Request a new one.")
+            code.contains("TOO_MANY_ATTEMPTS") -> tr("Demasiados intentos con ese código. Pide uno nuevo.", "Too many attempts with that code. Request a new one.")
+            code.contains("INVALID_EMAIL_OR_PASSWORD") || r.code == 401 -> tr("Correo o contraseña incorrectos.", "Wrong email or password.")
+            code.contains("USER_ALREADY_EXISTS") || r.code == 422 -> tr("Ya existe una cuenta con ese correo. Inicia sesión.", "There's already an account with that email. Sign in.")
+            code.contains("PASSWORD_TOO_SHORT") -> tr("La contraseña debe tener al menos 8 caracteres.", "The password must be at least 8 characters.")
+            code.contains("PASSWORD_TOO_LONG") -> tr("La contraseña es demasiado larga.", "The password is too long.")
+            code.contains("INVALID_EMAIL") -> tr("Ese correo no parece válido.", "That email doesn't look valid.")
+            code.contains("EMAIL_NOT_VERIFIED") -> tr("Confirma tu correo con el código que te enviamos y vuelve a intentar.", "Confirm your email with the code we sent you and try again.")
+            code.contains("USER_NOT_FOUND") -> tr("No encontramos esa cuenta.", "We couldn't find that account.")
+            r.code == 403 -> tr("No se pudo conectar con el servidor. Inténtalo más tarde.", "Couldn't connect to the server. Try again later.")
+            r.code == 429 -> tr("Demasiados intentos. Espera un momento.", "Too many attempts. Wait a moment.")
+            r.code >= 500 -> tr("El servidor no responde (código ${r.code}). Inténtalo en unos minutos.", "The server isn't responding (code ${r.code}). Try again in a few minutes.")
+            else -> tr("No se pudo completar (código ${r.code}). Inténtalo de nuevo.", "It couldn't be completed (code ${r.code}). Please try again.")
         }
     }
 }

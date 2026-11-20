@@ -37,7 +37,8 @@ import java.time.LocalDate
 
 /**
  * Pantalla de medición (solo compilación "benchmark"): las mismas composables de la app con datos de ejemplo, sin red.
- *   adb shell am start -W -n com.rupio.app.bench/com.rupio.app.bench.LeagueBenchActivity --es screen group|global|wall
+ *   adb shell am start -W -n mx.rupio.app.bench/com.rupio.app.bench.LeagueBenchActivity --es screen group|global|wall
+ * (v2.1: el id de la app es mx.rupio.app.bench; la clase sigue en el paquete de Kotlin com.rupio.app.bench).
  * "global" simula el keyset: empieza con 50 filas y suma 50 cada vez que la lista pide más (hasta 2,000).
  */
 class LeagueBenchActivity : ComponentActivity() {

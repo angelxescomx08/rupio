@@ -1,5 +1,7 @@
 package com.rupio.app.domain
 
+import com.rupio.app.core.tr
+
 /**
  * Guía para armar una rutina a tu medida (días, tiempo, equipo, experiencia y objetivo).
  *
@@ -13,33 +15,66 @@ package com.rupio.app.domain
  */
 object RoutineGuide {
 
-    enum class Equip(val label: String, val sub: String) {
-        MACHINES("Gimnasio · máquinas (recomendado)", "Más fácil: tienen apoyo para la espalda o el pecho y el recorrido está guiado. Así haces siempre la misma técnica y es más fácil medir tu progreso."),
-        MIX("Gimnasio · mezcla", "Los básicos con barra o mancuerna y el resto en máquinas."),
-        FREE("Gimnasio · pesas libres", "Barras y mancuernas. Funcionan igual de bien, pero piden más técnica y equilibrio."),
-        DUMBBELLS("Mancuernas y banco", "En casa o en un gimnasio pequeño."),
-        BODYWEIGHT("Sin equipo", "Solo tu cuerpo (y una mesa firme o una barra)."),
+    enum class Equip {
+        MACHINES, MIX, FREE, DUMBBELLS, BODYWEIGHT;
+        val label: String get() = when (this) {
+            MACHINES -> tr("Gimnasio · máquinas (recomendado)", "Gym · machines (recommended)")
+            MIX -> tr("Gimnasio · mezcla", "Gym · mixed")
+            FREE -> tr("Gimnasio · pesas libres", "Gym · free weights")
+            DUMBBELLS -> tr("Mancuernas y banco", "Dumbbells and a bench")
+            BODYWEIGHT -> tr("Sin equipo", "No equipment")
+        }
+        val sub: String get() = when (this) {
+            MACHINES -> tr("Más fácil: tienen apoyo para la espalda o el pecho y el recorrido está guiado. Así haces siempre la misma técnica y es más fácil medir tu progreso.",
+                "Easier: they support your back or chest and guide the movement. Your form stays the same every time and your progress is easier to measure.")
+            MIX -> tr("Los básicos con barra o mancuerna y el resto en máquinas.", "The basics with a barbell or dumbbells and the rest on machines.")
+            FREE -> tr("Barras y mancuernas. Funcionan igual de bien, pero piden más técnica y equilibrio.", "Barbells and dumbbells. They work just as well, but take more technique and balance.")
+            DUMBBELLS -> tr("En casa o en un gimnasio pequeño.", "At home or in a small gym.")
+            BODYWEIGHT -> tr("Solo tu cuerpo (y una mesa firme o una barra).", "Just your body (and a sturdy table or a bar).")
+        }
     }
-    enum class Level(val label: String, val sub: String) {
-        NEW("Estoy empezando", "Nunca he entrenado o llevo menos de 6 meses"),
-        INTER("Intermedio", "De 6 meses a 2 años entrenando con constancia"),
-        ADVANCED("Avanzado", "Más de 2 años; ya progreso lento y conozco la técnica"),
+    enum class Level {
+        NEW, INTER, ADVANCED;
+        val label: String get() = when (this) {
+            NEW -> tr("Estoy empezando", "I'm just starting"); INTER -> tr("Intermedio", "Intermediate"); ADVANCED -> tr("Avanzado", "Advanced")
+        }
+        val sub: String get() = when (this) {
+            NEW -> tr("Nunca he entrenado o llevo menos de 6 meses", "I've never trained or it's been less than 6 months")
+            INTER -> tr("De 6 meses a 2 años entrenando con constancia", "6 months to 2 years of consistent training")
+            ADVANCED -> tr("Más de 2 años; ya progreso lento y conozco la técnica", "More than 2 years; progress is slow now and I know the technique")
+        }
     }
-    enum class Goal(val label: String, val sub: String) {
-        MUSCLE("Ganar músculo", "Verme más grande o marcado"),
-        STRENGTH("Ganar fuerza", "Levantar más peso"),
-        HEALTH("Salud y forma", "Sentirme bien y fuerte para mi día a día"),
+    enum class Goal {
+        MUSCLE, STRENGTH, HEALTH;
+        val label: String get() = when (this) {
+            MUSCLE -> tr("Ganar músculo", "Build muscle"); STRENGTH -> tr("Ganar fuerza", "Get stronger"); HEALTH -> tr("Salud y forma", "Health and fitness")
+        }
+        val sub: String get() = when (this) {
+            MUSCLE -> tr("Verme más grande o marcado", "Look bigger or more defined")
+            STRENGTH -> tr("Levantar más peso", "Lift more weight")
+            HEALTH -> tr("Sentirme bien y fuerte para mi día a día", "Feel good and strong for everyday life")
+        }
     }
-    enum class Split(val label: String, val what: String, val why: String) {
-        FULL_BODY("Cuerpo completo (full body)",
-            "Cada día entrenas todo el cuerpo con pocos ejercicios por músculo.",
-            "Ideal con 2–3 días: cada músculo se entrena 2–3 veces por semana aunque vayas poco. La mejor opción para empezar."),
-        UPPER_LOWER("Torso / Pierna",
-            "Un día torso (pecho, espalda, hombros, brazos) y otro pierna (cuádriceps, femorales, glúteos, pantorrillas).",
-            "Ideal con 4 días: cada músculo 2 veces por semana con más series por sesión y sesiones más cortas que un full body."),
-        PPL("Empuje / Jalón / Pierna",
-            "Empuje: pecho, hombros y tríceps. Jalón: espalda y bíceps. Pierna: todo lo de abajo.",
-            "Ideal con 6 días (cada músculo 2 veces). Con 3 días cada músculo se entrena solo 1 vez por semana: funciona, pero full body suele rendir más."),
+    enum class Split {
+        FULL_BODY, UPPER_LOWER, PPL;
+        val label: String get() = when (this) {
+            FULL_BODY -> tr("Cuerpo completo (full body)", "Full body"); UPPER_LOWER -> tr("Torso / Pierna", "Upper / Lower")
+            PPL -> tr("Empuje / Jalón / Pierna", "Push / Pull / Legs")
+        }
+        val what: String get() = when (this) {
+            FULL_BODY -> tr("Cada día entrenas todo el cuerpo con pocos ejercicios por músculo.", "Each day you train your whole body with a few exercises per muscle.")
+            UPPER_LOWER -> tr("Un día torso (pecho, espalda, hombros, brazos) y otro pierna (cuádriceps, femorales, glúteos, pantorrillas).",
+                "One day upper body (chest, back, shoulders, arms) and another lower body (quads, hamstrings, glutes, calves).")
+            PPL -> tr("Empuje: pecho, hombros y tríceps. Jalón: espalda y bíceps. Pierna: todo lo de abajo.", "Push: chest, shoulders and triceps. Pull: back and biceps. Legs: everything below.")
+        }
+        val why: String get() = when (this) {
+            FULL_BODY -> tr("Ideal con 2–3 días: cada músculo se entrena 2–3 veces por semana aunque vayas poco. La mejor opción para empezar.",
+                "Ideal with 2–3 days: each muscle is trained 2–3 times a week even if you don't go often. The best option to start.")
+            UPPER_LOWER -> tr("Ideal con 4 días: cada músculo 2 veces por semana con más series por sesión y sesiones más cortas que un full body.",
+                "Ideal with 4 days: each muscle twice a week with more sets per session and shorter sessions than full body.")
+            PPL -> tr("Ideal con 6 días (cada músculo 2 veces). Con 3 días cada músculo se entrena solo 1 vez por semana: funciona, pero full body suele rendir más.",
+                "Ideal with 6 days (each muscle twice). With 3 days each muscle is trained only once a week: it works, but full body usually pays off more.")
+        }
     }
 
     data class Input(val days: Int = 3, val minutes: Int = 60, val equip: Equip = Equip.MACHINES, val level: Level = Level.NEW, val goal: Goal = Goal.MUSCLE)
@@ -130,8 +165,8 @@ object RoutineGuide {
         val templates: List<Pair<String, List<Pair<P, Int>>>> = when (split) {
             Split.FULL_BODY -> if (i.days >= 3 && i.level != Level.NEW) listOf("Full body A" to FB_A, "Full body B" to FB_B, "Full body C" to FB_C)
                 else listOf("Full body A" to FB_A, "Full body B" to FB_B)
-            Split.UPPER_LOWER -> listOf("Torso A" to UP_A, "Pierna A" to LO_A, "Torso B" to UP_B, "Pierna B" to LO_B)
-            Split.PPL -> listOf("Empuje" to PUSH, "Jalón" to PULL, "Pierna" to LEGS)
+            Split.UPPER_LOWER -> listOf(tr("Torso A", "Upper A") to UP_A, tr("Pierna A", "Lower A") to LO_A, tr("Torso B", "Upper B") to UP_B, tr("Pierna B", "Lower B") to LO_B)
+            Split.PPL -> listOf(tr("Empuje", "Push") to PUSH, tr("Jalón", "Pull") to PULL, tr("Pierna", "Legs") to LEGS)
         }
         val sessions = templates.map { (name, tpl) -> Session(name, fit(tpl, i)) }
         return Plan(split, sessions, schedule(split, i.days, sessions.map { it.name }))
@@ -164,10 +199,11 @@ object RoutineGuide {
     }
 
     private fun schedule(split: Split, days: Int, names: List<String>): List<String> {
-        val week = listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")
+        val week = if (com.rupio.app.core.I18n.isEnglish) listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+            else listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")
         val slots: List<Int> = when (days) { 2 -> listOf(0, 3); 3 -> listOf(0, 2, 4); 4 -> listOf(0, 1, 3, 4); 5 -> listOf(0, 1, 2, 3, 4); else -> listOf(0, 1, 2, 3, 4, 5) }
         return slots.mapIndexed { k, d -> "${week[d]}: ${names[k % names.size]}" } +
-            if (split == Split.FULL_BODY && days % names.size != 0) listOf("La semana siguiente sigue donde te quedaste (alternando).") else emptyList()
+            if (split == Split.FULL_BODY && days % names.size != 0) listOf(tr("La semana siguiente sigue donde te quedaste (alternando).", "The next week picks up where you left off (alternating).")) else emptyList()
     }
 
     /** Series por semana de cada músculo (método fraccional: principal 1, secundario 0.5). */

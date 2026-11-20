@@ -1,5 +1,7 @@
 package com.rupio.app.ui.support
 
+
+import com.rupio.app.core.tr
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,7 +59,7 @@ import java.time.LocalDate
 import kotlin.math.roundToLong
 
 /** Las dos vistas de la pestaña Ligas. "Mi grupo" va primero: compararse con 30 de tu nivel motiva más que un ranking de todos (Jia 2017). */
-enum class LeagueView(val label: String) { GROUP("Mi grupo"), GLOBAL("Global") }
+enum class LeagueView { GROUP, GLOBAL; val label: String get() = if (this == GROUP) tr("Mi grupo", "My group") else "Global" }
 
 /**
  * Kilos de la tabla: completos y con separador de miles ("12,450 lb"). El formato corto ("12.5 mil lb") haría que dos
@@ -104,19 +106,19 @@ fun LeagueTab(
     if (joining) {
         val wallName = c.wall.state.value.me?.name
         WallNameDialog(
-            title = if (state.league?.member == true) "Tu apodo en las ligas" else "Participar en las ligas",
-            intro = if (state.league?.member == true) null else "Elige cómo te verán en tu grupo. Puede ser un apodo.",
+            title = if (state.league?.member == true) tr("Tu apodo en las ligas", "Your league nickname") else tr("Participar en las ligas", "Join the leagues"),
+            intro = if (state.league?.member == true) null else tr("Elige cómo te verán en tu grupo. Puede ser un apodo.", "Choose how your group will see you. A nickname is fine."),
             initial = state.nickname ?: wallName ?: (auth as? AuthState.SignedIn)?.name.orEmpty(),
-            confirm = if (state.league?.member == true && state.league?.hidden == false) "Guardar" else "Participar",
-            askConsent = true, onDismiss = { joining = false }, label = "Apodo", consentText = LeagueCopy.CONSENT,
+            confirm = if (state.league?.member == true && state.league?.hidden == false) tr("Guardar", "Save") else tr("Participar", "Join"),
+            askConsent = true, onDismiss = { joining = false }, label = tr("Apodo", "Nickname"), consentText = LeagueCopy.CONSENT,
         ) { name -> joining = false; act { c.league.join(name) } }
     }
     if (leaving) AlertDialog(
         onDismissRequest = { leaving = false },
-        title = { Text("¿Salir de las ligas?") },
-        text = { Text("Tu apodo deja de verse y sales del grupo de esta semana. Tus entrenos no cambian. Puedes volver cuando quieras.") },
-        confirmButton = { TextButton(onClick = { leaving = false; act { c.league.setHidden(true) } }) { Text("Salir") } },
-        dismissButton = { TextButton(onClick = { leaving = false }) { Text("Cancelar") } },
+        title = { Text(tr("¿Salir de las ligas?", "Leave the leagues?")) },
+        text = { Text(tr("Tu apodo deja de verse y sales del grupo de esta semana. Tus entrenos no cambian. Puedes volver cuando quieras.", "Your nickname stops showing and you leave this week's group. Your workouts don't change. You can come back whenever you want.")) },
+        confirmButton = { TextButton(onClick = { leaving = false; act { c.league.setHidden(true) } }) { Text(tr("Salir", "Leave")) } },
+        dismissButton = { TextButton(onClick = { leaving = false }) { Text(tr("Cancelar", "Cancel")) } },
     )
 }
 
@@ -146,7 +148,7 @@ fun LeagueContent(
                 Spacer(Modifier.height(6.dp))
                 Text(LeagueCopy.HIDDEN, style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
                 Spacer(Modifier.height(12.dp))
-                Button(onClick = onJoin, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Volver a participar") }
+                Button(onClick = onJoin, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(tr("Volver a participar", "Join again")) }
             }
         }
         !l.inGroup -> Scroll(modifier) {
@@ -186,7 +188,7 @@ private fun Scroll(modifier: Modifier, content: @Composable ColumnScope.() -> Un
 private fun ErrorLine(text: String, onRetry: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(text, style = MaterialTheme.typography.bodyMedium, color = RupioColors.Warning, modifier = Modifier.weight(1f))
-        TextButton(onClick = onRetry) { Text("Reintentar") }
+        TextButton(onClick = onRetry) { Text(tr("Reintentar", "Retry")) }
     }
 }
 
@@ -198,7 +200,7 @@ private fun NeedsAccountCard(localOnly: Boolean, onCreateAccount: () -> Unit) {
         Text(LeagueCopy.NEEDS_ACCOUNT, style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
         if (localOnly) {
             Spacer(Modifier.height(10.dp))
-            Button(onClick = onCreateAccount, modifier = Modifier.fillMaxWidth()) { Text("Crear cuenta y conservar mis datos") }
+            Button(onClick = onCreateAccount, modifier = Modifier.fillMaxWidth()) { Text(tr("Crear cuenta y conservar mis datos", "Create an account and keep my data")) }
         }
     }
 }
@@ -211,14 +213,14 @@ private fun IntroCard(onJoin: () -> Unit) {
         Spacer(Modifier.height(8.dp))
         Text(LeagueCopy.INTRO, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(10.dp))
-        TierLadder(1, mineLabel = "empiezas aquí")
+        TierLadder(1, mineLabel = tr("empiezas aquí", "you start here"))
         Spacer(Modifier.height(10.dp))
         Text(LeagueCopy.SCORE, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
         Spacer(Modifier.height(4.dp))
         Text(LeagueCopy.PAY, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
         Spacer(Modifier.height(14.dp))
         Button(onClick = onJoin, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp), shape = RoundedCornerShape(14.dp)) {
-            Text("Participar", fontWeight = FontWeight.SemiBold)
+            Text(tr("Participar", "Join"), fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -226,7 +228,7 @@ private fun IntroCard(onJoin: () -> Unit) {
 /** Las 6 ligas de abajo hacia arriba; la tuya resaltada (con texto, no solo color). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TierLadder(current: Int, mineLabel: String = "tú") {
+private fun TierLadder(current: Int, mineLabel: String = tr("tú", "you")) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         for (t in 1..LeagueRules.TIERS) {
             val mine = t == current
@@ -250,13 +252,13 @@ private fun LeagueHeader(l: League, today: LocalDate) {
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text("Liga ${l.tierName}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+                Text(tr("Liga ${l.tierName}", "${l.tierName} league"), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
                 val week = l.week
                 // Dos líneas fijas (antes se partía donde cayera y dejaba "personas" sola).
-                if (week != null) Text("Semana ${LeagueRules.weekLabel(week)}", style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                if (week != null) Text(tr("Semana ", "Week of ") + LeagueRules.weekLabel(week), style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
                 Text(buildString {
                     if (week != null) append(LeagueRules.daysLeftText(today, week))
-                    if (l.inGroup) { if (isNotEmpty()) append(" · "); append("${l.size} ${if (l.size == 1) "persona" else "personas"}") }
+                    if (l.inGroup) { if (isNotEmpty()) append(" · "); append(tr("${l.size} ${if (l.size == 1) "persona" else "personas"}", "${l.size} ${if (l.size == 1) "person" else "people"}")) }
                 }, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
             }
         }
@@ -280,8 +282,8 @@ private fun Footer(onRename: () -> Unit, onLeave: () -> Unit) {
 @Composable
 private fun FlowRowButtons(onRename: () -> Unit, onLeave: () -> Unit) {
     FlowRow(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-        TextButton(onClick = onRename) { Text("Cambiar apodo") }
-        TextButton(onClick = onLeave) { Text("Salir de las ligas", color = RupioColors.TextDim) }
+        TextButton(onClick = onRename) { Text(tr("Cambiar apodo", "Change nickname")) }
+        TextButton(onClick = onLeave) { Text(tr("Salir de las ligas", "Leave the leagues"), color = RupioColors.TextDim) }
     }
 }
 
@@ -290,7 +292,8 @@ private fun FlowRowButtons(onRename: () -> Unit, onLeave: () -> Unit) {
 // ---------------------------------------------------------------------------------------------------------------
 
 /** Separadores de zona ("Suben", "Se mantienen", "Bajan"): con texto, no solo color. */
-private val ZoneTitle = mapOf(LeagueZone.UP to "Zona para subir", LeagueZone.STAY to "Se mantienen", LeagueZone.DOWN to "Zona para bajar")
+private val ZoneTitle: Map<LeagueZone, String> get() = mapOf(LeagueZone.UP to tr("Zona para subir", "Promotion zone"),
+    LeagueZone.STAY to tr("Se mantienen", "Staying"), LeagueZone.DOWN to tr("Zona para bajar", "Relegation zone"))
 
 /** Filas y separadores, en orden. Se arma una vez por respuesta del servidor (no en cada recomposición). */
 @Immutable private class GroupEntry(val key: String, val row: LeagueRow?, val zone: LeagueZone)
@@ -343,16 +346,16 @@ private fun LeagueRowItem(r: LeagueRow, unit: WeightUnit, size: Int) {
     val kg = remember(r.kg, unit) { leagueKg(r.kg, unit) }
     val desc = remember(r, kg) {
         buildString {
-            append("Lugar ${r.rank} de $size, ${r.name}"); if (r.me) append(", eres tú")
-            append(", $kg, ${r.workouts} ${if (r.workouts == 1) "entreno" else "entrenos"}")
-            Metals.ofBadge(r.badge)?.let { append(", insignia ${it.name}") }
+            append(tr("Lugar ${r.rank} de $size, ${r.name}", "Place ${r.rank} of $size, ${r.name}")); if (r.me) append(tr(", eres tú", ", that's you"))
+            append(", $kg, ${r.workouts} " + if (r.workouts == 1) tr("entreno", "workout") else tr("entrenos", "workouts"))
+            Metals.ofBadge(r.badge)?.let { append(tr(", insignia ${it.name}", ", ${it.name} badge")) }
         }
     }
     val shape = RoundedCornerShape(12.dp)
-    val workouts = "${r.workouts} ${if (r.workouts == 1) "entreno" else "entrenos"}"
+    val workouts = "${r.workouts} " + if (r.workouts == 1) tr("entreno", "workout") else tr("entrenos", "workouts")
     RankRow(
         rank = r.rank, rankColor = if (r.me) RupioColors.Primary else RupioColors.TextDim,
-        name = if (r.me) "${r.name} (tú)" else r.name, bold = r.me, badge = r.badge, sub = workouts, kg = kg, desc = desc,
+        name = if (r.me) r.name + tr(" (tú)", " (you)") else r.name, bold = r.me, badge = r.badge, sub = workouts, kg = kg, desc = desc,
         modifier = if (r.me) Modifier.clip(shape).background(RupioColors.Primary.copy(alpha = 0.12f)).border(1.dp, RupioColors.Primary.copy(alpha = 0.55f), shape) else Modifier,
     )
 }
@@ -393,9 +396,9 @@ private fun GroupMeBar(l: League, unit: WeightUnit, list: LazyListState) {
         val kgs = l.rows.map { it.kg }
         fun need(target: Int) = LeagueRules.kgToReach(target, me.rank, me.kg, kgs)?.let { leagueKg(it, unit) }
         when (me.zone) {
-            LeagueZone.UP -> if (l.tier >= LeagueRules.TIERS) "Vas en zona alta de Leyenda, la liga más alta" else "Vas en zona para subir a ${LeagueRules.tierName(l.tier + 1)}"
-            LeagueZone.DOWN -> need(l.size - l.down)?.let { "Te faltan $it para salir de la zona para bajar" } ?: "Zona para bajar"
-            LeagueZone.STAY -> if (l.up > 0) need(l.up)?.let { "Te faltan $it para la zona para subir" } ?: "" else need(1)?.let { "Te faltan $it para el primer lugar" } ?: "Vas en primer lugar"
+            LeagueZone.UP -> if (l.tier >= LeagueRules.TIERS) tr("Vas en zona alta de Leyenda, la liga más alta", "You're at the top of Legend, the highest league") else tr("Vas en zona para subir a ${LeagueRules.tierName(l.tier + 1)}", "You're in the zone to move up to ${LeagueRules.tierName(l.tier + 1)}")
+                LeagueZone.DOWN -> need(l.size - l.down)?.let { tr("Te faltan $it para salir de la zona para bajar", "$it more to get out of the relegation zone") } ?: tr("Zona para bajar", "Relegation zone")
+                LeagueZone.STAY -> if (l.up > 0) need(l.up)?.let { tr("Te faltan $it para la zona para subir", "$it more to reach the promotion zone") } ?: "" else need(1)?.let { tr("Te faltan $it para el primer lugar", "$it more for first place") } ?: tr("Vas en primer lugar", "You're in first place")
         }
     }
     Surface(color = RupioColors.Surface2, modifier = Modifier.fillMaxWidth()) {
@@ -404,10 +407,10 @@ private fun GroupMeBar(l: League, unit: WeightUnit, list: LazyListState) {
             Column(Modifier.weight(1f)) {
                 // Con letra grande sin los kilos (ya están en tu fila): la barra no se come la pantalla.
                 val big = LocalDensity.current.fontScale > 1.3f
-                Text("Tú · lugar ${me.rank} de ${l.size}" + if (big) "" else " · ${leagueKg(me.kg, unit)}", style = MaterialTheme.typography.titleSmall.merge(Tabular))
+                Text(tr("Tú · lugar ${me.rank} de ${l.size}", "You · place ${me.rank} of ${l.size}") + if (big) "" else " · ${leagueKg(me.kg, unit)}", style = MaterialTheme.typography.titleSmall.merge(Tabular))
                 if (msg.isNotBlank()) Text(msg, style = MaterialTheme.typography.bodySmall, color = zoneColor(me.zone))
             }
-            Icon(Icons.Rounded.MyLocation, "Ir a tu lugar", tint = RupioColors.TextDim)
+            Icon(Icons.Rounded.MyLocation, tr("Ir a tu lugar", "Go to your place"), tint = RupioColors.TextDim)
         }
     }
 }
@@ -432,8 +435,8 @@ private fun GlobalList(state: LeagueState, unit: WeightUnit, list: LazyListState
     LazyColumn(Modifier.fillMaxSize(), state = list, contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 16.dp)) {
         item(key = "header", contentType = "header") {
             Column(Modifier.padding(bottom = 8.dp)) {
-                Text("Top de la semana · todas las ligas", style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
-                Text("Solo para ver hasta dónde llega la comunidad: subir y bajar de liga se decide en tu grupo.",
+                Text(tr("Top de la semana · todas las ligas", "This week's top · all leagues"), style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
+                Text(tr("Solo para ver hasta dónde llega la comunidad: subir y bajar de liga se decide en tu grupo.", "Just to see how far the community goes: moving up or down a league is decided in your group."),
                     style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
             }
         }
@@ -442,8 +445,8 @@ private fun GlobalList(state: LeagueState, unit: WeightUnit, list: LazyListState
             Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
                 when {
                     state.topError != null -> ErrorLine(state.topError, onLoadMore)
-                    state.topEnd && state.top.isEmpty() -> Text("Nadie ha entrenado esta semana todavía.", color = RupioColors.TextDim)
-                    state.topEnd -> Text("Son todas las personas de esta semana.", style = MaterialTheme.typography.labelMedium, color = RupioColors.TextFaint)
+                    state.topEnd && state.top.isEmpty() -> Text(tr("Nadie ha entrenado esta semana todavía.", "Nobody has trained this week yet."), color = RupioColors.TextDim)
+                    state.topEnd -> Text(tr("Son todas las personas de esta semana.", "That's everyone this week."), style = MaterialTheme.typography.labelMedium, color = RupioColors.TextFaint)
                     else -> CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 3.dp)
                 }
             }
@@ -455,15 +458,16 @@ private fun GlobalList(state: LeagueState, unit: WeightUnit, list: LazyListState
 private fun TopRowItem(r: TopRow, unit: WeightUnit) {
     val kg = remember(r.kg, unit) { leagueKg(r.kg, unit) }
     val tier = LeagueRules.tierName(r.tier)
-    val desc = remember(r, kg) { "Lugar ${r.rank}, ${r.name}, liga $tier, $kg" + (Metals.ofBadge(r.badge)?.let { ", insignia ${it.name}" } ?: "") }
-    RankRow(r.rank, RupioColors.TextDim, r.name, bold = false, badge = r.badge, sub = "Liga $tier", kg = kg, desc = desc)
+    val desc = tr("Lugar ${r.rank}, ${r.name}, liga $tier, $kg", "Place ${r.rank}, ${r.name}, $tier league, $kg") + (Metals.ofBadge(r.badge)?.let { tr(", insignia ${it.name}", ", ${it.name} badge") } ?: "")
+        RankRow(r.rank, RupioColors.TextDim, r.name, bold = false, badge = r.badge, sub = tr("Liga $tier", "$tier league"), kg = kg, desc = desc)
 }
 
 @Composable
 private fun GlobalMeBar(g: LeagueGlobalMe?) {
     g ?: return
     Surface(color = RupioColors.Surface2, modifier = Modifier.fillMaxWidth()) {
-        Text("Tú · lugar ${String.format(Fmt.locale, "%,d", g.rank)} de ${String.format(Fmt.locale, "%,d", g.total)} · top ${g.topPct} %",
+        Text(tr("Tú · lugar ${String.format(Fmt.locale, "%,d", g.rank)} de ${String.format(Fmt.locale, "%,d", g.total)} · top ${g.topPct} %",
+            "You · place ${String.format(Fmt.locale, "%,d", g.rank)} of ${String.format(Fmt.locale, "%,d", g.total)} · top ${g.topPct}%"),
             style = MaterialTheme.typography.titleSmall.merge(Tabular), modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp))
     }
 }
@@ -483,10 +487,10 @@ fun showLeagueCard(access: WallAccess, l: League?): Boolean = access == WallAcce
 fun LeagueCardContent(l: League?, unit: WeightUnit, onOpen: () -> Unit) {
     val me = l?.me
     val (title, sub) = when {
-        l == null || !l.member -> LeagueCopy.TITLE to "Opcional: compite por volumen con personas de tu nivel"
-        me == null -> "Liga ${l.tierName}" to LeagueCopy.NO_WORKOUT
-        else -> "Liga ${l.tierName} · lugar ${me.rank} de ${l.size}" to (leagueKg(me.kg, unit) + " esta semana · " + when (me.zone) {
-            LeagueZone.UP -> "zona para subir"; LeagueZone.DOWN -> "zona para bajar"; LeagueZone.STAY -> "te mantienes"
+        l == null || !l.member -> LeagueCopy.TITLE to tr("Opcional: compite por volumen con personas de tu nivel", "Optional: compete on volume with people at your level")
+        me == null -> tr("Liga ${l.tierName}", "${l.tierName} league") to LeagueCopy.NO_WORKOUT
+        else -> tr("Liga ${l.tierName} · lugar ${me.rank} de ${l.size}", "${l.tierName} league · place ${me.rank} of ${l.size}") to (leagueKg(me.kg, unit) + tr(" esta semana · ", " this week · ") + when (me.zone) {
+            LeagueZone.UP -> tr("zona para subir", "promotion zone"); LeagueZone.DOWN -> tr("zona para bajar", "relegation zone"); LeagueZone.STAY -> tr("te mantienes", "staying")
         })
     }
     SectionCard(Modifier.clickable(onClick = onOpen)) {

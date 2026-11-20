@@ -1,5 +1,7 @@
 package com.rupio.app.domain
 
+
+import com.rupio.app.core.tr
 import com.rupio.app.data.local.WeightPoint
 import kotlin.math.abs
 import kotlin.math.pow
@@ -62,11 +64,11 @@ object WeightTrend {
 
     /** Explicación neutral del ritmo (referencias: Helms 2014 para bajar; Iraki 2019 para subir). */
     fun explain(rate: Double): String = when (pace(rate)) {
-        Pace.STABLE -> "Estable: tu peso casi no cambia. Comes más o menos lo que gastas (mantenimiento)."
-        Pace.LOSING_SLOW -> "Bajando despacio. Si tu meta es definir, un ritmo de 0.5–1 % por semana ayuda a conservar el músculo."
-        Pace.LOSING_GOOD -> "Bajando a buen ritmo para definir (0.5–1 % por semana ayuda a conservar el músculo)."
-        Pace.LOSING_FAST -> "Bajando rápido: más de 1 % por semana. Ir más lento ayuda a no perder músculo ni fuerza."
-        Pace.GAINING_GOOD -> "Subiendo poco a poco. Para ganar músculo con poca grasa se sugiere 0.25–0.5 % por semana."
-        Pace.GAINING_FAST -> "Subiendo rápido: más de 0.5 % por semana suele sumar más grasa que músculo."
+        Pace.STABLE -> tr("Estable: tu peso casi no cambia. Comes más o menos lo que gastas (mantenimiento).", "Stable: your weight barely changes. You eat about what you burn (maintenance).")
+        Pace.LOSING_SLOW -> tr("Bajando despacio. Si tu meta es definir, un ritmo de 0.5–1 % por semana ayuda a conservar el músculo.", "Losing slowly. If your goal is to cut, a pace of 0.5–1% per week helps keep your muscle.")
+        Pace.LOSING_GOOD -> tr("Bajando a buen ritmo para definir (0.5–1 % por semana ayuda a conservar el músculo).", "Losing at a good pace for a cut (0.5–1% per week helps keep your muscle).")
+        Pace.LOSING_FAST -> tr("Bajando rápido: más de 1 % por semana. Ir más lento ayuda a no perder músculo ni fuerza.", "Losing fast: more than 1% per week. Going slower helps you keep muscle and strength.")
+        Pace.GAINING_GOOD -> tr("Subiendo poco a poco. Para ganar músculo con poca grasa se sugiere 0.25–0.5 % por semana.", "Gaining little by little. To build muscle with little fat, 0.25–0.5% per week is suggested.")
+        Pace.GAINING_FAST -> tr("Subiendo rápido: más de 0.5 % por semana suele sumar más grasa que músculo.", "Gaining fast: more than 0.5% per week usually adds more fat than muscle.")
     }
 }

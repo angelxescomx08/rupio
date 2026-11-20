@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- mancuerna Aurora (ícono del nivel Mecenas, v2.0): menta → azul lavanda → orquídea, como la insignia -->
+    <path android:pathData="M30,40 h7 a3,3 0 0 1 3,3 v22 a3,3 0 0 1 -3,3 h-7 a3,3 0 0 1 -3,-3 v-22 a3,3 0 0 1 3,-3z M71,40 h7 a3,3 0 0 1 3,3 v22 a3,3 0 0 1 -3,3 h-7 a3,3 0 0 1 -3,-3 v-22 a3,3 0 0 1 3,-3z M22,46 h4 v16 h-4 a2,2 0 0 1 -2,-2 v-12 a2,2 0 0 1 2,-2z M82,46 h4 a2,2 0 0 1 2,2 v12 a2,2 0 0 1 -2,2 h-4z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="20" android:startY="40" android:endX="88" android:endY="68">
+                <item android:offset="0" android:color="#FF72E6D0" />
+                <item android:offset="0.5" android:color="#FF93A2FF" />
+                <item android:offset="1" android:color="#FFF0A5E8" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:fillColor="#FFFFFF" android:pathData="M40,51 h28 v6 h-28z"/>
+    <!-- flecha de progreso -->
+    <path android:fillColor="#F0A5E8" android:pathData="M54,22 l9,10 h-6 v6 h-6 v-6 h-6z"/>
+</vector>
