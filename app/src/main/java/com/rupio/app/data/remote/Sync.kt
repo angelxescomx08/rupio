@@ -633,7 +633,7 @@ class SyncEngine(
     companion object {
         /** Al cerrar sesión: nada de sincronizaciones programadas de la cuenta que se va. */
         fun cancel(context: Context) {
-            runCatching { WorkManager.getInstance(context).run { cancelUniqueWork("rupio-sync"); cancelUniqueWork("rupio-sync-now") } }
+            runCatching { WorkManager.getInstance(context).run { cancelUniqueWork("rupio-sync"); cancelUniqueWork("rupio-sync-now"); cancelUniqueWork("rupio-sync-soon") } }
         }
         fun schedule(context: Context) {
             val c = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
@@ -642,6 +642,24 @@ class SyncEngine(
                 PeriodicWorkRequestBuilder<SyncWorker>(15, TimeUnit.MINUTES).setConstraints(c).build(),
             )
         }
+        /**
+         * v2.1: subir "pronto", en un solo lote. Se pide cada vez que hay cambios por subir fuera de un entreno (rutinas,
+         * pesos, ediciones, borrados) y espera [SOON_DELAY_MIN] minutos; si llegan más cambios mientras tanto, se suben
+         * en esa misma vuelta (KEEP: no se reinicia ni se encola otra). Así un rato editando rutinas es 1 subida, no 20,
+         * y nada se queda esperando hasta la sincronización periódica (que Android puede atrasar horas).
+         */
+        fun soon(context: Context) {
+            val c = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+            runCatching {
+                WorkManager.getInstance(context).enqueueUniqueWork(
+                    "rupio-sync-soon", ExistingWorkPolicy.KEEP,
+                    OneTimeWorkRequestBuilder<SyncWorker>().setConstraints(c).setInitialDelay(SOON_DELAY_MIN, TimeUnit.MINUTES)
+                        .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS).build(),
+                )
+            }
+        }
+        const val SOON_DELAY_MIN = 2L
+
         fun now(context: Context) {
             val c = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
             WorkManager.getInstance(context).enqueueUniqueWork(

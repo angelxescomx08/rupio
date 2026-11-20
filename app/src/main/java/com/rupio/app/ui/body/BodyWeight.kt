@@ -241,7 +241,8 @@ fun BodyWeightScreen(nav: NavHostController) {
             item {
                 SectionCard {
                     if (v.points.isEmpty() && !v.loading) {
-                        Text(if (latest == null) tr("Aún no tienes registros. Toca \"Registrar peso\".", "No entries yet. Tap “Log weight”.") else tr("Sin registros en este rango.", "No entries in this range."),
+                        // v2.1: el botón se llama "Registrar peso de hoy" (antes decía Toca "Registrar peso", que no existe).
+                        Text(if (latest == null) tr("Aún no tienes registros. Toca \"Registrar peso de hoy\" y aquí verás tu tendencia.", "No entries yet. Tap “Log today's weight” and your trend will show up here.") else tr("Sin registros en este rango.", "No entries in this range."),
                             style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim, modifier = Modifier.padding(vertical = 24.dp))
                     } else if (v.points.size == 1) {
                         // v1.9: con un solo registro la gráfica salía con el eje "81 · 81 · 80" y "18 nov … 18 nov".

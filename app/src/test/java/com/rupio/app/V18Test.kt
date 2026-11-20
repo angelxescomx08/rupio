@@ -130,7 +130,9 @@ class V18Test {
 
     @Test fun avisoDeDescanso_v18() {
         val m = RestAlertMode.MEDIA
-        assertEquals("si nunca elegiste, ahora es con el volumen de la música", RestAlertMode.MEDIA, RestAlertMode.of(null))
+        // v2.1: el modo por defecto pasó a AUTO (ver V21Test.aviso_automatico_suena_con_el_timbre); MEDIA sigue igual.
+        assertEquals("si nunca elegiste, ahora es automático", RestAlertMode.AUTO, RestAlertMode.of(null))
+        assertEquals("quien eligió la música la conserva", RestAlertMode.MEDIA, RestAlertMode.of("media"))
         assertTrue("en vibración suena (el caso del gimnasio)", RestAlertPolicy.decide(m, AudioManager.RINGER_MODE_VIBRATE, false, false).sound)
         assertFalse("silencio total, sin audífonos y sin nada sonando: solo vibra",
             RestAlertPolicy.decide(m, AudioManager.RINGER_MODE_SILENT, false, false, mediaPlaying = false).sound)

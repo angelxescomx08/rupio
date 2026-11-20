@@ -83,6 +83,41 @@ enum class SupportTier(val productId: String, val rank: Int, val emoji: String, 
 }
 
 /**
+ * v2.1 · Subir de nivel pagando solo la diferencia. Google Play no cobra diferencias entre productos únicos, así que
+ * cada mejora es su propio producto (pago único, no consumible) y solo se ofrece a quien ya tiene el nivel [from].
+ * Comprarla da el nivel [to] mientras [from] siga activo (si se reembolsa el nivel de abajo, la mejora sola no cuenta).
+ * Mecenas no tiene mejora: es la entrada al muro y sus puntos son su precio de lista (los decide el servidor).
+ * Los productos se crean en Play Console con estos IDs (docs/PAGOS_PLAY.md); si aún no existen, se cobra el nivel completo.
+ */
+enum class SupportUpgrade(val productId: String, val from: SupportTier, val to: SupportTier, val fallbackPrice: String) {
+    CAFE_LICUADO("rupio_mejora_cafe_licuado", SupportTier.CAFE, SupportTier.LICUADO, "$50 MXN"),
+    CAFE_FAN("rupio_mejora_cafe_fan", SupportTier.CAFE, SupportTier.FAN, "$150 MXN"),
+    LICUADO_FAN("rupio_mejora_licuado_fan", SupportTier.LICUADO, SupportTier.FAN, "$100 MXN");
+
+    companion object {
+        fun of(productId: String): SupportUpgrade? = entries.firstOrNull { it.productId == productId }
+        val productIds: Set<String> = entries.map { it.productId }.toSet()
+
+        /** La mejora para ir de tu mejor nivel [best] a [target], si existe. */
+        fun between(best: SupportTier?, target: SupportTier): SupportUpgrade? = entries.firstOrNull { it.from == best && it.to == target }
+
+        /**
+         * Niveles que tienes con tus compras: los niveles comprados más los que abren tus mejoras, siempre que tengas el
+         * nivel de abajo de cada una (se repite hasta que no cambie: Café + Café→Licuado + Licuado→Fan = Fan).
+         */
+        fun effective(tiers: Set<SupportTier>, upgrades: Set<SupportUpgrade>): Set<SupportTier> {
+            val out = tiers.toMutableSet()
+            var changed = true
+            while (changed) {
+                changed = false
+                for (u in upgrades) if (u.from in out && out.add(u.to)) changed = true
+            }
+            return out
+        }
+    }
+}
+
+/**
  * Compras del muro (consumibles). Los puntos son el precio de lista en pesos y los decide el SERVIDOR (tabla
  * wall_products); aquí solo se usan para mostrar. "rupio_mecenas" sirve para entrar y también como aporte grande.
  */
@@ -110,6 +145,9 @@ object WallCopy {
     val TITLE: String get() = tr("Muro de agradecimientos", "Thank-you wall")
     val INTRO: String get() = tr("Estas personas hacen posible que Rupio siga gratis y sin anuncios. Gracias, de verdad.",
         "These people keep Rupio free and ad-free. Thank you, truly.")
+    /** v2.1: el muro se baja con la cuenta; sin ella no hay lista que mostrar. */
+    val INTRO_NO_LIST: String get() = tr("Aquí aparecen, con su nombre, las personas que apoyan Rupio como Mecenas. Gracias a ellas sigue gratis y sin anuncios.",
+        "People who support Rupio as patrons appear here by name. Thanks to them it stays free and ad-free.")
     val ORDER: String get() = tr("El orden va por la suma de aportes de cada quien; si hay empate, primero quien llegó antes.",
         "Order is by each person's total contributions; on a tie, whoever joined first goes first.")
     val CONSENT: String get() = tr("Acepto que este nombre se muestre a todas las personas que usan Rupio, en el muro de agradecimientos, " +
@@ -195,6 +233,12 @@ object RewardCopy {
     fun yours(tier: SupportTier) = tr("Lo tienes por apoyar Rupio con ${tier.emoji} ${tier.title}. ¡Gracias!",
         "You have this for supporting Rupio with ${tier.emoji} ${tier.title}. Thank you!")
     fun unlocks(tier: SupportTier) = tr("Se desbloquea con ${tier.emoji} ${tier.title}", "Unlocks with ${tier.emoji} ${tier.title}")
+    /** v2.1: cada nivel es un producto aparte en Google Play (se paga completo) y lo que ya tienes se queda. */
+    val UPGRADE_NOTE: String get() = tr("Cada nivel es otro pago único, por su precio completo. Lo que ya tienes se queda.",
+        "Each level is a separate one-time payment at its full price. You keep what you already have.")
+    /** v2.1: con los productos de mejora (SupportUpgrade) se paga solo la diferencia. */
+    fun upgradeDiff(best: SupportTier) = tr("Ya tienes ${best.emoji} ${best.title}: pagas solo la diferencia. Es otro pago único y lo que ya tienes se queda.",
+        "You already have ${best.emoji} ${best.title}: you only pay the difference. It's another one-time payment and you keep what you have.")
     fun badgeTitle(tier: SupportTier) = tr("Insignia ${tier.badge}", "${tier.badge} badge")
 }
 

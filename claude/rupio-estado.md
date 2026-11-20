@@ -27,7 +27,8 @@ Actualizado: 20 nov 2026.
 - Artefactos del 20 nov 2026 (R8, sin depuración):
   - `app/build/outputs/bundle/release/app-release.aab` (para Play)
   - `app/build/outputs/apk/release/app-release.apk` (para repartir directo)
-- Pruebas: 241, 0 fallas, 3 omitidas.
+- Pruebas: 253, 0 fallas reales, 3 omitidas (20 nov 2026, después de la QA de `docs/QA_V21.md` y los 5 comentarios de la v2.1). En una corrida sin caché falló una vez `WeightTabAndShareTest` por el archivo de DataStore bloqueado en Windows (flaky conocido, ver `QA_V19_RONDA3.md`); esa clase sola pasa 5/5.
+- El `.aab` y el `.apk` de release se regeneraron el 20 nov 2026 ~15:58 CDMX: ya incluyen la QA v2.1 y los 5 comentarios (reemplazar ejercicio, aviso de descanso automático, subida en lote, muro sin cuenta, mejoras de nivel).
 
 ## Servidor (Neon)
 
@@ -36,6 +37,7 @@ Actualizado: 20 nov 2026.
 | 009_permisos_internos.sql | Aplicada en production el 18 nov 2026. Confirmado el 20 nov 2026: ninguna función interna abierta para `authenticated`. |
 | 010_cardio.sql | Aplicada en production el 18 nov 2026 (ver `docs/QA_V19.md`). |
 | **011_paquete_play.sql** | **Aplicada en production el 20 nov 2026, 12:08 CDMX**, con visto bueno del usuario. |
+| **012_muro_publico.sql** | **Aplicada en production el 20 nov 2026, 14:48 CDMX**, con visto bueno del usuario. Agrega `rupio_wall_public()` (lugar, nombre y fecha de los primeros 300, sin puntos ni ids) para el rol `anonymous`: el muro se ve sin cuenta. Verificado en production y por HTTP con el JWT de `GET /token/anonymous`: `rupio_wall_public` da 200; `rupio_wall` y la tabla `wall_entries` dan 403 con ese token. |
 
 La 011 cambia `wall_config.package_name` (y su default) de `com.rupio.app` a `mx.rupio.app`. Sin ella, `rupio_wall_register` rechazaría todas las compras del muro de la app nueva (`rupio:bad_purchase`). Termina con revokes explícitos a `authenticated` y `anonymous` en todas las tablas y funciones internas del muro y las ligas.
 

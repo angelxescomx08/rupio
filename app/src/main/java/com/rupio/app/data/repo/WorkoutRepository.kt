@@ -122,6 +122,57 @@ class WorkoutRepository(
         }
     }
 
+    /**
+     * v2.1 · "Reemplazar ejercicio" (la máquina está ocupada, no hay mancuernas libres…). Las series que no marcaste
+     * pasan al ejercicio nuevo, en el mismo lugar y con su tipo (calentamiento, drop set…), pero sin peso ni reps: eran
+     * del otro ejercicio. Las que ya marcaste se quedan con el de antes, porque es lo que hiciste (no se reescribe tu
+     * historial ni tus récords); el nuevo va justo después, fuera de la superserie. Devuelve false si no cambió nada.
+     */
+    suspend fun replaceExercise(workoutExerciseId: String, newExerciseId: String): Boolean {
+        val workoutId = dao.workoutIdOf(workoutExerciseId) ?: return false
+        val list = dao.exercises(workoutId)
+        val we = list.firstOrNull { it.id == workoutExerciseId } ?: return false
+        if (we.exerciseId == newExerciseId) return false
+        val w = dao.get(workoutId) ?: return false
+        val catalog = db.exercises().getMany(listOf(we.exerciseId, newExerciseId)).associateBy { it.id }
+        val ex = catalog[newExerciseId] ?: return false
+        val oldTrk = Tracking.of(catalog[we.exerciseId]?.tracking ?: "weight_reps")
+        val trk = Tracking.of(ex.tracking)
+        val (mn, mx) = if (oldTrk == trk) we.repMin to we.repMax else defaultsFor(trk)
+        val newCardio = ex.isCardio; val oldCardio = catalog[we.exerciseId]?.isCardio == true
+        val rest = when { newCardio -> 0; oldCardio -> settings.current().defaultRestSec; else -> we.restSec }
+        val sets = dao.sets(workoutId).filter { it.workoutExerciseId == workoutExerciseId && !it.deleted }.sortedBy { it.position }
+        val done = sets.filter { it.completed }
+        val open = sets.filter { !it.completed }
+        // Cuántas series lleva el nuevo: el cardio va en 1; si venías de cardio, 3; si no, las que faltaban (mínimo 1).
+        val types = when { newCardio -> listOf(SetType.NORMAL.code); oldCardio -> List(3) { SetType.NORMAL.code }
+            else -> open.map { it.setType }.ifEmpty { listOf(SetType.NORMAL.code) } }
+        val t = now(); val user = uid()
+        fun freshSets(weId: String) = types.mapIndexed { k, type ->
+            WorkoutSetEntity(Ids.uuidV7(t), weId, workoutId, user, newExerciseId, k, setType = type, performedOn = w.localDate, updatedAt = t)
+        }
+        db.withTransaction {
+            if (done.isEmpty()) {
+                // Nada marcado: se cambia en su lugar (conserva superserie, descanso y orden). El plan de la rutina y las
+                // notas eran del ejercicio de antes (pesos sugeridos, "asiento en 4"…): se quitan.
+                dao.upsertExercise(we.copy(exerciseId = newExerciseId, repMin = mn, repMax = mx, restSec = rest, notes = null, setPlan = null, updatedAt = t, dirty = true))
+                dao.upsertSets(sets.map { it.copy(deleted = true, dirty = true, updatedAt = t) } + freshSets(we.id))
+            } else {
+                dao.upsertSets(open.map { it.copy(deleted = true, dirty = true, updatedAt = t) })
+                val nw = WorkoutExerciseEntity(Ids.uuidV7(t), workoutId, user, newExerciseId, 0, restSec = rest, repMin = mn, repMax = mx, updatedAt = t)
+                // Va después del ejercicio (o de su superserie completa, para no partirla).
+                val alive = list.filter { !it.deleted }.sortedBy { it.position }
+                val after = we.supersetId?.let { ss -> alive.indexOfLast { it.supersetId == ss } } ?: alive.indexOfFirst { it.id == we.id }
+                val ordered = alive.toMutableList().apply { add(after + 1, nw) }
+                dao.upsertExercises(ordered.mapIndexedNotNull { k, e ->
+                    when { e.id == nw.id -> e.copy(position = k); e.position != k -> e.copy(position = k, updatedAt = t, dirty = true); else -> null }
+                })
+                dao.upsertSets(freshSets(nw.id))
+            }
+        }
+        return true
+    }
+
     suspend fun removeExercise(workoutExerciseId: String, workoutId: String) {
         val list = dao.exercises(workoutId)
         val target = list.firstOrNull { it.id == workoutExerciseId } ?: return

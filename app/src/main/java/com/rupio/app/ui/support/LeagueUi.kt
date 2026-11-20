@@ -235,7 +235,8 @@ private fun TierLadder(current: Int, mineLabel: String = tr("tú", "you")) {
             val shape = RoundedCornerShape(50)
             Text("$t · ${LeagueRules.tierName(t)}" + if (mine) " ($mineLabel)" else "", style = MaterialTheme.typography.labelMedium,
                 color = if (mine) RupioColors.Primary else RupioColors.TextDim, fontWeight = if (mine) FontWeight.Bold else FontWeight.Normal, maxLines = 1,
-                modifier = Modifier.clip(shape).background(if (mine) RupioColors.Primary.copy(alpha = 0.14f) else RupioColors.Surface2)
+                // v2.1: tinte al 10 % (al 14 % el azul quedaba en 4.44:1 y el turquesa del tema claro en 4.42:1).
+                modifier = Modifier.clip(shape).background(if (mine) RupioColors.Primary.copy(alpha = 0.10f) else RupioColors.Surface2)
                     .then(if (mine) Modifier.border(1.dp, RupioColors.Primary.copy(alpha = 0.6f), shape) else Modifier)
                     .padding(horizontal = 10.dp, vertical = 5.dp))
         }

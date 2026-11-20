@@ -93,6 +93,20 @@ class RoutineEditorVM(private val c: AppContainer, private val routineId: String
         dirty = true
     }
 
+    /**
+     * v2.1 · "Reemplazar": otro ejercicio en el mismo lugar, con sus series (y tipos), descanso y superserie. Los pesos y
+     * reps objetivo eran del ejercicio de antes: se quitan, igual que sus notas. Si cambia cómo se registra (p. ej. a
+     * uno por tiempo), el rango de reps vuelve al de ese tipo.
+     */
+    fun replace(key: String, newId: String) = viewModelScope.launch {
+        val item = items.firstOrNull { it.key == key } ?: return@launch
+        if (item.exerciseId == newId) return@launch
+        val catalog = c.exercises.getMany(listOf(item.exerciseId, newId)).associateBy { it.id }
+        val oldTrk = Tracking.of(catalog[item.exerciseId]?.tracking ?: ""); val trk = Tracking.of(catalog[newId]?.tracking ?: "")
+        val (mn, mx) = if (oldTrk == trk) item.repMin to item.repMax else when (trk) { Tracking.REPS_ONLY -> 8 to 15; Tracking.DURATION -> 1 to 1; else -> 8 to 12 }
+        update(key) { it.copy(exerciseId = newId, repMin = mn, repMax = mx, notes = null, plan = it.plan.map { p -> PlanSet(t = p.t) }) }
+    }
+
     fun updatePlan(key: String, f: (List<PlanSet>) -> List<PlanSet>) = update(key) { e ->
         val p = f(e.plan).ifEmpty { listOf(PlanSet()) }
         e.copy(plan = p, sets = p.size)
@@ -207,6 +221,12 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
     LaunchedEffect(picked?.value) {
         picked?.value?.let { vm.add(it); entry.savedStateHandle["picked"] = null }
     }
+    // v2.1: "Reemplazar" devuelve [clave del ejercicio, ejercicio nuevo].
+    val replaced = entry?.savedStateHandle?.getStateFlow<ArrayList<String>?>("replaced", null)?.collectAsStateWithLifecycle()
+    LaunchedEffect(replaced?.value) {
+        replaced?.value?.takeIf { it.size == 2 }?.let { vm.replace(it[0], it[1]) }
+        if (replaced?.value != null) entry.savedStateHandle["replaced"] = null
+    }
 
     var selecting by remember { mutableStateOf(false) }
     val selected = remember { mutableStateListOf<String>() }
@@ -304,7 +324,8 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
                             onSelect = { if (it.key in selected) selected.remove(it.key) else selected.add(it.key) },
                             vm = vm, onRest = { restFor = it.key }, onReps = { repsFor = it.key },
                             onSupersetNext = { vm.groupKeysWithNext(it.key)?.let { ks -> ssDialog = ks } },
-                            onOpen = { nav.navigate(Routes.exercise(it.exerciseId)) }, onReorder = { openReorder(it.key) })
+                            onOpen = { nav.navigate(Routes.exercise(it.exerciseId)) }, onReorder = { openReorder(it.key) },
+                            onReplace = { nav.navigate(Routes.picker(com.rupio.app.ui.exercises.REPLACE_ROUTINE, it.key + "~" + it.exerciseId)) })
                     }
                 } else {
                     val it = g.first()
@@ -312,13 +333,14 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
                         onSelect = { if (it.key in selected) selected.remove(it.key) else selected.add(it.key) },
                         vm = vm, onRest = { restFor = it.key }, onReps = { repsFor = it.key },
                         onSupersetNext = { vm.groupKeysWithNext(it.key)?.let { ks -> ssDialog = ks } },
-                        onOpen = { nav.navigate(Routes.exercise(it.exerciseId)) }, onReorder = { openReorder(it.key) })
+                        onOpen = { nav.navigate(Routes.exercise(it.exerciseId)) }, onReorder = { openReorder(it.key) },
+                            onReplace = { nav.navigate(Routes.picker(com.rupio.app.ui.exercises.REPLACE_ROUTINE, it.key + "~" + it.exerciseId)) })
                 }
             }
             item {
                 OutlinedButton(
                     onClick = { nav.navigate(Routes.picker("routine", routineId)) },
-                    modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp), shape = RoundedCornerShape(14.dp),
                 ) { Icon(Icons.Rounded.Add, null); Spacer(Modifier.width(6.dp)); Text(tr("Agregar ejercicios", "Add exercises")) }
             }
         }
@@ -373,7 +395,7 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
 private fun ItemCard(
     item: EditItem, ex: ExerciseEntity?, ssIdx: Int?, member: Int?, inSuperset: Boolean, selecting: Boolean, isSelected: Boolean,
     onSelect: () -> Unit, vm: RoutineEditorVM, onRest: () -> Unit, onReps: () -> Unit, onSupersetNext: () -> Unit, onOpen: () -> Unit,
-    onReorder: () -> Unit,
+    onReorder: () -> Unit, onReplace: () -> Unit = {},
 ) {
     var menu by remember { mutableStateOf(false) }
     val tracking = Tracking.of(ex?.tracking ?: "weight_reps")
@@ -405,6 +427,7 @@ private fun ItemCard(
                         if (inSuperset) DropdownMenuItem(text = { Text(tr("Sacar de la superserie", "Remove from superset")) }, leadingIcon = { Icon(Icons.Rounded.LinkOff, null) }, onClick = {
                             menu = false; vm.removeFromSuperset(item.key)
                         })
+                        DropdownMenuItem(text = { Text(tr("Reemplazar ejercicio", "Replace exercise")) }, leadingIcon = { Icon(Icons.Rounded.SwapHoriz, null) }, onClick = { menu = false; onReplace() })
                         if (vm.items.size >= 2) {
                             DropdownMenuItem(text = { Text(tr("Ordenar ejercicios", "Reorder exercises")) }, leadingIcon = { Icon(Icons.Rounded.SwapVert, null) }, onClick = { menu = false; onReorder() })
                             DropdownMenuItem(text = { Text(tr("Subir", "Move up")) }, leadingIcon = { Icon(Icons.Rounded.ArrowUpward, null) }, enabled = vm.canMove(item.key, -1), onClick = { menu = false; vm.move(item.key, -1) })

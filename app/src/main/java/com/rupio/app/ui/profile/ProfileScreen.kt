@@ -386,7 +386,7 @@ private fun RestAlertDialog(current: RestAlertMode, onPick: (RestAlertMode) -> U
                             .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
                     }
                 }) { Text(tr("Más ajustes del aviso en Android", "More alert settings in Android")) }
-                Text(tr("Si escuchas música con audífonos, elige «Con el volumen de la música» para que el aviso no se pierda.", "If you listen to music with headphones, choose \"With the music volume\" so you don't miss the alert."),
+                Text(tr("«Automático» ya usa el volumen de la música cuando tienes audífonos o algo está sonando. Elige «Con el volumen de la música» si prefieres que siempre vaya por ahí.", "\"Automatic\" already uses the music volume when you have headphones on or something is playing. Choose \"With the music volume\" if you always want it that way."),
                     style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
             }
         },

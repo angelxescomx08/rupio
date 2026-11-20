@@ -35,8 +35,8 @@ data class Settings(
     val tutorialWorkout: Boolean = false,
     /** Pantalla encendida mientras entrenas (se puede apagar en Perfil). */
     val keepScreenOn: Boolean = true,
-    /** Cómo avisa el fin del descanso. v1.8: por defecto con el volumen de la música (se oye en vibración y sobre un video). */
-    val restAlert: RestAlertMode = RestAlertMode.MEDIA,
+    /** Cómo avisa el fin del descanso. v2.1: por defecto automático (suena con el timbre; con audífonos o música, por la música). */
+    val restAlert: RestAlertMode = RestAlertMode.AUTO,
     /** Ya se explicó y pidió el permiso de notificaciones (no se vuelve a interrumpir al empezar cada entreno). */
     val notifAsked: Boolean = false,
     /**
@@ -56,14 +56,17 @@ data class Settings(
 
 /** Cómo suena el fin del descanso. */
 enum class RestAlertMode(val code: String) {
-    MEDIA("media"), SOUND("sound"), VIBRATE("vibrate");
+    AUTO("auto"), MEDIA("media"), SOUND("sound"), VIBRATE("vibrate");
 
     val label: String get() = when (this) {
-        MEDIA -> com.rupio.app.core.tr("Con el volumen de la música (recomendado)", "With the music volume (recommended)")
+        AUTO -> com.rupio.app.core.tr("Automático (recomendado)", "Automatic (recommended)")
+        MEDIA -> com.rupio.app.core.tr("Con el volumen de la música", "With the music volume")
         SOUND -> com.rupio.app.core.tr("Como notificación", "As a notification")
         VIBRATE -> com.rupio.app.core.tr("Solo vibración", "Vibrate only")
     }
     val detail: String get() = when (this) {
+        AUTO -> com.rupio.app.core.tr("Suena con el timbre del teléfono, aunque la música esté en 0. Con audífonos, o si suena música o un video, va por el volumen de la música y la baja un momento. En vibración suena por la música si no está en 0; en silencio solo vibra",
+            "Plays with your phone's ringer, even if media volume is at 0. With headphones, or if music or a video is playing, it uses the music volume and briefly lowers it. On vibrate it plays through media if it isn't at 0; on silent it only vibrates")
         MEDIA -> com.rupio.app.core.tr("Se oye aunque el teléfono esté en vibración, por la bocina o tus audífonos, y baja un momento la música o el video. En silencio total, solo vibra (salvo con audífonos o si algo está sonando)",
             "You'll hear it even with your phone on vibrate, through the speaker or your headphones, and it briefly lowers your music or video. On full silent it only vibrates (unless you have headphones or something is playing)")
         SOUND -> com.rupio.app.core.tr("Usa el volumen de notificaciones: en vibración o silencio no suena", "Uses the notification volume: on vibrate or silent it won't play")
@@ -71,10 +74,11 @@ enum class RestAlertMode(val code: String) {
     }
 
     /**
-     * v1.8: si nunca elegiste, ahora es MEDIA. Antes era SOUND, que en vibración no suena: así llegó el reporte de que
-     * "no suena la notificación ni dentro ni fuera de la app, ni viendo un video".
+     * Si nunca elegiste: v1.8 pasó de SOUND a MEDIA (SOUND no suena en vibración). v2.1: AUTO, porque MEDIA no suena con
+     * la música en 0 aunque el timbre esté prendido: llegó el reporte "no suena la notificación; tiene que sonar aunque
+     * solo esté activado el timbre". Quien eligió un modo a mano lo conserva.
      */
-    companion object { fun of(code: String?) = entries.firstOrNull { it.code == code } ?: MEDIA }
+    companion object { fun of(code: String?) = entries.firstOrNull { it.code == code } ?: AUTO }
 }
 
 /** Preferencias del usuario (unidad lb/kg, descanso por defecto, inicio de semana, tutorial). */

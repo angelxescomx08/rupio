@@ -72,7 +72,9 @@ class AppContainer(val app: Application) {
     private fun wallAccount(): String? = (auth.state.value as? com.rupio.app.data.auth.AuthState.SignedIn)
         ?.takeIf { !it.localOnly && !it.needsVerification }?.userId
     val wall = com.rupio.app.data.billing.WallRepository(app, dataApi, { settings.current().dataApiUrl },
-        jwt = { if (wallAccount() == null) null else auth.validJwt() }, userId = ::wallAccount)
+        jwt = { if (wallAccount() == null) null else auth.validJwt() }, userId = ::wallAccount,
+        // v2.1: sin cuenta la lista se ve con un JWT anónimo (db/migrations/012_muro_publico.sql).
+        anonJwt = { auth.anonymousJwt() })
     val support = SupportRepository(app, scope, wall, ::wallAccount)
     /** v1.9: ligas semanales por volumen (misma cuenta lista que el muro). No se piden al abrir la app, solo al verlas. */
     val league = com.rupio.app.data.league.LeagueRepository(app, dataApi, { settings.current().dataApiUrl },
@@ -83,6 +85,14 @@ class AppContainer(val app: Application) {
     val navRequests = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 2)
 
     init {
+        // v2.1: los cambios se suben solos, en lote, unos minutos después (SyncEngine.soon). Durante un entreno no: cada
+        // serie marcada sería una subida; el entreno se sube completo al terminarlo (SyncEngine.now). Sin cuenta, nunca.
+        scope.launch {
+            kotlinx.coroutines.flow.combine(db.workouts().observePending(), workouts.active, auth.state) { n, w, a ->
+                val account = (a as? AuthState.SignedIn)?.let { !it.localOnly && !it.needsVerification } == true
+                if (account && w == null) n else 0
+            }.distinctUntilChanged().collect { pending -> if (pending > 0) SyncEngine.soon(app) }
+        }
         // Al entrar, salir o confirmar el correo: se muestra el lugar en el muro de ESA cuenta y se actualiza.
         scope.launch {
             auth.state.map { wallAccount() }.distinctUntilChanged().collect { uid ->
@@ -100,6 +110,17 @@ class AppContainer(val app: Application) {
     fun onLanguageChanged() {
         scope.launch { CatalogSeeder.seedIfNeeded(app, db) }
         (app as? RupioApp)?.createChannels()
+        localizeDefaultName()
+    }
+
+    /**
+     * v2.1: el nombre por defecto sigue al idioma. Quien entró sin cuenta con el teléfono en inglés y luego eligió
+     * español seguía viendo "Buenas noches, Athlete". Un nombre que la persona escribió no se toca.
+     */
+    fun localizeDefaultName() {
+        val s = auth.state.value as? AuthState.SignedIn ?: return
+        val default = tr("Atleta", "Athlete")
+        if (s.name in DEFAULT_NAMES && s.name != default) auth.updateName(default)
     }
 
     /** La cuenta se acaba de eliminar: MainActivity muestra la confirmación encima de la pantalla de inicio de sesión. */
@@ -272,6 +293,9 @@ class AppContainer(val app: Application) {
     }
 }
 
+/** El nombre que se pone si no escribes uno, en cada idioma. */
+internal val DEFAULT_NAMES = setOf("Atleta", "Athlete")
+
 private val OFFLINE: String get() = tr("Sin conexión. Revisa tu internet e inténtalo de nuevo.", "No connection. Check your internet and try again.")
 
 /** Aviso breve para el snackbar global; [undo] agrega el botón "Deshacer". */
@@ -307,6 +331,7 @@ class RupioApp : Application() {
                 .collect { s ->
                     if (s is AuthState.SignedIn) {
                         container.claimLocalData(s.userId)
+                        container.localizeDefaultName()      // por si el idioma del teléfono cambió con la app cerrada
                         // Una vez por versión: récords consistentes con el historial (p. ej. si borraste entrenos).
                         val prefs = getSharedPreferences("rupio_app", MODE_PRIVATE)
                         // Una vez: re-descarga todo para traer columnas nuevas (planes por serie) y el peso corporal.

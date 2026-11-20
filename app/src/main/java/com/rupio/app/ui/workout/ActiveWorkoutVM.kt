@@ -25,7 +25,8 @@ import kotlinx.coroutines.sync.withLock
 data class ExUi(val we: WorkoutExerciseEntity, val ex: ExerciseEntity?, val sets: List<WorkoutSetEntity>) {
     val tracking get() = Tracking.of(ex?.tracking ?: "weight_reps")
     val name get() = ex?.name ?: tr("Ejercicio", "Exercise")
-    val infoKey get() = "${we.id}:${we.repMin}:${we.repMax}"
+    /** v2.1: con el ejercicio (al reemplazarlo, la recomendación y "Anterior" son del nuevo, no del de antes). */
+    val infoKey get() = "${we.id}:${we.exerciseId}:${we.repMin}:${we.repMax}"
     /** v1.9: cardio por tiempo: se anota en minutos. */
     val isCardio get() = ex?.let { Cardio.isCardio(it.primaryMuscle, it.tracking) } == true
     val plan: List<PlanSet> by lazy { SetPlans.decode(we.setPlan) }

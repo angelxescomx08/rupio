@@ -101,9 +101,10 @@ fun AuthScreen(upgrade: Boolean = false, onBack: (() -> Unit)? = null, onDone: (
         if (onBack != null) {
             IconButton(onClick = onBack, modifier = Modifier.offset(x = (-12).dp)) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, tr("Atrás", "Back")) }
         } else Spacer(Modifier.height(32.dp))
-        Box(Modifier.size(64.dp).clip(RoundedCornerShape(18.dp)).background(RupioColors.Primary.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
-            Icon(if (upgrade) Icons.Rounded.CloudUpload else Icons.Rounded.FitnessCenter, null, tint = RupioColors.Primary, modifier = Modifier.size(34.dp))
-        }
+        // v2.1: la pantalla de entrada muestra el ícono de verdad (el que tienes en tu teléfono), no otra mancuerna.
+        if (upgrade) Box(Modifier.size(64.dp).clip(RoundedCornerShape(18.dp)).background(RupioColors.Primary.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.CloudUpload, null, tint = RupioColors.Primary, modifier = Modifier.size(34.dp))
+        } else com.rupio.app.ui.support.AppIconPreview(com.rupio.app.domain.AppIconStyle.NORMAL, 64.dp)
         Spacer(Modifier.height(20.dp))
         Text(if (upgrade) tr("Respalda tus datos", "Back up your data") else "Rupio", style = MaterialTheme.typography.displaySmall)
         Text(

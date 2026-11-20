@@ -165,6 +165,10 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
     var ssEdit by remember { mutableStateOf<String?>(null) }
     // v1.9: tr("Ordenar ejercicios", "Reorder exercises") (null = cerrada; "" = abierta sin resaltar ninguno).
     var reorderFocus by remember { mutableStateOf<String?>(null) }
+    // v2.1: "Reemplazar ejercicio". Si ya marcaste series de ese ejercicio, primero se explica que se quedan con él.
+    var replacing by remember { mutableStateOf<ExUi?>(null) }
+    fun goReplace(e: ExUi) = nav.navigate(Routes.picker(com.rupio.app.ui.exercises.REPLACE_WORKOUT, e.we.id + "~" + e.we.exerciseId))
+    fun askReplace(e: ExUi) { if (e.sets.any { it.completed }) replacing = e else goReplace(e) }
     fun openReorder(id: String?) {
         if (items.size < 2) return
         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -237,7 +241,7 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
             // Solo si ya se pidió (y se negó) o si Android las tiene apagadas: antes de preguntar no se asusta a nadie.
             if (!notifOk && (android.os.Build.VERSION.SDK_INT < 33 || settings?.notifAsked == true)) item { NotificationsOffCard() }
             // v1.8: si el aviso no se va a oír (volumen en 0, o "Como notificación" con el teléfono en vibración), se dice aquí.
-            inaudible?.let { why -> item { InaudibleCard(why, settings?.restAlert ?: com.rupio.app.data.prefs.RestAlertMode.MEDIA) } }
+            inaudible?.let { why -> item { InaudibleCard(why, settings?.restAlert ?: com.rupio.app.data.prefs.RestAlertMode.AUTO) } }
             if (items.isEmpty()) item {
                 EmptyState(Icons.Rounded.FitnessCenter, tr("Entrenamiento vacío", "Empty workout"), tr("Agrega ejercicios para empezar. Puedes buscar por nombre o por músculo.", "Add exercises to get started. You can search by name or by muscle."))
             }
@@ -262,21 +266,25 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
                             onOpen = { nav.navigate(Routes.exercise(g[k].we.exerciseId)) },
                             onRest = { if (g[k].we.supersetRestMode == SupersetRestMode.SHARED.code) ssEdit = ss else restFor = g[k] }, onReps = { repsFor = g[k] },
                             onNotes = { notesFor = g[k] }, onSuperset = { vm.membersWithNext(g[k])?.let { ssCreate = it } }, onSetMenu = { s -> setSheet = g[k] to s },
-                            onReorder = { openReorder(g[k].we.id) }, canMove = { d -> items.size >= 2 && vm.canMove(items, g[k], d) })
+                            onReorder = { openReorder(g[k].we.id) }, canMove = { d -> items.size >= 2 && vm.canMove(items, g[k], d) }, onReplace = { askReplace(g[k]) })
                     }
                 } else {
                     val it = g.first()
                     ExerciseCard(it, vm, unit, null, null, first, inSuperset = false,
                         onOpen = { nav.navigate(Routes.exercise(it.we.exerciseId)) }, onRest = { restFor = it }, onReps = { repsFor = it },
                         onNotes = { notesFor = it }, onSuperset = { vm.membersWithNext(it)?.let { ids -> ssCreate = ids } }, onSetMenu = { s -> setSheet = it to s },
-                        onReorder = { openReorder(it.we.id) }, canMove = { d -> items.size >= 2 && vm.canMove(items, it, d) })
+                        onReorder = { openReorder(it.we.id) }, canMove = { d -> items.size >= 2 && vm.canMove(items, it, d) }, onReplace = { askReplace(it) })
                 }
             }
             item {
                 Button(
                     onClick = { nav.navigate(Routes.picker("workout", w.id)) },
-                    modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp),
-                ) { Icon(Icons.Rounded.Add, null); Spacer(Modifier.width(6.dp)); Text(tr("Agregar ejercicios", "Add exercises"), style = MaterialTheme.typography.titleMedium) }
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), shape = RoundedCornerShape(16.dp),
+                ) {
+                    // v2.1: con letra al 200 % en 320–360 dp el texto se cortaba en una línea ("+ Agregar"); ahora usa hasta 2.
+                    Icon(Icons.Rounded.Add, null); Spacer(Modifier.width(6.dp))
+                    Text(tr("Agregar ejercicios", "Add exercises"), style = MaterialTheme.typography.titleMedium, maxLines = 2, softWrap = true, textAlign = TextAlign.Center)
+                }
             }
             item {
                 TextButton(onClick = { discarding = true }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.textButtonColors(contentColor = RupioColors.Danger)) {
@@ -287,6 +295,19 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
     }
 
     // ------------------------------------------------------------------ diálogos
+    replacing?.let { e ->
+        val done = e.sets.count { it.completed }
+        AlertDialog(
+            onDismissRequest = { replacing = null },
+            title = { Text(tr("¿Reemplazar ${e.name}?", "Replace ${e.name}?")) },
+            text = { Text(tr("${if (done == 1) "La serie que ya marcaste se queda" else "Las $done series que ya marcaste se quedan"} con ${e.name}: es lo que hiciste. " +
+                "Las que faltan pasan al ejercicio que elijas, justo después.",
+                "${if (done == 1) "The set you already checked stays" else "The $done sets you already checked stay"} with ${e.name}: that's what you did. " +
+                    "The remaining ones move to the exercise you pick, right after it.")) },
+            confirmButton = { TextButton(onClick = { replacing = null; goReplace(e) }) { Text(tr("Elegir ejercicio", "Pick exercise")) } },
+            dismissButton = { TextButton(onClick = { replacing = null }) { Text(tr("Cancelar", "Cancel")) } },
+        )
+    }
     val bodyKg by produceState<Double?>(null, finishing) { if (finishing) value = vm.latestBodyKg() }
     fun done(prs: Int) {
         if (!c.auth.isLocalOnly) SyncEngine.now(context)
@@ -368,7 +389,7 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
 private fun ExerciseCard(
     e: ExUi, vm: ActiveWorkoutVM, unit: WeightUnit, ssIdx: Int?, member: Int?, first: Boolean, inSuperset: Boolean,
     onOpen: () -> Unit, onRest: () -> Unit, onReps: () -> Unit, onNotes: () -> Unit, onSuperset: () -> Unit, onSetMenu: (WorkoutSetEntity) -> Unit,
-    onReorder: () -> Unit, canMove: (Int) -> Boolean,
+    onReorder: () -> Unit, canMove: (Int) -> Boolean, onReplace: () -> Unit = {},
 ) {
     var menu by remember { mutableStateOf(false) }
     val info = vm.infos[e.infoKey]
@@ -398,6 +419,8 @@ private fun ExerciseCard(
                         if (trk != Tracking.DURATION) DropdownMenuItem(text = { Text(tr("Repeticiones objetivo", "Target reps")) }, leadingIcon = { Icon(Icons.Rounded.Repeat, null) }, onClick = { menu = false; onReps() })
                         DropdownMenuItem(text = { Text(tr("Notas", "Notes")) }, leadingIcon = { Icon(Icons.Rounded.EditNote, null) }, onClick = { menu = false; onNotes() })
                         DropdownMenuItem(text = { Text(tr("Ver técnica y video", "See form and video")) }, leadingIcon = { Icon(Icons.Rounded.PlayCircle, null) }, onClick = { menu = false; onOpen() })
+                        // v2.1: la máquina está ocupada o no hay mancuernas: otro ejercicio en el mismo lugar.
+                        DropdownMenuItem(text = { Text(tr("Reemplazar ejercicio", "Replace exercise")) }, leadingIcon = { Icon(Icons.Rounded.SwapHoriz, null) }, onClick = { menu = false; onReplace() })
                         if (canMove(-1) || canMove(1)) {
                             DropdownMenuItem(text = { Text(tr("Ordenar ejercicios", "Reorder exercises")) }, leadingIcon = { Icon(Icons.Rounded.SwapVert, null) }, onClick = { menu = false; onReorder() })
                             DropdownMenuItem(text = { Text(tr("Subir", "Move up")) }, leadingIcon = { Icon(Icons.Rounded.ArrowUpward, null) }, enabled = canMove(-1), onClick = { menu = false; vm.move(e, -1) })

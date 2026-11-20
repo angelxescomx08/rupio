@@ -23,6 +23,7 @@ import com.rupio.app.domain.Accent
 import com.rupio.app.domain.AppIconStyle
 import com.rupio.app.core.tr
 import com.rupio.app.domain.SupportTier
+import com.rupio.app.domain.SupportUpgrade
 import com.rupio.app.domain.WallBoost
 import com.rupio.app.ui.theme.RupioColors
 import androidx.compose.ui.graphics.Color
@@ -55,6 +56,9 @@ data class SupportState(
     val wallNeedsName: Boolean = false,
     /** v1.8: registrando una compra del muro en el servidor. */
     val wallRegistering: Boolean = false,
+    /** v2.1: precios de las mejoras (pagar solo la diferencia) y cuáles existen en Google Play. */
+    val upgradePrices: Map<SupportUpgrade, String> = emptyMap(),
+    val upgradeReady: Set<SupportUpgrade> = emptySet(),
 ) {
     val best: SupportTier? get() = SupportTier.best(owned)
     val isSupporter: Boolean get() = owned.isNotEmpty()
@@ -63,6 +67,14 @@ data class SupportState(
     val isPatron: Boolean get() = SupportTier.MECENAS in owned
     fun price(t: SupportTier): String = prices[t] ?: t.fallbackPrice
     fun price(b: WallBoost): String = wallPrices[b] ?: if (b == WallBoost.BIG) price(SupportTier.MECENAS) else b.fallbackPrice
+
+    /**
+     * v2.1: la mejora con la que se sube de tu nivel a [t] pagando la diferencia. Solo si Google Play ya tiene ese
+     * producto (si no, se cobra el nivel completo); en la versión de pruebas se muestra con su precio sugerido.
+     */
+    fun upgradeFor(t: SupportTier): SupportUpgrade? = SupportUpgrade.between(best, t)?.takeIf { it in upgradeReady || BuildConfig.DEBUG }
+    /** Lo que se paga para tener [t]: la diferencia si hay mejora, o el precio completo. */
+    fun priceFor(t: SupportTier): String = upgradeFor(t)?.let { upgradePrices[it] ?: it.fallbackPrice } ?: price(t)
 }
 
 sealed interface SupportEvent {
@@ -102,6 +114,7 @@ class SupportRepository(
     private var client: BillingClient? = null
     @Volatile private var connecting = false
     private val details = mutableMapOf<SupportTier, ProductDetails>()
+    private val upgradeDetails = mutableMapOf<SupportUpgrade, ProductDetails>()
     private val wallDetails = mutableMapOf<WallBoost, ProductDetails>()
     /** Compras del muro que esperan el nombre (la persona no lo había escrito antes de pagar). */
     private val awaitingName = mutableListOf<Purchase>()
@@ -179,7 +192,7 @@ class SupportRepository(
     /** Pide a Google Play precios y compras. Se llama al abrir la app y al volver a ella. */
     fun refresh() {
         val c = client?.takeIf { it.isReady } ?: return connect()
-        val ids = (SupportTier.entries.map { it.productId } + WallBoost.productIds).distinct()
+        val ids = (SupportTier.entries.map { it.productId } + WallBoost.productIds + SupportUpgrade.productIds).distinct()
         val products = ids.map {
             QueryProductDetailsParams.Product.newBuilder().setProductId(it).setProductType(BillingClient.ProductType.INAPP).build()
         }
@@ -187,28 +200,36 @@ class SupportRepository(
             if (result.responseCode != BillingClient.BillingResponseCode.OK) return@queryProductDetailsAsync
             val prices = mutableMapOf<SupportTier, String>()
             val wallPrices = mutableMapOf<WallBoost, String>()
+            val upPrices = mutableMapOf<SupportUpgrade, String>()
             for (pd in res.productDetailsList) {
                 val price = pd.oneTimePurchaseOfferDetails?.formattedPrice
                 SupportTier.of(pd.productId)?.let { tier -> details[tier] = pd; price?.let { prices[tier] = it } }
                 WallBoost.of(pd.productId)?.let { b -> wallDetails[b] = pd; price?.let { wallPrices[b] = it } }
+                SupportUpgrade.of(pd.productId)?.let { u -> upgradeDetails[u] = pd; price?.let { upPrices[u] = it } }
             }
-            _state.update { it.copy(prices = prices, wallPrices = wallPrices, storeReady = details.isNotEmpty()) }
+            _state.update { it.copy(prices = prices, wallPrices = wallPrices, storeReady = details.isNotEmpty(),
+                upgradePrices = upPrices, upgradeReady = upgradeDetails.keys.toSet()) }
         }
         c.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build()) { result, purchases ->
             if (result.responseCode != BillingClient.BillingResponseCode.OK) return@queryPurchasesAsync
             // La lista de Google Play es la verdad: lo que ya no aparece (reembolsos) se quita.
             val bought = mutableSetOf<SupportTier>(); val pending = mutableSetOf<SupportTier>()
+            val upgrades = mutableSetOf<SupportUpgrade>(); val pendingUp = mutableSetOf<SupportUpgrade>()
             for (p in purchases) {
                 // v1.8: las compras del muro se consumen al registrarse; si siguen aquí, falta registrarlas.
                 if (p.products.any(WallBoost::isWallProduct)) { handleWall(p, fromRestore = true); continue }
                 val tiers = p.products.mapNotNull(SupportTier::of)
+                val ups = p.products.mapNotNull(SupportUpgrade::of)
                 when (p.purchaseState) {
-                    Purchase.PurchaseState.PURCHASED -> { bought += tiers; if (!p.isAcknowledged) acknowledge(p) }
-                    Purchase.PurchaseState.PENDING -> pending += tiers
+                    Purchase.PurchaseState.PURCHASED -> { bought += tiers; upgrades += ups; if (!p.isAcknowledged) acknowledge(p) }
+                    Purchase.PurchaseState.PENDING -> { pending += tiers; pendingUp += ups }
                 }
             }
             val wasPending = _state.value.pending
-            setOwned(bought, pending)
+            // v2.1: las mejoras dan su nivel si tienes el de abajo; una mejora pendiente deja pendiente su nivel.
+            val owned = SupportUpgrade.effective(bought, upgrades)
+            setOwned(owned, pending + pendingUp.map { it.to } - owned)
+            bought.clear(); bought += owned
             // Un pago pendiente que se completó mientras la app estaba cerrada también merece su "gracias".
             // (Restaurar compras al reinstalar no muestra nada: no es una compra nueva.)
             SupportTier.best(bought intersect wasPending)?.let { _events.tryEmit(SupportEvent.Thanks(it)) }
@@ -229,7 +250,8 @@ class SupportRepository(
     fun buy(activity: Activity, tier: SupportTier) {
         if (tier == SupportTier.MECENAS) { _state.update { it.copy(message = tr("Para ser Mecenas primero escribe tu nombre para el muro.", "To become a patron, first enter your name for the wall.")) }; return }
         val c = client
-        val pd = details[tier]
+        // v2.1: si hay mejora para este nivel (pagar solo la diferencia), se compra esa.
+        val pd = SupportUpgrade.between(_state.value.best, tier)?.let { upgradeDetails[it] } ?: details[tier]
         if (c == null || !c.isReady || pd == null) {
             connect()
             _state.update { it.copy(message = NO_PLAY) }
@@ -345,7 +367,9 @@ class SupportRepository(
 
     private fun handle(p: Purchase) {
         if (p.products.any(WallBoost::isWallProduct)) { handleWall(p, fromRestore = false); return }
-        val tiers = p.products.mapNotNull(SupportTier::of).toSet()
+        // v2.1: una mejora da su nivel (si tienes el de abajo, que es lo único a lo que se ofrece).
+        val tiers = (p.products.mapNotNull(SupportTier::of) +
+            p.products.mapNotNull(SupportUpgrade::of).filter { it.from in _state.value.owned }.map { it.to }).toSet()
         if (tiers.isEmpty()) return
         when (p.purchaseState) {
             Purchase.PurchaseState.PURCHASED -> {

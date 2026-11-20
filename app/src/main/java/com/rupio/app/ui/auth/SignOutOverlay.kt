@@ -125,11 +125,11 @@ private fun UploadFailed(s: SignOutState, onRetry: () -> Unit, onExitAnyway: () 
             style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim,
         )
         Spacer(Modifier.height(22.dp))
-        Button(onClick = onRetry, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp)) {
+        Button(onClick = onRetry, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp), shape = RoundedCornerShape(14.dp)) {
             Icon(Icons.Rounded.Refresh, null); Spacer(Modifier.width(8.dp)); Text(tr("Intentar otra vez", "Try again"))
         }
         Spacer(Modifier.height(10.dp))
-        OutlinedButton(onClick = onExitAnyway, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp),
+        OutlinedButton(onClick = onExitAnyway, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp), shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = RupioColors.Danger)) { Text(tr("Salir y perder ${s.pendingLeft} ${cambios(s.pendingLeft)}", "Exit and lose ${s.pendingLeft} ${cambios(s.pendingLeft)}")) }
         TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(tr("Cancelar y seguir en Rupio", "Cancel and stay in Rupio")) }
         Text(tr("Rupio sube tus cambios solo cada vez que hay internet; no tienes que hacer nada más.", "Rupio uploads your changes on its own whenever there's internet; you don't have to do anything else."),

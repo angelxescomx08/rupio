@@ -151,7 +151,7 @@ fun RoutineGuideScreen(nav: NavHostController) {
                 OutlinedButton(onClick = { skip() }, modifier = Modifier.weight(1f).heightIn(min = 50.dp)) { FitText(tr("Desde cero", "From scratch"), MaterialTheme.typography.labelLarge) }
                 Button(onClick = create, modifier = Modifier.weight(1.3f).heightIn(min = 50.dp)) { FitText(tr("Crear ${plan.sessions.size} rutinas", "Create ${plan.sessions.size} routines"), MaterialTheme.typography.labelLarge) }
             } else {
-                Button(onClick = { step++ }, modifier = Modifier.fillMaxWidth().height(50.dp)) { Text(if (step == 0) tr("Empezar", "Start") else if (step == 5) tr("Ver mi propuesta", "See my plan") else tr("Siguiente", "Next")) }
+                Button(onClick = { step++ }, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp)) { Text(if (step == 0) tr("Empezar", "Start") else if (step == 5) tr("Ver mi propuesta", "See my plan") else tr("Siguiente", "Next")) }
             }
         }
     }

@@ -15,6 +15,7 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.coroutines.sync.withLock
 import java.io.IOException
 import java.security.MessageDigest
 
@@ -35,6 +36,8 @@ data class WallState(
     val loading: Boolean = false,
     val loaded: Boolean = false,
     val error: String? = null,
+    /** v2.1: cuántas personas hay en el muro (el servidor manda los primeros 300). Null si no se sabe. */
+    val total: Int? = null,
 )
 
 /** Por qué el servidor no aceptó algo. [userText] es lo que ve la persona. */
@@ -81,7 +84,8 @@ class WallException(val error: WallError) : Exception(error.userText)
 /**
  * Muro de agradecimientos (v1.8). Habla con las funciones SQL de db/migrations/007_supporters_wall.sql.
  *
- *  - Solo con cuenta (la Data API pide JWT; el modo sin cuenta no tiene).
+ *  - Tu lugar y los aportes, solo con cuenta. v2.1: la lista (lugar, nombre y fecha) se ve también sin cuenta con un
+ *    JWT anónimo de Neon Auth y la función rupio_wall_public (db/migrations/012_muro_publico.sql).
  *  - Tu lugar se guarda en el teléfono (por cuenta) para que el nivel Mecenas siga activo sin internet.
  *  - El servidor verifica la firma de Google Play: el teléfono solo manda el JSON de la compra y su firma.
  */
@@ -92,17 +96,68 @@ class WallRepository(
     /** JWT de la persona, o null si no hay cuenta lista (sin cuenta, sesión vencida o correo sin confirmar). */
     private val jwt: suspend () -> String?,
     private val userId: () -> String?,
+    /** v2.1: JWT de rol anonymous para el muro sin cuenta (null sin internet). */
+    private val anonJwt: suspend () -> String? = { null },
 ) {
     private val prefs = context.getSharedPreferences("rupio_wall", Context.MODE_PRIVATE)
-    private val _state = MutableStateFlow(WallState(me = cachedMe(userId())))
+    private val _state = MutableStateFlow(initial(userId()))
     val state: StateFlow<WallState> = _state
+    /** Robolectric (pruebas) no debe llamar al servidor real. */
+    private val networkAllowed = !android.os.Build.FINGERPRINT.orEmpty().contains("robolectric", ignoreCase = true)
+    @Volatile private var publicAt = prefs.getLong("public_at", 0L)
+    /** Una sola carga pública a la vez (la pantalla la pide desde la tarjeta y la pestaña casi juntas). */
+    private val publicMutex = kotlinx.coroutines.sync.Mutex()
 
     /** ¿Tiene el nivel Mecenas? (lo dice el servidor; sin internet, lo último que dijo). */
     val isPatron: Boolean get() = _state.value.me?.isPatron == true
 
     /** La cuenta cambió (entrar, salir, otra cuenta): se muestra lo guardado de esa cuenta. */
     fun onAccountChanged() {
-        _state.value = WallState(me = cachedMe(userId()))
+        _state.value = initial(userId())
+    }
+
+    /** Con cuenta: tu lugar guardado. Sin cuenta: la última lista pública guardada (se ve al instante y sin internet). */
+    private fun initial(uid: String?): WallState = if (uid != null) WallState(me = cachedMe(uid)) else cachedPublic()
+
+    private fun cachedPublic(): WallState {
+        val raw = prefs.getString("public_wall", null) ?: return WallState()
+        return runCatching {
+            val o = api.json.parseToJsonElement(raw).jsonObject
+            val entries = parseEntries(o["entries"])
+            WallState(entries, null, loaded = entries.isNotEmpty(), total = o.int("total") ?: entries.size)
+        }.getOrDefault(WallState())
+    }
+
+    /**
+     * v2.1: el muro sin cuenta (o con la cuenta sin confirmar). Lugar, nombre y fecha de los primeros 300, sin "tú" ni
+     * puntos. No se vuelve a pedir si lo último tiene menos de 30 min, salvo [force] (abrir la pestaña Muro).
+     */
+    suspend fun loadPublic(force: Boolean = false) {
+        if (userId() != null || !networkAllowed) return
+        // Si ya hay una carga pública en curso, se espera a que termine (no se sale dejando "Sin conexión"); y si lo
+        // último es reciente y no es forzado, no se vuelve a pedir.
+        if (!force && publicMutex.isLocked) return
+        publicMutex.withLock { loadPublicLocked(force) }
+    }
+
+    private suspend fun loadPublicLocked(force: Boolean) {
+        if (userId() != null) return
+        val s = _state.value
+        if (!force && s.entries.isNotEmpty() && System.currentTimeMillis() - publicAt < PUBLIC_TTL_MS) return
+        _state.update { it.copy(loading = true, error = null) }
+        try {
+            // El primer token anónimo a veces tarda tras abrir la app: un reintento corto antes de rendirse.
+            val token = anonJwt() ?: run { kotlinx.coroutines.delay(600); anonJwt() } ?: throw IOException("sin token anónimo")
+            val r = api.rpcJson(baseUrl(), token, "rupio_wall_public").jsonObject
+            val entries = parseEntries(r["entries"])
+            if (userId() != null) return                     // entró a su cuenta mientras tanto: manda load()
+            publicAt = System.currentTimeMillis()
+            prefs.edit().putString("public_wall", r.toString()).putLong("public_at", publicAt).apply()
+            _state.value = WallState(entries, null, loading = false, loaded = true, total = r.int("total") ?: entries.size)
+        } catch (e: Exception) {
+            // Si ya había una lista guardada, se queda a la vista sin error.
+            _state.update { it.copy(loading = false, loaded = true, error = if (it.entries.isEmpty()) WallError.from(e).userText else null) }
+        }
     }
 
     suspend fun load() {
@@ -110,13 +165,10 @@ class WallRepository(
         _state.update { it.copy(loading = true, error = null) }
         try {
             val r = api.rpcJson(baseUrl(), token, "rupio_wall").jsonObject
-            val entries = r["entries"]?.takeIf { it !is JsonNull }?.jsonArray?.map { e ->
-                val o = e.jsonObject
-                WallEntry(o.int("rank") ?: 0, o.str("name").orEmpty(), parseTime(o.str("since")), o.bool("me") == true)
-            }.orEmpty()
+            val entries = parseEntries(r["entries"])
             val me = parseMe(r["me"])
             saveMe(me)
-            _state.value = WallState(entries, me, loading = false, loaded = true)
+            _state.value = WallState(entries, me, loading = false, loaded = true, total = me?.total)
         } catch (e: Exception) {
             _state.update { it.copy(loading = false, loaded = true, error = WallError.from(e).userText) }
         }
@@ -186,6 +238,15 @@ class WallRepository(
                 sinceMs = o["since_ms"]?.jsonPrimitive?.content?.toLongOrNull() ?: parseTime(o.str("since")), total = o.int("total") ?: 0,
             )
         }
+
+        /** Filas del muro (las dos funciones mandan lo mismo; la pública no trae "me"). */
+        fun parseEntries(e: JsonElement?): List<WallEntry> = e?.takeIf { it !is JsonNull }?.jsonArray?.map { x ->
+            val o = x.jsonObject
+            WallEntry(o.int("rank") ?: 0, o.str("name").orEmpty(), parseTime(o.str("since")), o.bool("me") == true)
+        }.orEmpty()
+
+        /** Lo público se vuelve a pedir cada 30 min como mucho (el muro cambia poco). */
+        const val PUBLIC_TTL_MS = 30 * 60_000L
 
         fun parseTime(s: String?): Long = s?.let { runCatching { java.time.OffsetDateTime.parse(it).toInstant().toEpochMilli() }.getOrNull() } ?: 0L
 

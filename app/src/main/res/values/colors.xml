@@ -1,7 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#000000</color>
-    <color name="ic_launcher_gold_background">#17110A</color>
-    <color name="ic_launcher_silver_background">#10151C</color>
-    <color name="ic_launcher_aurora_background">#120F1E</color>
+    <!-- v2.1: los fondos de los íconos pasaron a degradados (drawable/ic_launcher_*_bg.xml); aquí ya no hay colores. -->
 </resources>

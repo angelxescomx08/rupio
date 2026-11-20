@@ -101,10 +101,13 @@ fun ExerciseDetailScreen(nav: NavHostController, id: String) {
             } }
             else if (ex.isCustom) item { SectionCard { Text(tr("Ejercicio personalizado (sin imagen)", "Custom exercise (no image)"), color = RupioColors.TextDim) } }
             item {
-                Button(
-                    onClick = { openVideo(context, ex.name) }, modifier = Modifier.fillMaxWidth().height(50.dp), shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = RupioColors.YouTube, contentColor = Color.White),
-                ) { Icon(Icons.Rounded.PlayCircle, null); Spacer(Modifier.width(8.dp)); Text(tr("Buscar videos de cómo hacerlo", "Find videos on how to do it"), fontWeight = FontWeight.SemiBold) }
+                // v2.1: con borde y el ícono rojo, en el mismo lugar. Lleno en rojo era lo más llamativo de la pantalla
+                // (más que la técnica en pasos, que es lo que sirve aquí) y saca a la persona de la app.
+                OutlinedButton(
+                    onClick = { openVideo(context, ex.name) }, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp), shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, RupioColors.ControlOutline),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = RupioColors.Text),
+                ) { Icon(Icons.Rounded.PlayCircle, null, tint = RupioColors.YouTube); Spacer(Modifier.width(8.dp)); Text(tr("Buscar videos de cómo hacerlo", "Find videos on how to do it"), fontWeight = FontWeight.SemiBold) }
             }
             item {
                 SectionCard {

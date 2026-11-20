@@ -141,7 +141,9 @@ fun rupioScheme(primary: Color, dark: Boolean = Appearance.isDark): ColorScheme 
         primary = primary, onPrimary = onPrimary,
         primaryContainer = lerp(p.background, primary, 0.28f), onPrimaryContainer = lerp(Color.White, primary, 0.2f),
         secondary = p.success, onSecondary = Color.Black,
-        secondaryContainer = Color(0xFF123A2B), onSecondaryContainer = Color(0xFFB8F5DA),
+        // v2.1: chips, segmentos y filtros elegidos con el acento (como la barra de abajo y las pestañas). Antes eran
+        // verdes, el color de "serie completada", y no seguían el color que eligió quien apoya.
+        secondaryContainer = lerp(p.background, primary, 0.28f), onSecondaryContainer = lerp(Color.White, primary, 0.2f),
         tertiary = p.warning, onTertiary = Color.Black,
         tertiaryContainer = Color(0xFF3D2C10), onTertiaryContainer = Color(0xFFFFE2B5),
         background = p.background, onBackground = p.text,
@@ -157,7 +159,7 @@ fun rupioScheme(primary: Color, dark: Boolean = Appearance.isDark): ColorScheme 
         primary = primary, onPrimary = onPrimary,
         primaryContainer = lerp(Color.White, primary, 0.16f), onPrimaryContainer = lerp(Color.Black, primary, 0.55f),
         secondary = p.success, onSecondary = Color.White,
-        secondaryContainer = Color(0xFFD3F2E3), onSecondaryContainer = Color(0xFF053822),
+        secondaryContainer = lerp(Color.White, primary, 0.16f), onSecondaryContainer = lerp(Color.Black, primary, 0.55f),
         tertiary = p.warning, onTertiary = Color.White,
         tertiaryContainer = Color(0xFFFFE3CC), onTertiaryContainer = Color(0xFF4A2200),
         background = p.background, onBackground = p.text,

@@ -55,6 +55,20 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
     val selected = rememberSaveable(saver = listSaver(save = { it.toList() }, restore = { it.toMutableStateList() })) { mutableStateListOf<String>() }
     var creating by remember { mutableStateOf(false) }
     val browse = mode == "browse"
+    // v2.1: "Reemplazar ejercicio" (target = "id~ejercicioDeAntes"): se elige uno y listo, empezando por su mismo músculo.
+    val replacing = mode == REPLACE_WORKOUT || mode == REPLACE_ROUTINE
+    val replaceId = target.substringBefore('~')
+    val oldExerciseId = target.substringAfter('~', "")
+    val old = remember(catalog, oldExerciseId) { catalog.firstOrNull { it.id == oldExerciseId } }
+    var muscleSet by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(old) { if (replacing && !muscleSet && old != null) { muscle = old.primaryMuscle; muscleSet = true } }
+    fun replaceWith(id: String) {
+        if (id == oldExerciseId) { nav.safePop(); return }
+        when (mode) {
+            REPLACE_WORKOUT -> scope.launch { c.workouts.replaceExercise(replaceId, id); nav.safePop() }
+            REPLACE_ROUTINE -> { nav.previousBackStackEntry?.savedStateHandle?.set("replaced", arrayListOf(replaceId, id)); nav.safePop() }
+        }
+    }
     // v1.9 (R1): al cambiar la búsqueda o un filtro, la lista regresa arriba (por las llaves conservaba el ejercicio que
     // estaba arriba y los mejores resultados quedaban escondidos). La primera emisión se salta: al volver del detalle
     // de un ejercicio la lista sigue donde estaba.
@@ -85,7 +99,9 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        RupioTopBar(if (browse) tr("Ejercicios", "Exercises") else tr("Agregar ejercicios", "Add exercises"), onBack = { nav.safePop() }, subtitle = tr("${filtered.size} de ${catalog.size}", "${filtered.size} of ${catalog.size}")) {
+        RupioTopBar(when { browse -> tr("Ejercicios", "Exercises"); replacing -> tr("Reemplazar ejercicio", "Replace exercise"); else -> tr("Agregar ejercicios", "Add exercises") },
+            onBack = { nav.safePop() },
+            subtitle = if (replacing && old != null) tr("En lugar de ${old.name}", "Instead of ${old.name}") else tr("${filtered.size} de ${catalog.size}", "${filtered.size} of ${catalog.size}")) {
             IconButton(onClick = { creating = true }) { Icon(Icons.Rounded.AddCircleOutline, tr("Crear ejercicio", "Create exercise")) }
         }
         OutlinedTextField(
@@ -103,7 +119,11 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
                 FilterRowTitle(tr("Músculo", "Muscle"))
                 FilterChip(muscle == null, { muscle = null }, label = { Text(tr("Todos", "All")) })
                 val back = usedMuscles.filter { it in Muscles.BACK }
-                usedMuscles.filter { it !in Muscles.BACK }.forEachIndexed { i, m ->
+                // v2.1: el músculo elegido va primero, siempre a la vista (al reemplazar se elige solo y quedaba fuera de
+                // la pantalla: la lista salía filtrada sin que se viera por qué).
+                val picked = muscle?.takeIf { it != BACK_GROUP && it !in Muscles.BACK }
+                if (picked != null) FilterChip(true, { muscle = null }, label = { Text(Muscles.label(picked)) })
+                usedMuscles.filter { it !in Muscles.BACK && it != picked }.forEachIndexed { i, m ->
                     FilterChip(muscle == m, { muscle = if (muscle == m) null else m }, label = { Text(Muscles.label(m)) })
                     if (i == 0 && back.isNotEmpty()) {
                         FilterChip(muscle == BACK_GROUP, { muscle = if (muscle == BACK_GROUP) null else BACK_GROUP }, label = { Text(tr("Espalda", "Back")) })
@@ -133,12 +153,12 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
             }
             items(filtered, key = { it.id }) { e ->
                 val order = selected.indexOf(e.id)
-                ExerciseRow(e, order, browse,
-                    onClick = { if (browse) nav.navigate(Routes.exercise(e.id)) else if (order >= 0) selected.remove(e.id) else selected.add(e.id) },
+                ExerciseRow(e, order, browse, single = replacing, current = replacing && e.id == oldExerciseId,
+                    onClick = { when { browse -> nav.navigate(Routes.exercise(e.id)); replacing -> replaceWith(e.id); order >= 0 -> selected.remove(e.id); else -> selected.add(e.id) } },
                     onInfo = { nav.navigate(Routes.exercise(e.id)) })
             }
         }
-        if (!browse && selected.isNotEmpty()) Surface(color = RupioColors.Surface) {
+        if (!browse && !replacing && selected.isNotEmpty()) Surface(color = RupioColors.Surface) {
             Button(
                 onClick = { confirm() },
                 modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = if (short) 6.dp else 16.dp).height(if (short) 46.dp else 54.dp),
@@ -150,8 +170,8 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
     if (creating) CreateExerciseDialog(query, { creating = false }) { name, m, eq, trk ->
         scope.launch {
             val id = c.exercises.createCustom(name, m, eq, trk.code, m in setOf("cuadriceps", "isquiotibiales", "gluteos", "pantorrillas", "aductores", "abductores", "lumbar"))
-            if (!browse) selected.add(id)
             creating = false
+            if (replacing) replaceWith(id) else if (!browse) selected.add(id)
         }
     }
 }
@@ -159,14 +179,18 @@ fun ExercisePickerScreen(nav: NavHostController, mode: String, target: String) {
 /** Filtro de grupo: todos los músculos de la espalda. */
 private const val BACK_GROUP = "grupo:espalda"
 
+/** v2.1: modos del selector para "Reemplazar ejercicio" (en el entreno y en el editor de rutinas). */
+const val REPLACE_WORKOUT = "replace"
+const val REPLACE_ROUTINE = "replace-routine"
+
 @Composable
 private fun FilterRowTitle(text: String) {
     Text(text, style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim, modifier = Modifier.padding(end = 2.dp))
 }
 
 @Composable
-private fun ExerciseRow(e: ExerciseEntity, order: Int, browse: Boolean, onClick: () -> Unit, onInfo: () -> Unit) {
-    val sel = order >= 0
+private fun ExerciseRow(e: ExerciseEntity, order: Int, browse: Boolean, onClick: () -> Unit, onInfo: () -> Unit, single: Boolean = false, current: Boolean = false) {
+    val sel = order >= 0 || current
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
             .background(if (sel) RupioColors.Primary.copy(alpha = 0.14f) else RupioColors.Surface)
@@ -185,7 +209,9 @@ private fun ExerciseRow(e: ExerciseEntity, order: Int, browse: Boolean, onClick:
             }
         }
         if (!browse) IconButton(onClick = onInfo) { Icon(Icons.Rounded.Info, tr("Ver detalles", "See details"), tint = RupioColors.TextDim) }
-        if (!browse) Box(
+        // Al reemplazar se toca uno y listo: sin numeritos de selección; el de ahora dice "Actual".
+        if (single) { if (current) Pill(tr("Actual", "Current"), RupioColors.Primary) else Icon(Icons.Rounded.SwapHoriz, null, tint = RupioColors.TextFaint) }
+        else if (!browse) Box(
             Modifier.size(28.dp).clip(CircleShape).background(if (sel) RupioColors.Primary else RupioColors.Surface3),
             contentAlignment = Alignment.Center,
         ) { if (sel) Text("${order + 1}", color = RupioColors.OnPrimary, style = MaterialTheme.typography.labelLarge) }

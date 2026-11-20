@@ -70,6 +70,9 @@ object Fmt {
         else String.format(Locale.US, "%.${decimals}f", r)
     }
 
+    /** v2.1: cantidades enteras con separador de miles ("1,508"), igual que el volumen. */
+    fun count(n: Int): String = String.format(locale, "%,d", n)
+
     fun weight(kg: Double?, unit: WeightUnit): String =
         if (kg == null || !kg.isFinite() || abs(kg) > MAX_KG) "—" else "${num(unit.fromKg(kg))} ${unit.label}"
 
@@ -99,7 +102,10 @@ object Fmt {
 
     fun durationHuman(sec0: Long): String {
         val sec = sec0.coerceIn(0L, 359_999L * 100)
-        val h = sec / 3600; val m = (sec % 3600) / 60
+        if (sec < 60) return "${sec} s"
+        // v2.1: al minuto más cercano. Antes se cortaba: un entreno de 1:58 decía "1 min" y uno de 59:50, "59 min".
+        val total = (sec + 30) / 60
+        val h = total / 60; val m = total % 60
         return when {
             h > 0 && m > 0 -> "${h} h ${m} min"
             h > 0 -> "${h} h"

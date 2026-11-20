@@ -116,8 +116,9 @@ fun SupportTiers(state: SupportState, selected: SupportTier?, onSelect: (Support
     val available = availableTiers(state)
     if (available.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        available.forEach { t -> TierCard(t, state.price(t), selected == t, recommended = t == SupportTier.RECOMMENDED && available.size > 1,
-            pending = t in state.pending) { onSelect(t) } }
+        // v2.1: si ya tienes un nivel y hay mejora, se cobra solo la diferencia (y se dice cuánto costaba completo).
+        available.forEach { t -> TierCard(t, state.priceFor(t), selected == t, recommended = t == SupportTier.RECOMMENDED && available.size > 1,
+            pending = t in state.pending, fullPrice = state.upgradeFor(t)?.let { state.price(t) }) { onSelect(t) } }
         Text(tr("Pago único con Google Play. Puedes pagar con tarjeta, saldo de Google Play o en efectivo en tiendas como OXXO.",
             "One-time payment through Google Play. You can pay by card, with Google Play balance or in cash at stores like OXXO."),
             style = MaterialTheme.typography.labelMedium, color = RupioColors.TextFaint)
@@ -137,8 +138,8 @@ fun SupportBuyButton(state: SupportState, selected: SupportTier?, onBuy: (Suppor
                 }
             }
         }
-        LoadingButton(SupportCopy.cta(state.price(tier)), loading = state.buying != null, onClick = { onBuy(tier) },
-            modifier = Modifier.fillMaxWidth().height(56.dp), loadingText = tr("Abriendo Google Play…", "Opening Google Play…"))
+        LoadingButton(SupportCopy.cta(state.priceFor(tier)), loading = state.buying != null, onClick = { onBuy(tier) },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), loadingText = tr("Abriendo Google Play…", "Opening Google Play…"))
         if (BuildConfig.DEBUG && onDebugGrant != null) {
             TextButton(onClick = { onDebugGrant(tier) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 Text(tr("Simular compra (solo versión de pruebas)", "Simulate purchase (test build only)"), color = RupioColors.TextFaint, style = MaterialTheme.typography.labelMedium)
@@ -148,7 +149,7 @@ fun SupportBuyButton(state: SupportState, selected: SupportTier?, onBuy: (Suppor
 }
 
 @Composable
-private fun TierCard(t: SupportTier, price: String, selected: Boolean, recommended: Boolean, pending: Boolean, onClick: () -> Unit) {
+private fun TierCard(t: SupportTier, price: String, selected: Boolean, recommended: Boolean, pending: Boolean, fullPrice: String? = null, onClick: () -> Unit) {
     val border = if (selected) BorderStroke(2.dp, RupioColors.Primary) else BorderStroke(1.dp, RupioColors.Outline)
     val metal = Metals.of(t)
     Surface(
@@ -165,10 +166,16 @@ private fun TierCard(t: SupportTier, price: String, selected: Boolean, recommend
                 Column(Modifier.weight(1f)) {
                     Text(t.title, style = MaterialTheme.typography.titleMedium)
                     Text(metal.name, style = MaterialTheme.typography.labelMedium, color = metal.ink)
-                    if (recommended) Pill(tr("Recomendado", "Recommended"), RupioColors.Primary)
+                    // v2.1: llena (acento con letra encima). Antes era acento sobre acento al 16 %: 4.07:1 con el azul en
+                    // oscuro, debajo de 4.5:1 (WCAG 1.4.3). Llena también se distingue mejor como la opción de en medio.
+                    if (recommended) Pill(tr("Recomendado", "Recommended"), RupioColors.Primary, filled = true)
                     if (pending) Pill(tr("Pago pendiente", "Payment pending"), RupioColors.Warning)
                 }
-                Text(price, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(price, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    if (fullPrice != null) Text(tr("en vez de $fullPrice", "instead of $fullPrice"), style = MaterialTheme.typography.labelSmall,
+                        color = RupioColors.TextDim, textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough)
+                }
                 Spacer(Modifier.width(8.dp))
                 RadioButton(selected, onClick = null)
             }
@@ -249,7 +256,7 @@ fun ThanksDialog(tier: SupportTier, state: SupportState, onAccent: (Accent) -> U
                         }
                     }
                     Spacer(Modifier.height(24.dp))
-                    Button(onClick = onClose, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp)) {
+                    Button(onClick = onClose, modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), shape = RoundedCornerShape(16.dp)) {
                         Text(tr("¡Listo!", "Done!"), style = MaterialTheme.typography.titleMedium)
                     }
                     Spacer(Modifier.height(8.dp))
@@ -361,9 +368,19 @@ fun SupporterAvatar(name: String, size: Dp, tier: SupportTier?, modifier: Modifi
     val sweep = remember(metal) { Brush.sweepGradient(metal.stops + metal.stops.first()) }
     val spin = if (tier.hasGoldPerks) rememberInfiniteTransition(label = "ring")
         .animateFloat(0f, 360f, infiniteRepeatable(tween(7000, easing = LinearEasing)), label = "spin") else null
+    // v2.1: en el tema claro el marco Plata (y el borde claro del Bronce y el Oro) casi no se veía sobre las tarjetas
+    // blancas (#EEF2F7 sobre #FFFFFF = 1.1:1). Ahí lleva un filo fino del mismo metal oscurecido, como el canto de una
+    // moneda: el marco se distingue y conserva su brillo.
+    val rim = if (com.rupio.app.ui.theme.Appearance.isDark) null else metal.inkLight.copy(alpha = 0.55f)
     Box(modifier.size(size).drawBehind {
         val w = ring.toPx()
-        rotate(spin?.value ?: 0f) { drawCircle(sweep, radius = this.size.minDimension / 2 - w / 2, style = Stroke(w)) }
+        val r = this.size.minDimension / 2
+        rotate(spin?.value ?: 0f) { drawCircle(sweep, radius = r - w / 2, style = Stroke(w)) }
+        if (rim != null) {
+            val hair = 1.dp.toPx()
+            drawCircle(rim, radius = r - hair / 2, style = Stroke(hair))
+            drawCircle(rim, radius = r - w + hair / 2, style = Stroke(hair))
+        }
     }, contentAlignment = Alignment.Center) {
         InitialsAvatar(name, size - (ring + gap) * 2)
     }
@@ -382,12 +399,13 @@ fun MetalDot(badge: Int, modifier: Modifier = Modifier) {
 fun AccentPicker(state: SupportState, onPick: (Accent) -> Unit) {
     val current = state.effectiveAccent
     val dark = com.rupio.app.ui.theme.Appearance.isDark
+    val cell = pickerCellWidth()
     FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Accent.entries.forEach { a ->
             val unlocked = a.unlockedBy(state.best)
             val color = Color(if (dark) a.argb else a.lightArgb)
             val lockedText = a.minTier?.let { RewardCopy.unlocks(it) }
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(60.dp)
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(cell)
                 .selectable(a == current, enabled = unlocked, role = Role.RadioButton) { onPick(a) }
                 .semantics { if (!unlocked && lockedText != null) contentDescription = a.label + ". " + lockedText }) {
                 Box(Modifier.size(44.dp).clip(CircleShape).background(if (unlocked) color else color.copy(alpha = 0.25f))
@@ -398,11 +416,24 @@ fun AccentPicker(state: SupportState, onPick: (Accent) -> Unit) {
                         !unlocked -> Icon(Icons.Rounded.Lock, null, tint = RupioColors.TextDim, modifier = Modifier.size(18.dp))
                     }
                 }
-                Text(a.label, style = MaterialTheme.typography.labelMedium, color = if (unlocked) RupioColors.Text else RupioColors.TextFaint, maxLines = 1)
+                PickerLabel(a.label, unlocked)
                 if (!unlocked) Text(a.minTier!!.emoji, style = MaterialTheme.typography.labelSmall)
             }
         }
     }
+}
+
+/**
+ * v2.1: ancho de cada opción de color e ícono. Con letra al 200 % las etiquetas de 60–64 dp se cortaban a "Turq",
+ * "Dora" o "Norm" (WCAG 1.4.4); con letra grande la celda crece y la etiqueta usa hasta 2 líneas.
+ */
+@Composable
+private fun pickerCellWidth(): Dp = if (LocalDensity.current.fontScale > 1.3f) 96.dp else 64.dp
+
+@Composable
+private fun PickerLabel(text: String, unlocked: Boolean) {
+    FitText(text, MaterialTheme.typography.labelMedium, color = if (unlocked) RupioColors.Text else RupioColors.TextFaint,
+        textAlign = TextAlign.Center, maxLines = 2, modifier = Modifier.fillMaxWidth())
 }
 
 /** v2.0: íconos de la app (antes solo el dorado sí/no). Los bloqueados dicen con qué nivel se abren. */
@@ -416,25 +447,23 @@ fun AppIconPicker(state: SupportState, onPick: (AppIconStyle) -> Unit) {
             "Changes Rupio's icon on your home screen. It can take a few seconds to show up."),
             style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim)
         Spacer(Modifier.height(10.dp))
+        val cell = pickerCellWidth()
         FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             AppIconStyle.entries.forEach { s ->
                 val unlocked = s.unlockedBy(state.best)
                 val lockedText = s.minTier?.let { RewardCopy.unlocks(it) }
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(64.dp)
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(cell)
                     .selectable(s == current, enabled = unlocked, role = Role.RadioButton) { onPick(s) }
                     .semantics { if (!unlocked && lockedText != null) contentDescription = s.label + ". " + lockedText }) {
-                    val shape = RoundedCornerShape(12.dp)
-                    Box(Modifier.size(48.dp).clip(shape).background(iconBackground(s))
-                        .border(if (s == current) 3.dp else 1.dp, if (s == current) RupioColors.Primary else RupioColors.Outline, shape)
-                        .graphicsLayer { alpha = if (unlocked) 1f else 0.45f },
+                    // Anillo de selección por fuera: no tapa el ícono.
+                    Box(Modifier.size(58.dp).border(if (s == current) 3.dp else 0.dp, if (s == current) RupioColors.Primary else Color.Transparent, CircleShape),
                         contentAlignment = Alignment.Center) {
-                        when (s) {
-                            AppIconStyle.AURORA -> Box(Modifier.size(26.dp).clip(RoundedCornerShape(6.dp)).background(Metals.Aurora.brush))
-                            else -> Icon(Icons.Rounded.FitnessCenter, null, tint = iconTint(s))
+                        AppIconPreview(s, 48.dp, Modifier.graphicsLayer { alpha = if (unlocked) 1f else 0.45f })
+                        if (!unlocked) Box(Modifier.size(22.dp).align(Alignment.BottomEnd).clip(CircleShape).background(RupioColors.Surface3), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.Lock, null, tint = RupioColors.TextDim, modifier = Modifier.size(14.dp))
                         }
-                        if (!unlocked) Icon(Icons.Rounded.Lock, null, tint = Color.White, modifier = Modifier.size(16.dp).align(Alignment.BottomEnd).padding(2.dp))
                     }
-                    Text(s.label, style = MaterialTheme.typography.labelMedium, color = if (unlocked) RupioColors.Text else RupioColors.TextFaint, maxLines = 1)
+                    PickerLabel(s.label, unlocked)
                     if (!unlocked) Text(s.minTier!!.emoji, style = MaterialTheme.typography.labelSmall)
                 }
             }
@@ -442,14 +471,34 @@ fun AppIconPicker(state: SupportState, onPick: (AppIconStyle) -> Unit) {
     }
 }
 
-/** Fondo y color de cada ícono (los mismos del manifiesto: res/values/colors.xml y los ic_launcher_*). */
-private fun iconBackground(s: AppIconStyle) = when (s) {
-    AppIconStyle.NORMAL -> Color.Black; AppIconStyle.PLATA -> Color(0xFF10151C)
-    AppIconStyle.ORO -> Color(0xFF17110A); AppIconStyle.AURORA -> Color(0xFF120F1E)
+/**
+ * v2.1: el ícono de verdad, con las mismas capas que usa Android (res/mipmap-anydpi-v26/ic_launcher_*.xml). Antes se
+ * dibujaba otra mancuerna (la de Material, en diagonal) y el Aurora era un cuadro de color: lo que elegías no se
+ * parecía a lo que salía en tu pantalla de inicio. La capa del frente mide 108 dp y el launcher muestra los 72 del
+ * centro, así que aquí se dibuja a 1.5× el tamaño y se recorta en círculo, como en la mayoría de los teléfonos.
+ */
+@Composable
+fun AppIconPreview(s: AppIconStyle, size: Dp, modifier: Modifier = Modifier) {
+    Box(modifier.size(size).clip(CircleShape), contentAlignment = Alignment.Center) {
+        androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(iconBackground(s)), contentDescription = null,
+            modifier = Modifier.requiredSize(size * 1.5f))
+        androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(iconForeground(s)), contentDescription = null,
+            modifier = Modifier.requiredSize(size * 1.5f))
+    }
 }
-private fun iconTint(s: AppIconStyle) = when (s) {
-    AppIconStyle.NORMAL -> Color(0xFF5B8CFF); AppIconStyle.PLATA -> Metals.Plata.inkDark
-    AppIconStyle.ORO -> Metals.Oro.inkDark; AppIconStyle.AURORA -> Metals.Aurora.inkDark
+
+/** Capas de cada ícono (las mismas del manifiesto: res/mipmap-anydpi-v26/ic_launcher_*.xml). */
+private fun iconBackground(s: AppIconStyle): Int = when (s) {
+    AppIconStyle.NORMAL -> com.rupio.app.R.drawable.ic_launcher_bg
+    AppIconStyle.PLATA -> com.rupio.app.R.drawable.ic_launcher_silver_bg
+    AppIconStyle.ORO -> com.rupio.app.R.drawable.ic_launcher_gold_bg
+    AppIconStyle.AURORA -> com.rupio.app.R.drawable.ic_launcher_aurora_bg
+}
+private fun iconForeground(s: AppIconStyle): Int = when (s) {
+    AppIconStyle.NORMAL -> com.rupio.app.R.drawable.ic_launcher_foreground
+    AppIconStyle.PLATA -> com.rupio.app.R.drawable.ic_launcher_silver_foreground
+    AppIconStyle.ORO -> com.rupio.app.R.drawable.ic_launcher_gold_foreground
+    AppIconStyle.AURORA -> com.rupio.app.R.drawable.ic_launcher_aurora_foreground
 }
 
 /**
@@ -522,9 +571,9 @@ fun SupportScreen(nav: NavHostController, initialTab: SupportTab = SupportTab.AP
     Scaffold(containerColor = RupioColors.Background, snackbarHost = { SnackbarHost(snackbar) }, topBar = {
         Column {
             RupioTopBar(tr("Apoya Rupio", "Support Rupio"), onBack = { nav.safePop() }) {
-                if (tab != SupportTab.APOYAR && access == WallAccess.READY) IconButton(onClick = {
+                if ((tab == SupportTab.MURO || (tab == SupportTab.LIGAS && access == WallAccess.READY))) IconButton(onClick = {
                     scope.launch {
-                        if (tab == SupportTab.MURO) c.wall.load()
+                        if (tab == SupportTab.MURO) { if (access == WallAccess.READY) c.wall.load() else c.wall.loadPublic(force = true) }
                         else { c.league.load(force = true); if (leagueView == LeagueView.GLOBAL) c.league.loadTop(reset = true) }
                     }
                 }) { Icon(Icons.Rounded.Refresh, tr("Actualizar", "Refresh")) }
@@ -620,7 +669,10 @@ private fun SupportTabContent(nav: NavHostController, scroll: ScrollState, onOpe
             Column {
                 Text(if (best == null) RewardCopy.TITLE else if (best == SupportTier.FAN) tr("¿Quieres aparecer en el muro de agradecimientos? Hazte Mecenas:", "Want to be on the thank-you wall? Become a patron:")
                     else tr("¿Quieres más recompensas? Puedes subir de nivel:", "Want more rewards? You can level up:"), style = MaterialTheme.typography.titleSmall)
-                if (best == null) Text(RewardCopy.EXPLAIN, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = Modifier.padding(top = 2.dp))
+                // v2.1: quien ya pagó un nivel podía creer que "subir de nivel" cobra solo la diferencia.
+                val diff = best != null && availableTiers(state).any { state.upgradeFor(it) != null }
+                Text(when { best == null -> RewardCopy.EXPLAIN; diff -> RewardCopy.upgradeDiff(best!!); else -> RewardCopy.UPGRADE_NOTE },
+                    style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim, modifier = Modifier.padding(top = 2.dp))
             }
         }
         if (state.pending.isNotEmpty()) Surface(color = RupioColors.Warning.copy(alpha = 0.12f), shape = RoundedCornerShape(12.dp)) {

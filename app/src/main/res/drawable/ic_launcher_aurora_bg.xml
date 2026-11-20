@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- v2.1: fondo del ícono Aurora (antes #120F1E). Un degradado del mismo tono, más claro arriba (como luz desde arriba): en un
+         cajón de apps oscuro el borde de arriba se distingue (antes el fondo casi negro se perdía y la mancuerna parecía
+         flotar) y la mancuerna sigue con buen contraste en el centro. -->
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="54" android:startY="0" android:endX="54" android:endY="108">
+                <item android:offset="0" android:color="#FF3D2E5E" />
+                <item android:offset="1" android:color="#FF110D1D" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

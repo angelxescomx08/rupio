@@ -42,7 +42,7 @@ import kotlinx.coroutines.launch
 class WorkoutService : LifecycleService() {
     private val container by lazy { (application as RupioApp).container }
     private var wakeLock: PowerManager.WakeLock? = null
-    @Volatile private var alertMode = com.rupio.app.data.prefs.RestAlertMode.MEDIA
+    @Volatile private var alertMode = com.rupio.app.data.prefs.RestAlertMode.AUTO
 
     override fun onCreate() {
         super.onCreate()
@@ -204,7 +204,12 @@ object RestAlert {
     fun fire(ctx: Context, label: String, mode: com.rupio.app.data.prefs.RestAlertMode, visible: Boolean) {
         fired++
         if (visible) { feedback(ctx, mode); return }
-        val channel = if (mode == com.rupio.app.data.prefs.RestAlertMode.SOUND) RupioApp.CHANNEL_REST else RupioApp.CHANNEL_REST_QUIET
+        // v2.1: en AUTO, si toca el timbre, la notificación suena por su canal (volumen de notificaciones); si toca la
+        // música, va por el canal silencioso y el sonido lo pone la app (abajo).
+        val d0 = decision(ctx, mode, force = false)
+        val byChannel = mode == com.rupio.app.data.prefs.RestAlertMode.SOUND ||
+            (mode == com.rupio.app.data.prefs.RestAlertMode.AUTO && d0.sound && !d0.media)
+        val channel = if (byChannel) RupioApp.CHANNEL_REST else RupioApp.CHANNEL_REST_QUIET
         val channelOn = Build.VERSION.SDK_INT < 26 ||
             ctx.getSystemService(NotificationManager::class.java)?.getNotificationChannel(channel)?.importance != NotificationManager.IMPORTANCE_NONE
         if (canNotify(ctx) && channelOn) {
@@ -214,18 +219,15 @@ object RestAlert {
                 .setContentText(label)
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .apply { if (mode == com.rupio.app.data.prefs.RestAlertMode.SOUND) setSound(soundUri(ctx)) else setSilent(false) }
+                .apply { if (byChannel) setSound(soundUri(ctx)) else setSilent(false) }
                 .setVibrate(longArrayOf(0, 180, 120, 260))
                 .setAutoCancel(true)
                 .setTimeoutAfter(20_000)
                 .setContentIntent(WorkoutService.openApp(ctx))
                 .build()
             NotificationManagerCompat.from(ctx).notify(NOTIF_ID, n)
-            // La notificación de MEDIA no trae sonido (canal silencioso): el sonido lo pone la app, con la misma regla.
-            if (mode == com.rupio.app.data.prefs.RestAlertMode.MEDIA) {
-                val d = decision(ctx, mode, force = false)
-                if (d.sound) RestSound.play(ctx, media = true)
-            }
+            // Por el canal silencioso (MEDIA, o AUTO por la música) el sonido lo pone la app, con la misma regla.
+            if (!byChannel && d0.sound && d0.media) RestSound.play(ctx, media = true)
         } else {
             // Notificaciones apagadas: al menos el sonido y la vibración.
             feedback(ctx, mode)
@@ -239,6 +241,12 @@ object RestAlert {
     fun inaudibleReason(ctx: Context, mode: com.rupio.app.data.prefs.RestAlertMode): String? = runCatching {
         val am = ctx.getSystemService(android.media.AudioManager::class.java) ?: return null
         when (mode) {
+            // v2.1: en automático solo deja de sonar en silencio, o en vibración con la música en 0.
+            com.rupio.app.data.prefs.RestAlertMode.AUTO -> if (decision(ctx, mode, force = false).sound) null else when (am.ringerMode) {
+                android.media.AudioManager.RINGER_MODE_SILENT -> tr("Tu teléfono está en silencio: el aviso solo vibrará. Quita el silencio o conecta tus audífonos.", "Your phone is on silent: the alert will only vibrate. Turn off silent mode or connect your headphones.")
+                android.media.AudioManager.RINGER_MODE_VIBRATE -> tr("Tu teléfono está en vibración y el volumen multimedia en 0: el aviso solo vibrará. Sube el volumen con los botones del teléfono.", "Your phone is on vibrate and media volume is at 0: the alert will only vibrate. Turn up the volume with your phone's buttons.")
+                else -> tr("El volumen de notificaciones y el multimedia están en 0: el aviso solo vibrará.", "Notification and media volume are at 0: the alert will only vibrate.")
+            }
             com.rupio.app.data.prefs.RestAlertMode.MEDIA ->
                 if (decision(ctx, mode, force = false).sound && am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) == 0)
                     tr("El volumen multimedia está en 0. Súbelo con los botones del teléfono (el aviso usa el volumen de la música).", "Media volume is at 0. Turn it up with your phone's buttons (the alert uses the music volume).") else null
@@ -259,7 +267,9 @@ object RestAlert {
         val am = ctx.getSystemService(android.media.AudioManager::class.java)
         val ringer = am?.ringerMode ?: android.media.AudioManager.RINGER_MODE_NORMAL
         val playing = runCatching { am?.isMusicActive == true }.getOrDefault(false)
-        return RestAlertPolicy.decide(mode, ringer, RestAlertPolicy.hasPrivateOutput(am), force, mediaPlaying = playing)
+        fun muted(stream: Int) = runCatching { am?.getStreamVolume(stream) == 0 }.getOrDefault(false)
+        return RestAlertPolicy.decide(mode, ringer, RestAlertPolicy.hasPrivateOutput(am), force, mediaPlaying = playing,
+            notifMuted = muted(android.media.AudioManager.STREAM_NOTIFICATION), mediaMuted = muted(android.media.AudioManager.STREAM_MUSIC))
     }
 
     private fun feedback(ctx: Context, mode: com.rupio.app.data.prefs.RestAlertMode, force: Boolean = false) {
@@ -282,11 +292,22 @@ object RestAlert {
 object RestAlertPolicy {
     data class Decision(val sound: Boolean, val media: Boolean, val vibrate: Boolean)
 
-    fun decide(mode: com.rupio.app.data.prefs.RestAlertMode, ringer: Int, privateOutput: Boolean, force: Boolean, mediaPlaying: Boolean = false): Decision {
+    fun decide(mode: com.rupio.app.data.prefs.RestAlertMode, ringer: Int, privateOutput: Boolean, force: Boolean, mediaPlaying: Boolean = false,
+               notifMuted: Boolean = false, mediaMuted: Boolean = false): Decision {
         val normal = ringer == android.media.AudioManager.RINGER_MODE_NORMAL
         val silent = ringer == android.media.AudioManager.RINGER_MODE_SILENT
         val vib = force || !silent
         return when (mode) {
+            // v2.1 (por defecto): con audífonos o algo sonando, por la música (se oye en los audífonos y baja la música);
+            // si no, con el timbre (volumen de notificaciones), aunque la música esté en 0. En vibración, por la música si
+            // no está en 0 (el caso del gimnasio, v1.8); en silencio total solo vibra.
+            com.rupio.app.data.prefs.RestAlertMode.AUTO -> when {
+                privateOutput || mediaPlaying -> Decision(sound = true, media = true, vibrate = true)
+                normal && !notifMuted -> Decision(sound = true, media = false, vibrate = true)
+                force -> Decision(sound = true, media = notifMuted || !normal, vibrate = true)
+                !silent && !mediaMuted -> Decision(sound = true, media = true, vibrate = true)
+                else -> Decision(sound = false, media = false, vibrate = vib)
+            }
             com.rupio.app.data.prefs.RestAlertMode.SOUND -> Decision(sound = force || normal, media = false, vibrate = vib)
             // v1.7 (N8): en silencio y sin audífonos ni Bluetooth, el sonido saldría por la bocina (en la junta): solo vibra.
             // v1.8: eso aplicaba también al modo VIBRACIÓN, y en el gimnasio casi todos lo traen así: "no suena nunca".

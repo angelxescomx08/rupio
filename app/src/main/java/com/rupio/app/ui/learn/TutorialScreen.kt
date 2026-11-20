@@ -152,7 +152,7 @@ private fun DonePage(t: Tutorial, onAction: (TutorialAction) -> Unit) {
     Text(tr("Puedes repetir este tutorial cuando quieras desde Aprende → Tutoriales. Si un término no te queda claro, búscalo en el Glosario o toca el \"?\" junto a él en la app.", "You can replay this tutorial anytime from Learn → Tutorials. If a term isn't clear, look it up in the Glossary or tap the “?” next to it in the app."),
         style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     t.action?.let { a ->
-        Button(onClick = { onAction(a) }, modifier = Modifier.fillMaxWidth().height(50.dp), shape = RoundedCornerShape(14.dp)) { Text(a.label) }
+        Button(onClick = { onAction(a) }, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp), shape = RoundedCornerShape(14.dp)) { Text(a.label) }
     }
 }
 

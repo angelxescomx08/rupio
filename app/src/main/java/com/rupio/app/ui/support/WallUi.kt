@@ -86,7 +86,8 @@ fun WallTab(nav: NavHostController, snackbar: SnackbarHostState, listState: Lazy
     val scope = rememberCoroutineScope()
     val signed = auth as? AuthState.SignedIn
     val access = wallAccess(auth)
-    LaunchedEffect(access) { if (access == WallAccess.READY) c.wall.load() }
+    // v2.1: sin cuenta también se ve la lista (función pública del servidor, sin "tú" ni puntos).
+    LaunchedEffect(access) { if (access == WallAccess.READY) c.wall.load() else c.wall.loadPublic(force = true) }
     // Se re-carga la lista cuando un aporte se registró (tu lugar cambia).
     LaunchedEffect(wall.me?.points) { if (access == WallAccess.READY && wall.loaded) c.wall.load() }
 
@@ -106,7 +107,7 @@ fun WallTab(nav: NavHostController, snackbar: SnackbarHostState, listState: Lazy
         onRename = { renaming = true },
         onHide = { h -> if (h) hiding = true else act { c.wall.setHidden(false) } },
         onCreateAccount = { nav.navigate(Routes.ACCOUNT) },
-        onRetry = { scope.launch { c.wall.load() } },
+        onRetry = { scope.launch { if (access == WallAccess.READY) c.wall.load() else c.wall.loadPublic(force = true) } },
     )
 
     val defaultName = wall.me?.name ?: signed?.name.orEmpty()
@@ -149,7 +150,8 @@ fun WallContent(
                     Text(tr("Gracias 💙", "Thank you 💙"), style = MaterialTheme.typography.titleLarge)
                 }
                 Spacer(Modifier.height(8.dp))
-                Text(WallCopy.INTRO, style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
+                // v2.1: "Estas personas…" solo si hay a quién mostrar (sin internet y sin lista guardada, la otra frase).
+                Text(if (wall.entries.isNotEmpty() || access == WallAccess.READY) WallCopy.INTRO else WallCopy.INTRO_NO_LIST, style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
                 Spacer(Modifier.height(4.dp))
                 Text(WallCopy.ORDER, style = MaterialTheme.typography.labelMedium, color = RupioColors.TextFaint)
             }
@@ -173,7 +175,8 @@ fun WallContent(
                 else if (wall.loaded) item { JoinCard(support, onJoin) }
             }
         }
-        if (access == WallAccess.READY) {
+        // v2.1: la lista también sin cuenta (antes solo con cuenta lista).
+        run {
             wall.error?.let { err -> item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(err, style = MaterialTheme.typography.bodyMedium, color = RupioColors.Warning, modifier = Modifier.weight(1f))
@@ -188,7 +191,7 @@ fun WallContent(
                     color = RupioColors.TextDim, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp))
             }
             if (wall.entries.isNotEmpty()) item {
-                val total = wall.me?.total ?: wall.entries.size
+                val total = wall.me?.total ?: wall.total ?: wall.entries.size
                 Text(tr("$total ${if (total == 1) "persona" else "personas"} en el muro", "$total ${if (total == 1) "person" else "people"} on the wall"),
                     style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 6.dp).semantics { heading() })
             }
@@ -237,7 +240,12 @@ private fun medal(rank: Int): String? = when (rank) { 1 -> "🥇"; 2 -> "🥈"; 
 @Composable
 fun WallPreviewCard(wall: WallState, access: WallAccess, onOpen: () -> Unit, modifier: Modifier = Modifier,
                     onHide: (() -> Unit)? = null, onJoin: (() -> Unit)? = null) {
-    val total = wall.me?.total ?: wall.entries.size
+    // v2.1: sin cuenta también se ven los primeros lugares (lista pública; se pide como mucho cada 30 min).
+    if (access != WallAccess.READY) {
+        val c = container()
+        LaunchedEffect(access) { c.wall.loadPublic() }
+    }
+    val total = wall.me?.total ?: wall.total ?: wall.entries.size
     val top = wall.entries.take(3)
     val shape = RoundedCornerShape(20.dp)
     Surface(shape = shape, color = RupioColors.Surface, border = BorderStroke(1.dp, Metals.Aurora.ink.copy(alpha = 0.45f)),
@@ -248,7 +256,7 @@ fun WallPreviewCard(wall: WallState, access: WallAccess, onOpen: () -> Unit, mod
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(WallCopy.TITLE, style = MaterialTheme.typography.titleMedium)
-                    Text(WallCopy.teaser(if (access == WallAccess.READY) total else 0), style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                    Text(WallCopy.teaser(if (top.isNotEmpty()) total else 0), style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
                 }
                 Icon(Icons.Rounded.ChevronRight, null, tint = RupioColors.TextFaint)
             }
@@ -266,7 +274,7 @@ fun WallPreviewCard(wall: WallState, access: WallAccess, onOpen: () -> Unit, mod
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                 if (onHide != null) TextButton(onClick = onHide) { Text(tr("Ocultar", "Hide"), color = RupioColors.TextDim) }
                 if (onJoin != null) TextButton(onClick = onJoin) { Text(tr("Hazte Mecenas", "Become a patron")) }
-                else TextButton(onClick = onOpen) { Text(if (total > 3 && access == WallAccess.READY) tr("Ver los $total", "See all $total") else tr("Ver el muro", "See the wall")) }
+                else TextButton(onClick = onOpen) { Text(if (total > 3) tr("Ver los $total", "See all $total") else tr("Ver el muro", "See the wall")) }
             }
         }
     }
@@ -324,16 +332,26 @@ private fun MyWallCard(me: WallMe, support: SupportState, onBoost: (WallBoost) -
             if (!me.hidden && !me.blocked && me.rank != null) {
                 Spacer(Modifier.height(10.dp))
                 val toNext = me.toNext
-                if (toNext != null && me.rank > 1) Text(WallCopy.toPass(toNext, me.rank - 1), style = MaterialTheme.typography.bodyMedium)
+                if (toNext != null && me.rank > 1) {
+                    Text(WallCopy.toPass(toNext, me.rank - 1), style = MaterialTheme.typography.bodyMedium)
+                    // v2.1: la distancia también como barra. Ver qué tan cerca está la meta anima más que un número suelto
+                    // (efecto del gradiente de la meta: Kivetz, Urminsky y Zheng 2006). Solo usa tus puntos y lo que te
+                    // falta, que ya se mostraba: no revela cuánto aportó nadie más.
+                    Spacer(Modifier.height(8.dp))
+                    WallProgressBar(me.points, toNext, me.rank)
+                }
                 else Text(tr("¡Vas en primer lugar! Gracias por tanto apoyo. 🥇", "You're in first place! Thank you for so much support. 🥇"), style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(10.dp))
                 Text(tr("Sube de lugar con un aporte extra:", "Move up with an extra contribution:"), style = MaterialTheme.typography.labelLarge, color = RupioColors.TextDim)
                 Spacer(Modifier.height(6.dp))
-                val suggested = WallBoost.toPass(toNext?.takeIf { me.rank > 1 })
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                val gap = toNext?.takeIf { me.rank > 1 }
+                val suggested = WallBoost.toPass(gap)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                     WallBoost.entries.forEach { b ->
+                        // v2.1: el aporte resaltado dice a qué lugar te lleva (antes solo cambiaba el borde, sin decir por qué).
+                        val reaches = if (b == suggested && gap != null && b.points >= gap) me.rank - 1 else null
                         BoostButton(b, support.price(b), highlighted = b == suggested, enabled = support.buying == null && !support.wallRegistering,
-                            modifier = Modifier.weight(1f)) { onBoost(b) }
+                            modifier = Modifier.weight(1f), reaches = reaches) { onBoost(b) }
                     }
                 }
                 Text(WallCopy.POINTS_NOTE, style = MaterialTheme.typography.labelSmall, color = RupioColors.TextFaint, modifier = Modifier.padding(top = 6.dp))
@@ -348,15 +366,36 @@ private fun MyWallCard(me: WallMe, support: SupportState, onBoost: (WallBoost) -
 }
 
 @Composable
-private fun BoostButton(b: WallBoost, price: String, highlighted: Boolean, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun BoostButton(b: WallBoost, price: String, highlighted: Boolean, enabled: Boolean, modifier: Modifier, reaches: Int? = null, onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
+    val reachText = reaches?.let { tr("Llegas al #$it", "Reach #$it") }
     Surface(onClick = onClick, enabled = enabled, shape = shape, modifier = modifier.heightIn(min = 64.dp)
-        .semantics { contentDescription = tr("Aportar $price, suma ${b.points} puntos", "Contribute $price, adds ${b.points} points") },
+        .semantics { contentDescription = tr("Aportar $price, suma ${b.points} puntos", "Contribute $price, adds ${b.points} points") + (reachText?.let { ". $it" } ?: "") },
         color = if (highlighted) Metals.Aurora.ink.copy(alpha = 0.16f) else RupioColors.Surface2,
         border = BorderStroke(if (highlighted) 1.5.dp else 1.dp, if (highlighted) Metals.Aurora.ink else RupioColors.Outline)) {
         Column(Modifier.padding(horizontal = 6.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            if (reachText != null) Text(reachText, style = MaterialTheme.typography.labelSmall, color = Metals.Aurora.ink, fontWeight = FontWeight.SemiBold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text("+${b.points}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
             Text(price, style = MaterialTheme.typography.labelMedium, color = RupioColors.TextDim, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+/** v2.1: tus puntos contra los del lugar de arriba, con los dos extremos rotulados. */
+@Composable
+private fun WallProgressBar(points: Int, toNext: Int, rank: Int) {
+    val goal = points + toNext
+    val progress = if (goal <= 0) 0f else (points.toFloat() / goal).coerceIn(0.03f, 1f)
+    Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
+        contentDescription = tr("Llevas ${(progress * 100).toInt()} % del camino al lugar #${rank - 1}", "You're ${(progress * 100).toInt()}% of the way to place #${rank - 1}")
+    }) {
+        LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+            color = Metals.Aurora.ink, trackColor = RupioColors.Surface3, gapSize = 0.dp, drawStopIndicator = {})
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            Text(tr("Tú · $points", "You · $points"), style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim, modifier = Modifier.weight(1f))
+            // Sin los puntos del otro lugar: el permiso del muro cubre nombre, lugar y fecha, no cuánto aportó cada quien.
+            Text("#${rank - 1}", style = MaterialTheme.typography.labelSmall, color = RupioColors.TextDim)
         }
     }
 }

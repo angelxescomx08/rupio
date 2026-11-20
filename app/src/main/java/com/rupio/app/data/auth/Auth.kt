@@ -19,6 +19,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
@@ -129,6 +130,24 @@ class AuthRepository(
         if (_state.compareAndSet(AuthState.Loading, loaded) && jwt == null) {
             jwt = secure.get("jwt"); jwtExp = secure.get("jwt_exp")?.toLongOrNull() ?: 0
         }
+    }
+
+    /**
+     * v2.1: JWT de rol `anonymous` para lo público (el muro de agradecimientos sin cuenta, db/migrations/012). Neon Auth
+     * lo da sin iniciar sesión en GET /token/anonymous y dura 1 h; se guarda solo en memoria. No identifica a nadie y la
+     * base solo le deja ejecutar rupio_wall_public. Null sin internet.
+     */
+    @Volatile private var anonJwt: String? = null
+    @Volatile private var anonExp: Long = 0
+    suspend fun anonymousJwt(): String? {
+        val now = System.currentTimeMillis() / 1000
+        anonJwt?.takeIf { anonExp - 60 > now }?.let { return it }
+        val base = settings.current().authUrl.ifBlank { return null }
+        val r = runCatching { client.get(base, "/token/anonymous", emptyMap()) }.getOrNull()?.takeIf { it.code == 200 } ?: return null
+        val token = r.body?.get("token")?.jsonPrimitive?.contentOrNull ?: return null
+        anonJwt = token
+        anonExp = r.body["expires_at"]?.jsonPrimitive?.longOrNull ?: decodeExp(token)
+        return token
     }
 
     val currentUserId: String? get() = (state.value as? AuthState.SignedIn)?.userId

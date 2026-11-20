@@ -169,7 +169,7 @@ fun OnboardingScreen(name: String, onDone: () -> Unit) {
         val last = ONBOARDING_PAGES - 1
         Button(
             onClick = { if (pager.currentPage < last) scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } else onDone() },
-            modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), shape = RoundedCornerShape(16.dp),
         ) { Text(if (pager.currentPage < last) tr("Siguiente", "Next") else tr("Empezar", "Start"), style = MaterialTheme.typography.titleMedium) }
     }
 }

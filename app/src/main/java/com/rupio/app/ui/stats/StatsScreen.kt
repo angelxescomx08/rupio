@@ -121,9 +121,9 @@ fun StatsScreen(nav: NavHostController) {
                 }
                 Spacer(Modifier.height(8.dp))
                 TileRow {
-                    Tile(tr("Series", "Sets"), "${s.totals.sets}", sub = delta(s.totals.sets.toDouble(), s.previous?.sets?.toDouble()),
+                    Tile(tr("Series", "Sets"), Fmt.count(s.totals.sets), sub = delta(s.totals.sets.toDouble(), s.previous?.sets?.toDouble()),
                         subColor = deltaColor(s.totals.sets.toDouble(), s.previous?.sets?.toDouble()))
-                    Tile(tr("Reps", "Reps"), "${s.totals.reps}")
+                    Tile(tr("Reps", "Reps"), Fmt.count(s.totals.reps))
                     Tile(tr("Duración media", "Average duration"), Fmt.durationHuman(s.totals.avgDurationSec.toLong()))
                 }
             }

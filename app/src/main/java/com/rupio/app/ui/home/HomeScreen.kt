@@ -197,16 +197,21 @@ fun HomeScreen(nav: NavHostController) {
             }
         }
         item {
-            Button(
-                onClick = { start(null) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = if (active != null) RupioColors.Success else RupioColors.Primary, contentColor = if (active != null) RupioColors.OnFill else RupioColors.OnPrimary),
-            ) {
+            val label: @Composable RowScope.() -> Unit = {
                 Icon(if (active != null) Icons.Rounded.PlayArrow else Icons.Rounded.Add, null)
                 Spacer(Modifier.width(8.dp))
                 Text(if (active != null) tr("Continuar entrenamiento", "Resume workout") else tr("Empezar entrenamiento libre", "Start empty workout"), style = MaterialTheme.typography.titleMedium)
             }
+            val mod = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+            // v2.1: con rutinas, lo principal es "Empezar rutina" de la que toca; el entreno libre pasa a botón con borde
+            // (mismo lugar y tamaño). Sin rutinas o con un entreno en curso sigue siendo el botón lleno.
+            if (active == null && !routines.isNullOrEmpty()) OutlinedButton(onClick = { start(null) }, modifier = mod, shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, RupioColors.ControlOutline), content = label)
+            else Button(
+                onClick = { start(null) }, modifier = mod, shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = if (active != null) RupioColors.Success else RupioColors.Primary, contentColor = if (active != null) RupioColors.OnFill else RupioColors.OnPrimary),
+                content = label,
+            )
         }
         item {
             SectionTitle(tr("Mis rutinas", "My routines")) {
@@ -247,6 +252,8 @@ fun HomeScreen(nav: NavHostController) {
                     lastDone = lastDay[r.id]?.let { tr("Última vez: ", "Last done: ") + Dates.daysAgo(it, today).replaceFirstChar { ch -> ch.lowercase() } } ?: tr("Aún no la haces", "Not done yet"),
                     onStart = { start(r.id) }, onEdit = { nav.navigate(Routes.routine(r.id)) }, onDelete = { toDelete = r },
                     onReorder = if (list.size >= 2) ({ openReorder(r.id) }) else null,
+                    // Lleno: la que toca (o la única). Con un entreno en curso, ninguno compite con "Continuar".
+                    emphasized = active == null && (nextId == null || r.id == nextId),
                 )
             }
         }
@@ -278,7 +285,7 @@ fun HomeScreen(nav: NavHostController) {
 private fun RoutineCard(
     routine: RoutineEntity, items: List<RoutineExerciseEntity>, names: Map<String, String>, activeExists: Boolean,
     badge: String?, lastDone: String,
-    onStart: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit, onReorder: (() -> Unit)? = null,
+    onStart: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit, onReorder: (() -> Unit)? = null, emphasized: Boolean = true,
 ) {
     val summary = remember(items) { RestPlanner.summarize(items.map { it.toPlan() }) }
     val ssIndex = remember(items) { supersetIndexMap(items.map { it.supersetId }) }
@@ -340,10 +347,14 @@ private fun RoutineCard(
             Text(tr("Descanso total en la rutina: ", "Total rest in this routine: ") + Fmt.durationHuman(summary.totalRestSec.toLong()), style = MaterialTheme.typography.labelMedium, color = RupioColors.Rest)
         }
         Spacer(Modifier.height(12.dp))
-        Button(
-            onClick = onStart, enabled = items.isNotEmpty() || activeExists,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            shape = RoundedCornerShape(14.dp),
-        ) { Icon(Icons.Rounded.PlayArrow, null); Spacer(Modifier.width(6.dp)); Text(if (activeExists) tr("Ir al entrenamiento en curso", "Go to workout in progress") else tr("Empezar rutina", "Start routine"), fontWeight = FontWeight.SemiBold) }
+        // v2.1: un solo botón lleno por pantalla, el de la rutina que toca; las demás llevan uno tonal (mismo tamaño y
+        // texto). Antes había 3 o más botones azules iguales y ninguno decía cuál era el siguiente paso.
+        val content: @Composable RowScope.() -> Unit = {
+            Icon(Icons.Rounded.PlayArrow, null); Spacer(Modifier.width(6.dp))
+            Text(if (activeExists) tr("Ir al entrenamiento en curso", "Go to workout in progress") else tr("Empezar rutina", "Start routine"), fontWeight = FontWeight.SemiBold)
+        }
+        val mod = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+        if (emphasized) Button(onClick = onStart, enabled = items.isNotEmpty() || activeExists, modifier = mod, shape = RoundedCornerShape(14.dp), content = content)
+        else FilledTonalButton(onClick = onStart, enabled = items.isNotEmpty() || activeExists, modifier = mod, shape = RoundedCornerShape(14.dp), content = content)
     }
 }

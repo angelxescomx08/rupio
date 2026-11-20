@@ -181,7 +181,7 @@ fun WorkoutDetailScreen(nav: NavHostController, id: String, celebrate: Int) {
                     Spacer(Modifier.height(8.dp))
                     TileRow {
                         Tile(tr("Series", "Sets"), "${workout.totalSets}")
-                        if (workout.totalReps > 0) Tile(tr("Repeticiones", "Reps"), "${workout.totalReps}")
+                        if (workout.totalReps > 0) Tile(tr("Repeticiones", "Reps"), Fmt.count(workout.totalReps))
                         Tile(tr("Récords", "PRs"), "${workout.prCount}")
                     }
                     // v1.8: calorías estimadas (método MET, ver CalorieEstimate). v1.9: el cardio con su MET y sus minutos.
