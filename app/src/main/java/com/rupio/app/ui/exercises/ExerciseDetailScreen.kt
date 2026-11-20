@@ -24,6 +24,7 @@ import com.rupio.app.appViewModel
 import com.rupio.app.core.Dates
 import com.rupio.app.core.Fmt
 import com.rupio.app.core.WeightUnit
+import com.rupio.app.data.local.CatalogSeeder
 import com.rupio.app.data.local.ExerciseEntity
 import com.rupio.app.data.local.Muscles
 import com.rupio.app.data.local.SessionSetRow
@@ -84,7 +85,18 @@ fun ExerciseDetailScreen(nav: NavHostController, id: String) {
         if (ex == null) return@Column
         val tr = Tracking.of(ex.tracking)
         LazyColumn(contentPadding = PaddingValues(16.dp, 0.dp, 16.dp, 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (ex.image0 != null) item { AnimatedExerciseImage(ex.image0, ex.image1, Modifier.fillMaxWidth().aspectRatio(1.4f)) }
+            if (ex.image0 != null) item { Column {
+                AnimatedExerciseImage(ex.image0, ex.image1, Modifier.fillMaxWidth().aspectRatio(1.4f))
+                // v1.9: si la imagen no es exactamente este ejercicio (otro aparato, agarre…), se dice debajo.
+                val note by produceState<String?>(null, ex.id) { value = if (ex.isCustom) null else CatalogSeeder.imageNote(context, ex.id) }
+                note?.let { n ->
+                    Row(Modifier.fillMaxWidth().padding(top = 8.dp, start = 4.dp, end = 4.dp), verticalAlignment = Alignment.Top) {
+                        Icon(Icons.Rounded.Info, null, tint = RupioColors.TextDim, modifier = Modifier.padding(top = 1.dp).size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(n, style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
+                    }
+                }
+            } }
             else if (ex.isCustom) item { SectionCard { Text("Ejercicio personalizado (sin imagen)", color = RupioColors.TextDim) } }
             item {
                 Button(

@@ -2,6 +2,7 @@ package com.rupio.app.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -65,6 +66,14 @@ fun HomeScreen(nav: NavHostController) {
     val names = remember(catalog) { catalog.associate { it.id to it.name } }
     val byRoutine = remember(items) { items.groupBy { it.routineId } }
     var toDelete by remember { mutableStateOf<RoutineEntity?>(null) }
+    // v1.9: "Ordenar rutinas" (null = cerrada; "" = abierta sin resaltar ninguna).
+    var reorderFocus by remember { mutableStateOf<String?>(null) }
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+    fun openReorder(id: String?) {
+        if ((routines?.size ?: 0) < 2) return
+        haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+        reorderFocus = id ?: ""
+    }
     val unit = settings?.unit ?: com.rupio.app.core.WeightUnit.LB
     LaunchedEffect(Unit) { com.rupio.app.ui.learn.LearnProgress.load(context) }
     val learned by com.rupio.app.ui.learn.LearnProgress.done.collectAsStateWithLifecycle()
@@ -190,7 +199,8 @@ fun HomeScreen(nav: NavHostController) {
         }
         item {
             SectionTitle("Mis rutinas") {
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if ((routines?.size ?: 0) >= 2) IconButton(onClick = { openReorder(null) }) { Icon(Icons.Rounded.SwapVert, "Ordenar rutinas", tint = RupioColors.Primary) }
                     TextButton(onClick = { nav.navigate(Routes.GUIDE) }) {
                         Icon(Icons.Rounded.AutoAwesome, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Guía")
                     }
@@ -225,11 +235,20 @@ fun HomeScreen(nav: NavHostController) {
                     badge = if (r.id == nextId) (if (trainedToday) "La próxima" else "Te toca hoy") else null,
                     lastDone = lastDay[r.id]?.let { "Última vez: " + Dates.daysAgo(it, today).replaceFirstChar { ch -> ch.lowercase() } } ?: "Aún no la haces",
                     onStart = { start(r.id) }, onEdit = { nav.navigate(Routes.routine(r.id)) }, onDelete = { toDelete = r },
+                    onReorder = if (list.size >= 2) ({ openReorder(r.id) }) else null,
                 )
             }
         }
     }
 
+    reorderFocus?.let { focus ->
+        val list = routines.orEmpty()
+        ReorderDialog(
+            "Ordenar rutinas", "Arrastra con ≡ o mantén presionada una rutina. Este orden decide cuál te toca después.",
+            list.map { r -> ReorderEntry(r.id, r.name, Fmt.plural(byRoutine[r.id].orEmpty().size, "ejercicio", "ejercicios")) },
+            onDismiss = { reorderFocus = null }, focusKey = focus.ifEmpty { null }, showImages = false,
+        ) { ids -> scope.launch { c.routines.reorder(ids) }; reorderFocus = null }
+    }
     toDelete?.let { r ->
         ConfirmDialog("¿Eliminar rutina?", "\"${r.name}\" se eliminará. Tu historial de entrenamientos no se toca.", "Eliminar", { toDelete = null }, danger = true) {
             scope.launch { c.routines.delete(r.id) }; toDelete = null
@@ -242,13 +261,15 @@ fun HomeScreen(nav: NavHostController) {
 private fun RoutineCard(
     routine: RoutineEntity, items: List<RoutineExerciseEntity>, names: Map<String, String>, activeExists: Boolean,
     badge: String?, lastDone: String,
-    onStart: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit,
+    onStart: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit, onReorder: (() -> Unit)? = null,
 ) {
     val summary = remember(items) { RestPlanner.summarize(items.map { it.toPlan() }) }
     val ssIndex = remember(items) { supersetIndexMap(items.map { it.supersetId }) }
     var menu by remember { mutableStateOf(false) }
     // v1.9: toda la tarjeta abre la rutina (antes solo "Empezar rutina" y ⋮ → Editar).
-    SectionCard(Modifier.clickable(onClickLabel = "Ver y editar la rutina", onClick = onEdit)) {
+    // v1.9: mantener presionada la tarjeta abre "Ordenar rutinas" con esta resaltada.
+    SectionCard(Modifier.combinedClickable(onClickLabel = "Ver y editar la rutina", onClick = onEdit,
+        onLongClickLabel = if (onReorder != null) "ordenar rutinas" else null, onLongClick = onReorder)) {
         if (badge != null) {
             Pill("▶ $badge", RupioColors.Success, filled = true)
             Spacer(Modifier.height(8.dp))
@@ -259,6 +280,7 @@ private fun RoutineCard(
                 IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, "Opciones") }
                 DropdownMenu(menu, { menu = false }) {
                     DropdownMenuItem(text = { Text("Editar") }, leadingIcon = { Icon(Icons.Rounded.Edit, null) }, onClick = { menu = false; onEdit() })
+                    if (onReorder != null) DropdownMenuItem(text = { Text("Ordenar rutinas") }, leadingIcon = { Icon(Icons.Rounded.SwapVert, null) }, onClick = { menu = false; onReorder() })
                     DropdownMenuItem(text = { Text("Eliminar", color = RupioColors.Danger) }, leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = RupioColors.Danger) }, onClick = { menu = false; onDelete() })
                 }
             }

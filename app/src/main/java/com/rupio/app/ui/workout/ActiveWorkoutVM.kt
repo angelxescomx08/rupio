@@ -292,6 +292,15 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
     fun setNotes(item: ExUi, notes: String) = viewModelScope.launch { c.workouts.updateNotes(item.we.id, item.we.workoutId, notes) }
     fun setRepRange(item: ExUi, lo: Int, hi: Int) = viewModelScope.launch { c.workouts.updateRepRange(item.we.id, item.we.workoutId, lo, hi) }
     fun move(item: ExUi, delta: Int) = viewModelScope.launch { c.workouts.move(item.we.workoutId, item.we.id, delta) }
+    fun canMove(items: List<ExUi>, item: ExUi, delta: Int) =
+        com.rupio.app.domain.ReorderOps.canMove(items.map { it.we }, item.we.id, delta, { it.id }, { it.supersetId })
+
+    /** v1.9: el orden de "Ordenar ejercicios", con "Deshacer" (vuelve al orden de antes). */
+    fun reorder(workoutId: String, before: List<String>, ids: List<String>) = viewModelScope.launch {
+        if (ids == before) return@launch
+        if (c.workouts.reorder(workoutId, ids)) _events.tryEmit(WorkoutEvent.Undoable("Orden de ejercicios cambiado") { c.workouts.reorder(workoutId, before) })
+        else _events.tryEmit(WorkoutEvent.Message("No se pudo cambiar el orden: el entreno cambió mientras tanto. Inténtalo de nuevo."))
+    }
     fun remove(item: ExUi) = viewModelScope.launch {
         item.sets.forEach { c.restTimer.cancelIfSource(it.id) }
         val before = c.workouts.snapshot(item.we.workoutId, item.we.id)

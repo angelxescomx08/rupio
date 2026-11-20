@@ -144,14 +144,34 @@ class WorkoutRepository(
         }
     }
 
+    /**
+     * Subir (-1) o bajar (+1). v1.9: con las mismas reglas que "Ordenar" ([ReorderOps]): dentro de una superserie cambia
+     * de lugar con su vecino; en la orilla mueve la superserie completa. Antes intercambiaba con el de al lado aunque
+     * fuera de otro grupo y podía partir una superserie.
+     */
     suspend fun move(workoutId: String, workoutExerciseId: String, delta: Int) {
-        val list = dao.exercises(workoutId).toMutableList()
-        val i = list.indexOfFirst { it.id == workoutExerciseId }
-        val j = i + delta
-        if (i < 0 || j !in list.indices) return
-        java.util.Collections.swap(list, i, j)
+        val list = dao.exercises(workoutId)
+        val moved = com.rupio.app.domain.ReorderOps.moveStep(list, workoutExerciseId, delta, { it.id }, { it.supersetId }) ?: return
+        savePositions(list, moved)
+    }
+
+    /**
+     * v1.9: guarda el orden que dejaste en "Ordenar ejercicios". Devuelve false (y no cambia nada) si la lista ya no
+     * coincide con la del entreno (p. ej. se quitó un ejercicio mientras tanto) o si partiría una superserie.
+     */
+    suspend fun reorder(workoutId: String, orderedIds: List<String>): Boolean = db.withTransaction {
+        val list = dao.exercises(workoutId)
+        val ordered = com.rupio.app.domain.ReorderOps.applyOrder(list, orderedIds, { it.id }, { it.supersetId }) ?: return@withTransaction false
+        savePositions(list, ordered)
+        true
+    }
+
+    /** Solo se marcan para subir los que cambiaron de lugar. */
+    private suspend fun savePositions(before: List<WorkoutExerciseEntity>, ordered: List<WorkoutExerciseEntity>) {
+        val oldPos = before.associate { it.id to it.position }
         val t = now()
-        dao.upsertExercises(list.mapIndexed { k, e -> e.copy(position = k, updatedAt = t, dirty = true) })
+        val changed = ordered.mapIndexedNotNull { k, e -> if (oldPos[e.id] == k) null else e.copy(position = k, updatedAt = t, dirty = true) }
+        if (changed.isNotEmpty()) dao.upsertExercises(changed)
     }
 
     suspend fun updateExerciseRest(workoutExerciseId: String, workoutId: String, restSec: Int) {

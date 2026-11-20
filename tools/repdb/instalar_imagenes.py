@@ -14,6 +14,8 @@ Qué hace:
 - Lee tools/repdb/mapping.json: para cada ejercicio de Rupio (campo "src"), el id de RepDB o null.
 - Escribe <src>__0.webp (inicio) y <src>__1.webp (fin) a 384×384, WebP calidad 80. Si RepDB solo tiene una
   pose ("main"), escribe solo __0. Si el ejercicio no tiene equivalente, no escribe nada y deja "images": [].
+- Si la imagen no es exactamente el ejercicio (otro aparato, agarre, sin el peso…), el mapa trae una "nota" y se
+  escribe como "imageNote" en exercises_es.json: la app la muestra debajo de la imagen en la pantalla del ejercicio.
 - No borra archivos viejos de assets/ex: si cambias el mapa, vacía la carpeta antes (o muévela).
 
 Crédito obligatorio (ya está en Perfil): "Exercise data by RepDB (repdb.co)" con enlace visible.
@@ -46,10 +48,13 @@ def main() -> None:
     written = missing = 0
     for item in catalog:
         entry = mapping.get(item["src"])
+        item.pop("imageNote", None)
         if entry is None:
             item["images"] = []
             missing += 1
             continue
+        if entry.get("nota"):
+            item["imageNote"] = entry["nota"]
         flat = catalog_repdb[entry["repdb"]]["images"]["flat"]
         poses = [flat["start"], flat["peak"]] if "start" in flat else [flat["main"]]
         images = []

@@ -4,6 +4,7 @@ import com.rupio.app.safePop
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -113,15 +114,19 @@ class RoutineEditorVM(private val c: AppContainer, private val routineId: String
 
     /** Mueve un ejercicio; si sale de su bloque, mueve el bloque entero (las superseries nunca se rompen). */
     fun move(key: String, delta: Int) {
-        val groups = groupConsecutive(items.toList()) { it.supersetId }.map { it.toMutableList() }.toMutableList()
-        val gi = groups.indexOfFirst { g -> g.any { it.key == key } }
-        if (gi < 0) return
-        val g = groups[gi]
-        val inner = g.indexOfFirst { it.key == key }
-        if (g.size > 1 && inner + delta in g.indices) java.util.Collections.swap(g, inner, inner + delta)
-        else if (gi + delta in groups.indices) java.util.Collections.swap(groups, gi, gi + delta)
-        else return
-        items.clear(); items.addAll(groups.flatten()); dirty = true
+        ReorderOps.moveStep(items.toList(), key, delta, { it.key }, { it.supersetId })?.let { setOrder(it) }
+    }
+
+    fun canMove(key: String, delta: Int) = ReorderOps.canMove(items.toList(), key, delta, { it.key }, { it.supersetId })
+
+    /** v1.9: el orden que dejaste en "Ordenar ejercicios" (si partiera una superserie, no se aplica). */
+    fun reorder(keys: List<String>) {
+        ReorderOps.applyOrder(items.toList(), keys, { it.key }, { it.supersetId })?.let { setOrder(it) }
+    }
+
+    private fun setOrder(list: List<EditItem>) {
+        if (list.map { it.key } == items.map { it.key }) return
+        items.clear(); items.addAll(list); dirty = true
     }
 
     fun createSuperset(keys: List<String>, mode: SupersetRestMode, rest: Int?) {
@@ -208,6 +213,14 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
     var restFor by remember { mutableStateOf<String?>(null) }
     var repsFor by remember { mutableStateOf<String?>(null) }
     var confirmExit by remember { mutableStateOf(false) }
+    // v1.9: pantalla "Ordenar ejercicios" (null = cerrada; "" = abierta sin resaltar ninguno).
+    var reorderFocus by remember { mutableStateOf<String?>(null) }
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+    fun openReorder(key: String?) {
+        if (vm.items.size < 2) return
+        haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+        reorderFocus = key ?: ""
+    }
 
     fun exit() { if (vm.dirty) confirmExit = true else nav.safePop() }
     BackHandler { exit() }
@@ -253,8 +266,16 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
                 }
             }
             if (vm.items.size >= 2) item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (selecting) "Toca los ejercicios que quieres unir" else "Ejercicios", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                // v1.9: "Ordenar" junto a "Crear superserie"; con letra grande los botones bajan de renglón.
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(if (selecting) "Toca los ejercicios que quieres unir" else "Ejercicios", style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f).align(Alignment.CenterVertically).padding(end = 4.dp))
+                    if (!selecting) FilterChip(
+                        selected = false, onClick = { openReorder(null) },
+                        label = { Text("Ordenar") },
+                        leadingIcon = { Icon(Icons.Rounded.SwapVert, null, modifier = Modifier.size(18.dp)) },
+                    )
                     FilterChip(
                         selected = selecting, onClick = { selecting = !selecting; selected.clear() },
                         label = { Text(if (selecting) "Cancelar" else "Crear superserie") },
@@ -281,7 +302,7 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
                             onSelect = { if (it.key in selected) selected.remove(it.key) else selected.add(it.key) },
                             vm = vm, onRest = { restFor = it.key }, onReps = { repsFor = it.key },
                             onSupersetNext = { vm.groupKeysWithNext(it.key)?.let { ks -> ssDialog = ks } },
-                            onOpen = { nav.navigate(Routes.exercise(it.exerciseId)) })
+                            onOpen = { nav.navigate(Routes.exercise(it.exerciseId)) }, onReorder = { openReorder(it.key) })
                     }
                 } else {
                     val it = g.first()
@@ -289,7 +310,7 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
                         onSelect = { if (it.key in selected) selected.remove(it.key) else selected.add(it.key) },
                         vm = vm, onRest = { restFor = it.key }, onReps = { repsFor = it.key },
                         onSupersetNext = { vm.groupKeysWithNext(it.key)?.let { ks -> ssDialog = ks } },
-                        onOpen = { nav.navigate(Routes.exercise(it.exerciseId)) })
+                        onOpen = { nav.navigate(Routes.exercise(it.exerciseId)) }, onReorder = { openReorder(it.key) })
                 }
             }
             item {
@@ -334,6 +355,13 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
         val it = vm.items.firstOrNull { e -> e.key == key }
         if (it != null) RepRangeDialog(it.repMin, it.repMax, { repsFor = null }) { lo, hi -> vm.update(key) { e -> e.copy(repMin = lo, repMax = hi) }; repsFor = null }
     }
+    reorderFocus?.let { focus ->
+        ReorderDialog(
+            "Ordenar ejercicios", "Arrastra con ≡ o mantén presionado un ejercicio. Las superseries se mueven juntas.",
+            vm.items.map { ReorderEntry(it.key, byId[it.exerciseId]?.name ?: "Ejercicio", reorderSubtitle(it, byId[it.exerciseId]), byId[it.exerciseId]?.image0, it.supersetId) },
+            onDismiss = { reorderFocus = null }, focusKey = focus.ifEmpty { null },
+        ) { keys -> vm.reorder(keys); reorderFocus = null }
+    }
     if (confirmExit) ConfirmDialog("¿Salir sin guardar?", "Perderás los cambios de esta rutina.", "Salir", { confirmExit = false }, danger = true) {
         confirmExit = false; nav.safePop()
     }
@@ -343,6 +371,7 @@ fun RoutineEditorScreen(nav: NavHostController, routineId: String) {
 private fun ItemCard(
     item: EditItem, ex: ExerciseEntity?, ssIdx: Int?, member: Int?, inSuperset: Boolean, selecting: Boolean, isSelected: Boolean,
     onSelect: () -> Unit, vm: RoutineEditorVM, onRest: () -> Unit, onReps: () -> Unit, onSupersetNext: () -> Unit, onOpen: () -> Unit,
+    onReorder: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
     val tracking = Tracking.of(ex?.tracking ?: "weight_reps")
@@ -358,7 +387,9 @@ private fun ItemCard(
                 Box(Modifier.clickable(onClickLabel = "ver técnica", onClick = onOpen)
                     .clearAndSetSemantics { contentDescription = "Ver técnica de ${ex?.name ?: "el ejercicio"}"; role = androidx.compose.ui.semantics.Role.Button }) { ExerciseThumb(ex?.image0, 44.dp) }
                 Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f).clickable(onClick = onOpen)) {
+                // v1.9: mantener presionado el nombre abre "Ordenar ejercicios" con este resaltado.
+                Column(Modifier.weight(1f).then(if (selecting) Modifier else Modifier.combinedClickable(
+                    onClickLabel = "ver técnica", onLongClickLabel = "ordenar ejercicios", onLongClick = onReorder, onClick = onOpen))) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (ssIdx != null && member != null) { SupersetTag(ssIdx, member); Spacer(Modifier.width(6.dp)) }
                         Text(ex?.name ?: "Ejercicio", style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -372,8 +403,11 @@ private fun ItemCard(
                         if (inSuperset) DropdownMenuItem(text = { Text("Sacar de la superserie") }, leadingIcon = { Icon(Icons.Rounded.LinkOff, null) }, onClick = {
                             menu = false; vm.removeFromSuperset(item.key)
                         })
-                        DropdownMenuItem(text = { Text("Subir") }, leadingIcon = { Icon(Icons.Rounded.ArrowUpward, null) }, onClick = { menu = false; vm.move(item.key, -1) })
-                        DropdownMenuItem(text = { Text("Bajar") }, leadingIcon = { Icon(Icons.Rounded.ArrowDownward, null) }, onClick = { menu = false; vm.move(item.key, 1) })
+                        if (vm.items.size >= 2) {
+                            DropdownMenuItem(text = { Text("Ordenar ejercicios") }, leadingIcon = { Icon(Icons.Rounded.SwapVert, null) }, onClick = { menu = false; onReorder() })
+                            DropdownMenuItem(text = { Text("Subir") }, leadingIcon = { Icon(Icons.Rounded.ArrowUpward, null) }, enabled = vm.canMove(item.key, -1), onClick = { menu = false; vm.move(item.key, -1) })
+                            DropdownMenuItem(text = { Text("Bajar") }, leadingIcon = { Icon(Icons.Rounded.ArrowDownward, null) }, enabled = vm.canMove(item.key, 1), onClick = { menu = false; vm.move(item.key, 1) })
+                        }
                         DropdownMenuItem(text = { Text("Quitar", color = RupioColors.Danger) }, leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = RupioColors.Danger) }, onClick = { menu = false; vm.remove(item.key) })
                     }
                 }
@@ -461,4 +495,11 @@ private fun Chip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: St
         Spacer(Modifier.width(4.dp))
         Text(text, color = color, style = MaterialTheme.typography.labelLarge, maxLines = 1)
     }
+}
+
+/** Lo que se ve bajo el nombre en "Ordenar": series y repeticiones (o "tiempo"). */
+private fun reorderSubtitle(item: EditItem, ex: ExerciseEntity?): String {
+    val tracking = Tracking.of(ex?.tracking ?: "weight_reps")
+    val series = Fmt.plural(item.plan.size, "serie", "series")
+    return if (tracking == Tracking.DURATION) "$series · tiempo" else "$series · ${item.repMin}–${item.repMax} reps"
 }

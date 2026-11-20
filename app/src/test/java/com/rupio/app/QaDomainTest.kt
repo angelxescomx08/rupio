@@ -237,6 +237,11 @@ class QaDomainTest {
             // v1.9: imágenes de RepDB; un ejercicio sin equivalente queda sin imagen (lista en docs/IMAGENES_REPDB.md).
             val imgs = e["images"]!!.jsonArray.map { it.jsonPrimitive.content }
             assertTrue("imágenes de $id", imgs.size in 0..2)
+            // v1.9: la nota de la imagen solo existe si hay imagen, y es corta y en español.
+            e["imageNote"]?.jsonPrimitive?.content?.let { note ->
+                assertTrue("nota de $id sin imagen", imgs.isNotEmpty())
+                assertTrue("nota de $id: $note", note.length in 20..140 && (note.startsWith("La imagen") || note.startsWith("Aquí")))
+            }
             imgs.forEach { u ->
                 assertTrue("ruta de $id: $u", u.startsWith("file:///android_asset/ex/"))
                 assertTrue("falta el archivo $u (corre tools/repdb/instalar_imagenes.py)", File("src/main/assets/" + u.removePrefix("file:///android_asset/")).isFile)

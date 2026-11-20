@@ -10,6 +10,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.*
@@ -39,6 +40,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -159,6 +161,13 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
     var setSheet by remember { mutableStateOf<Pair<ExUi, WorkoutSetEntity>?>(null) }
     var ssCreate by remember { mutableStateOf<List<String>?>(null) }
     var ssEdit by remember { mutableStateOf<String?>(null) }
+    // v1.9: "Ordenar ejercicios" (null = cerrada; "" = abierta sin resaltar ninguno).
+    var reorderFocus by remember { mutableStateOf<String?>(null) }
+    fun openReorder(id: String?) {
+        if (items.size < 2) return
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        reorderFocus = id ?: ""
+    }
 
     val doneSets = items.sumOf { e -> e.sets.count { it.completed && it.setType != SetType.WARMUP.code } }
     val volume = items.sumOf { e -> e.sets.filter { it.completed && it.setType != SetType.WARMUP.code }.sumOf { (it.weightKg ?: 0.0).coerceAtLeast(0.0) * (it.reps ?: 0) } }
@@ -230,6 +239,16 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
             if (items.isEmpty()) item {
                 EmptyState(Icons.Rounded.FitnessCenter, "Entrenamiento vacío", "Agrega ejercicios para empezar. Puedes buscar por nombre o por músculo.")
             }
+            // v1.9: "Ordenar" a la vista (también está en ⋮ de cada ejercicio y manteniendo presionado su nombre).
+            if (items.size >= 2) item(key = "exercises_header") {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(Fmt.plural(items.size, "ejercicio", "ejercicios"), style = MaterialTheme.typography.titleSmall, color = RupioColors.TextDim,
+                        modifier = Modifier.weight(1f).padding(start = 4.dp))
+                    TextButton(onClick = { openReorder(null) }) {
+                        Icon(Icons.Rounded.SwapVert, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Ordenar")
+                    }
+                }
+            }
             items(groups, key = { g -> g.first().we.id }) { g ->
                 val first = items.indexOfFirst { it.we.id == g.first().we.id } == 0
                 val ss = g.first().we.supersetId
@@ -240,13 +259,15 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
                         ExerciseCard(g[k], vm, unit, idx, k, first && k == 0, inSuperset = true,
                             onOpen = { nav.navigate(Routes.exercise(g[k].we.exerciseId)) },
                             onRest = { if (g[k].we.supersetRestMode == SupersetRestMode.SHARED.code) ssEdit = ss else restFor = g[k] }, onReps = { repsFor = g[k] },
-                            onNotes = { notesFor = g[k] }, onSuperset = { vm.membersWithNext(g[k])?.let { ssCreate = it } }, onSetMenu = { s -> setSheet = g[k] to s })
+                            onNotes = { notesFor = g[k] }, onSuperset = { vm.membersWithNext(g[k])?.let { ssCreate = it } }, onSetMenu = { s -> setSheet = g[k] to s },
+                            onReorder = { openReorder(g[k].we.id) }, canMove = { d -> items.size >= 2 && vm.canMove(items, g[k], d) })
                     }
                 } else {
                     val it = g.first()
                     ExerciseCard(it, vm, unit, null, null, first, inSuperset = false,
                         onOpen = { nav.navigate(Routes.exercise(it.we.exerciseId)) }, onRest = { restFor = it }, onReps = { repsFor = it },
-                        onNotes = { notesFor = it }, onSuperset = { vm.membersWithNext(it)?.let { ids -> ssCreate = ids } }, onSetMenu = { s -> setSheet = it to s })
+                        onNotes = { notesFor = it }, onSuperset = { vm.membersWithNext(it)?.let { ids -> ssCreate = ids } }, onSetMenu = { s -> setSheet = it to s },
+                        onReorder = { openReorder(it.we.id) }, canMove = { d -> items.size >= 2 && vm.canMove(items, it, d) })
                 }
             }
             item {
@@ -307,6 +328,17 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
             dismissButton = { TextButton(onClick = { notesFor = null }) { Text("Cancelar") } })
     }
     setSheet?.let { (e, s) -> SetOptionsSheet(e, s, vm) { setSheet = null } }
+    reorderFocus?.let { focus ->
+        val before = items.map { it.we.id }
+        ReorderDialog(
+            "Ordenar ejercicios", "Arrastra con ≡ o mantén presionado un ejercicio. Las superseries se mueven juntas.",
+            items.map { e ->
+                val done = e.sets.count { it.completed }
+                ReorderEntry(e.we.id, e.name, Fmt.plural(e.sets.size, "serie", "series") + if (done > 0) " · $done hechas" else "", e.ex?.image0, e.we.supersetId)
+            },
+            onDismiss = { reorderFocus = null }, focusKey = focus.ifEmpty { null },
+        ) { ids -> vm.reorder(w.id, before, ids); reorderFocus = null }
+    }
     ssCreate?.let { ids ->
         val members = items.filter { it.we.id in ids }
         val existing = members.firstOrNull { it.we.supersetId != null }?.we
@@ -334,6 +366,7 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
 private fun ExerciseCard(
     e: ExUi, vm: ActiveWorkoutVM, unit: WeightUnit, ssIdx: Int?, member: Int?, first: Boolean, inSuperset: Boolean,
     onOpen: () -> Unit, onRest: () -> Unit, onReps: () -> Unit, onNotes: () -> Unit, onSuperset: () -> Unit, onSetMenu: (WorkoutSetEntity) -> Unit,
+    onReorder: () -> Unit, canMove: (Int) -> Boolean,
 ) {
     var menu by remember { mutableStateOf(false) }
     val info = vm.infos[e.infoKey]
@@ -346,7 +379,8 @@ private fun ExerciseCard(
                 Box(Modifier.clickable(onClickLabel = "ver técnica", role = Role.Button, onClick = onOpen)
                     .clearAndSetSemantics { contentDescription = "Ver técnica de ${e.name}"; role = Role.Button }) { ExerciseThumb(e.ex?.image0, 46.dp) }
                 Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f).clickable(onClick = onOpen)) {
+                // v1.9: mantener presionado el nombre abre "Ordenar ejercicios" con este resaltado.
+                Column(Modifier.weight(1f).combinedClickable(onClickLabel = "ver técnica", onLongClickLabel = "ordenar ejercicios", onLongClick = onReorder, onClick = onOpen)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (ssIdx != null && member != null) { SupersetTag(ssIdx, member); Spacer(Modifier.width(6.dp)) }
                         Text(e.name, style = MaterialTheme.typography.titleMedium, color = RupioColors.Primary, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -362,8 +396,11 @@ private fun ExerciseCard(
                         if (tr != Tracking.DURATION) DropdownMenuItem(text = { Text("Repeticiones objetivo") }, leadingIcon = { Icon(Icons.Rounded.Repeat, null) }, onClick = { menu = false; onReps() })
                         DropdownMenuItem(text = { Text("Notas") }, leadingIcon = { Icon(Icons.Rounded.EditNote, null) }, onClick = { menu = false; onNotes() })
                         DropdownMenuItem(text = { Text("Ver técnica y video") }, leadingIcon = { Icon(Icons.Rounded.PlayCircle, null) }, onClick = { menu = false; onOpen() })
-                        DropdownMenuItem(text = { Text("Subir") }, leadingIcon = { Icon(Icons.Rounded.ArrowUpward, null) }, onClick = { menu = false; vm.move(e, -1) })
-                        DropdownMenuItem(text = { Text("Bajar") }, leadingIcon = { Icon(Icons.Rounded.ArrowDownward, null) }, onClick = { menu = false; vm.move(e, 1) })
+                        if (canMove(-1) || canMove(1)) {
+                            DropdownMenuItem(text = { Text("Ordenar ejercicios") }, leadingIcon = { Icon(Icons.Rounded.SwapVert, null) }, onClick = { menu = false; onReorder() })
+                            DropdownMenuItem(text = { Text("Subir") }, leadingIcon = { Icon(Icons.Rounded.ArrowUpward, null) }, enabled = canMove(-1), onClick = { menu = false; vm.move(e, -1) })
+                            DropdownMenuItem(text = { Text("Bajar") }, leadingIcon = { Icon(Icons.Rounded.ArrowDownward, null) }, enabled = canMove(1), onClick = { menu = false; vm.move(e, 1) })
+                        }
                         DropdownMenuItem(text = { Text("Quitar ejercicio", color = RupioColors.Danger) }, leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = RupioColors.Danger) }, onClick = { menu = false; vm.remove(e) })
                     }
                 }
@@ -406,7 +443,11 @@ private fun ExerciseCard(
             val bigText = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
             SetHeader(tr, unit, compact, bigText, cardio = e.isCardio)
             e.sets.forEachIndexed { i, s ->
-                SetRow(e, s, i, vm, unit, first && i == 0, compact, onSetMenu)
+                key(s.id) {
+                    SwipeToDeleteSet(onDelete = { vm.removeSet(s) }) {
+                        SetRow(e, s, i, vm, unit, first && i == 0, compact, onSetMenu, onDelete = { vm.removeSet(s) })
+                    }
+                }
             }
             // v1.9: "Agregar calentamiento" pone una serie C antes de la primera (convertir la serie 1 te quitaba una de trabajo).
             @OptIn(ExperimentalLayoutApi::class)
@@ -480,7 +521,8 @@ private fun NotificationsOffCard() {
 }
 
 @Composable
-private fun SetRow(e: ExUi, s: WorkoutSetEntity, index: Int, vm: ActiveWorkoutVM, unit: WeightUnit, coach: Boolean, compact: Boolean, onSetMenu: (WorkoutSetEntity) -> Unit) {
+private fun SetRow(e: ExUi, s: WorkoutSetEntity, index: Int, vm: ActiveWorkoutVM, unit: WeightUnit, coach: Boolean, compact: Boolean, onSetMenu: (WorkoutSetEntity) -> Unit,
+                   onDelete: () -> Unit) {
     val tr = e.tracking
     val type = SetType.of(s.setType)
     val prev = vm.previousFor(e, s)
@@ -500,7 +542,11 @@ private fun SetRow(e: ExUi, s: WorkoutSetEntity, index: Int, vm: ActiveWorkoutVM
         Box(
             Modifier.width(W_SET).heightIn(min = CELL_H).clip(RoundedCornerShape(8.dp))
                 .clickable(onClickLabel = "cambiar el tipo de serie o el RPE", role = Role.Button) { onSetMenu(s) }
-                .clearAndSetSemantics { contentDescription = spokenSet; role = Role.Button },
+                .clearAndSetSemantics {
+                    contentDescription = spokenSet; role = Role.Button
+                    // v1.9: con TalkBack, deslizar no sirve: "Eliminar serie" queda como acción de este botón.
+                    customActions = listOf(androidx.compose.ui.semantics.CustomAccessibilityAction("Eliminar serie") { onDelete(); true })
+                },
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -739,6 +785,8 @@ private fun SetOptionsSheet(e: ExUi, s: WorkoutSetEntity, vm: ActiveWorkoutVM, o
                 style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim)
             OutlinedButton(onClick = { vm.removeSet(s); onDismiss() }, modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = RupioColors.Danger)) { Icon(Icons.Rounded.Delete, null); Spacer(Modifier.width(6.dp)); Text("Eliminar serie") }
+            Text("Atajo: desliza la serie hacia la izquierda para eliminarla. Siempre puedes tocar «Deshacer».",
+                style = MaterialTheme.typography.bodySmall, color = RupioColors.TextFaint)
         }
     }
 }
@@ -819,3 +867,40 @@ fun muscleSplitOf(items: List<ExUi>): List<MuscleShare> = MuscleSplit.compute(it
     MuscleSplit.Item(ex.primaryMuscle, ex.secondaryMuscles.split(',').map { it.trim() }.filter { it.isNotEmpty() },
         e.sets.count { it.completed && it.setType != SetType.WARMUP.code })
 })
+
+// ============================================================================ deslizar para eliminar
+/**
+ * v1.9 · Deslizar una serie hacia la IZQUIERDA la elimina (con "Deshacer" 10 s, como al eliminarla desde sus opciones).
+ * Solo en esa dirección (hacia la derecha no hace nada, para no borrar por accidente al desplazar) y hay que pasar el
+ * 40 % del ancho o soltar con impulso. Atrás aparece el rojo con el bote y "Eliminar" para que se entienda qué pasa.
+ */
+@Composable
+private fun SwipeToDeleteSet(onDelete: () -> Unit, content: @Composable () -> Unit) {
+    val state = rememberSwipeToDismissBoxState(positionalThreshold = { total -> total * 0.4f })
+    val haptics = LocalHapticFeedback.current
+    // Un toque al cruzar el umbral: se siente cuándo, si sueltas, se elimina.
+    val armed = state.targetValue == SwipeToDismissBoxValue.EndToStart
+    LaunchedEffect(armed) { if (armed) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick) }
+    SwipeToDismissBox(
+        state = state,
+        // La fila se recorta a su lugar: al deslizar no se sale de la tarjeta.
+        modifier = Modifier.clip(RoundedCornerShape(12.dp)),
+        enableDismissFromStartToEnd = false,
+        onDismiss = { if (it == SwipeToDismissBoxValue.EndToStart) onDelete() },
+        backgroundContent = {
+            val active = state.dismissDirection == SwipeToDismissBoxValue.EndToStart
+            Row(
+                Modifier.fillMaxSize().padding(vertical = 2.dp).clip(RoundedCornerShape(12.dp))
+                    .background(if (active) RupioColors.Danger.copy(alpha = if (armed) 1f else 0.55f) else Color.Transparent)
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End,
+            ) {
+                if (active) {
+                    Text("Eliminar", color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.width(8.dp))
+                    Icon(Icons.Rounded.Delete, null, tint = Color.White)
+                }
+            }
+        },
+    ) { Box(Modifier.background(RupioColors.Surface)) { content() } }
+}

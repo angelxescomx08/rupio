@@ -31,7 +31,11 @@
   "repdb": "close-grip-db-bench-press",
   "tipo": "aproximada"
  },
- "Hammer_Grip_Incline_DB_Bench_Press": null,
+ "Hammer_Grip_Incline_DB_Bench_Press": {
+  "repdb": "incline-db-press",
+  "tipo": "aproximada",
+  "nota": "Aquí las palmas van una frente a la otra (agarre martillo)."
+ },
  "Machine_Bench_Press": {
   "repdb": "chest-press-machine",
   "tipo": "exacta"
@@ -75,14 +79,26 @@
   "tipo": "exacta"
  },
  "Low_Cable_Crossover": null,
- "Flat_Bench_Cable_Flyes": null,
- "Incline_Cable_Flye": null,
+ "Flat_Bench_Cable_Flyes": {
+  "repdb": "db-fly",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra mancuernas; aquí se hace con poleas."
+ },
+ "Incline_Cable_Flye": {
+  "repdb": "incline-dumbbell-fly",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra mancuernas; aquí se hace con poleas."
+ },
  "Single-Arm_Cable_Crossover": null,
  "Cable_Chest_Press": {
   "repdb": "cable-chest-press",
   "tipo": "exacta"
  },
- "Incline_Cable_Chest_Press": null,
+ "Incline_Cable_Chest_Press": {
+  "repdb": "incline-db-press",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra mancuernas; aquí se hace en polea."
+ },
  "Pushups": {
   "repdb": "push-up",
   "tipo": "exacta"
@@ -137,7 +153,8 @@
  },
  "V-Bar_Pullup": {
   "repdb": "neutral-grip-pull-ups",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra agarres paralelos separados; aquí usas el maneral en V con las manos juntas."
  },
  "Wide-Grip_Lat_Pulldown": {
   "repdb": "lat-pulldown",
@@ -169,7 +186,8 @@
  },
  "Rope_Straight-Arm_Pulldown": {
   "repdb": "straight-arm-pulldown",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra una barra; aquí se usa la cuerda."
  },
  "Bent_Over_Barbell_Row": {
   "repdb": "barbell-row",
@@ -199,16 +217,25 @@
   "repdb": "one-arm-seated-cable-row",
   "tipo": "exacta"
  },
- "Elevated_Cable_Rows": null,
+ "Elevated_Cable_Rows": {
+  "repdb": "seated-cable-row",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra el remo sentado en polea baja; aquí jalas hacia el pecho alto con los codos abiertos."
+ },
  "T-Bar_Row_with_Handle": {
   "repdb": "t-bar-row",
   "tipo": "exacta"
  },
  "Lying_T-Bar_Row": {
   "repdb": "chest-supported-machine-row",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra otra máquina de remo con pecho apoyado; el movimiento es el mismo."
  },
- "Leverage_High_Row": null,
+ "Leverage_High_Row": {
+  "repdb": "chest-supported-machine-row",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra un remo con pecho apoyado; aquí jalas desde arriba en la máquina de remo alto."
+ },
  "Leverage_Iso_Row": {
   "repdb": "chest-supported-machine-row",
   "tipo": "aproximada"
@@ -221,8 +248,16 @@
   "repdb": "inverted-row",
   "tipo": "exacta"
  },
- "Incline_Bench_Pull": null,
- "Bent_Over_One-Arm_Long_Bar_Row": null,
+ "Incline_Bench_Pull": {
+  "repdb": "chest-supported-db-row",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra mancuernas; aquí se hace con barra."
+ },
+ "Bent_Over_One-Arm_Long_Bar_Row": {
+  "repdb": "t-bar-row",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra el remo con las dos manos; aquí se hace a una mano."
+ },
  "Barbell_Deadlift": {
   "repdb": "deadlift",
   "tipo": "exacta"
@@ -247,7 +282,11 @@
   "repdb": "back-extension",
   "tipo": "exacta"
  },
- "Weighted_Ball_Hyperextension": null,
+ "Weighted_Ball_Hyperextension": {
+  "repdb": "back-extension",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra un banco de extensiones; aquí se hace sobre fitball."
+ },
  "Good_Morning": {
   "repdb": "good-morning",
   "tipo": "exacta"
@@ -292,7 +331,11 @@
   "repdb": "smith-machine-shoulder-press",
   "tipo": "exacta"
  },
- "Cable_Shoulder_Press": null,
+ "Cable_Shoulder_Press": {
+  "repdb": "dumbbell-shoulder-press",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra mancuernas; aquí se hace en polea."
+ },
  "Push_Press": {
   "repdb": "push-press",
   "tipo": "exacta"
@@ -312,9 +355,14 @@
  },
  "One-Arm_Side_Laterals": {
   "repdb": "lateral-raise",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra los dos brazos; aquí se hace con uno a la vez."
  },
- "Lateral_Raise_-_With_Bands": null,
+ "Lateral_Raise_-_With_Bands": {
+  "repdb": "lateral-raise",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra mancuernas; aquí se hace con banda."
+ },
  "Front_Dumbbell_Raise": {
   "repdb": "dumbbell-front-raise",
   "tipo": "exacta"
@@ -338,7 +386,8 @@
  },
  "Seated_Bent-Over_Rear_Delt_Raise": {
   "repdb": "dumbbell-reverse-fly",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra la versión de pie; aquí se hace sentado, con el pecho cerca de los muslos."
  },
  "Face_Pull": {
   "repdb": "face-pull",
@@ -380,7 +429,11 @@
   "repdb": "db-shrug",
   "tipo": "exacta"
  },
- "Cable_Shrugs": null,
+ "Cable_Shrugs": {
+  "repdb": "shrug",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra una barra; aquí se hace en polea."
+ },
  "Smith_Machine_Upright_Row": {
   "repdb": "smith-machine-upright-row",
   "tipo": "exacta"
@@ -407,7 +460,8 @@
  },
  "Dumbbell_Alternate_Bicep_Curl": {
   "repdb": "bicep-curl",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra los dos brazos juntos; aquí se alternan."
  },
  "Hammer_Curls": {
   "repdb": "hammer-curl",
@@ -415,7 +469,8 @@
  },
  "Alternate_Hammer_Curl": {
   "repdb": "hammer-curl",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra los dos brazos juntos; aquí se alternan."
  },
  "Cross_Body_Hammer_Curl": {
   "repdb": "cross-body-hammer-curl",
@@ -454,7 +509,11 @@
   "tipo": "exacta"
  },
  "Overhead_Cable_Curl": null,
- "Cable_Preacher_Curl": null,
+ "Cable_Preacher_Curl": {
+  "repdb": "preacher-curl",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra barra Z; aquí se hace en polea."
+ },
  "Spider_Curl": {
   "repdb": "ez-bar-spider-curl",
   "tipo": "exacta"
@@ -481,13 +540,18 @@
  },
  "Triceps_Pushdown_-_Rope_Attachment": {
   "repdb": "tricep-pushdown",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra una barra; aquí se usa la cuerda."
  },
  "Triceps_Pushdown_-_V-Bar_Attachment": {
   "repdb": "v-bar-tricep-pushdown",
   "tipo": "exacta"
  },
- "Reverse_Grip_Triceps_Pushdown": null,
+ "Reverse_Grip_Triceps_Pushdown": {
+  "repdb": "tricep-pushdown",
+  "tipo": "aproximada",
+  "nota": "Aquí las palmas van hacia arriba (agarre supino)."
+ },
  "Cable_One_Arm_Tricep_Extension": {
   "repdb": "single-arm-tricep-pushdown",
   "tipo": "aproximada"
@@ -502,7 +566,8 @@
  },
  "EZ-Bar_Skullcrusher": {
   "repdb": "skull-crusher",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra barra recta; aquí se usa barra Z."
  },
  "Lying_Triceps_Press": {
   "repdb": "ez-bar-lying-tricep-extension",
@@ -528,11 +593,16 @@
   "repdb": "close-grip-bench-press",
   "tipo": "exacta"
  },
- "Smith_Machine_Close-Grip_Bench_Press": null,
+ "Smith_Machine_Close-Grip_Bench_Press": {
+  "repdb": "close-grip-bench-press",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra barra libre; aquí se hace en la máquina Smith."
+ },
  "JM_Press": null,
  "Dips_-_Triceps_Version": {
   "repdb": "dips",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra la versión de pecho; para tríceps mantén el torso recto."
  },
  "Parallel_Bar_Dip": {
   "repdb": "dips",
@@ -544,7 +614,8 @@
  },
  "Weighted_Bench_Dip": {
   "repdb": "bench-dips",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra la versión sin peso; aquí pones un disco sobre las piernas."
  },
  "Dip_Machine": {
   "repdb": "seated-dip-machine",
@@ -566,7 +637,11 @@
   "repdb": "barbell-wrist-curl",
   "tipo": "exacta"
  },
- "Palms-Down_Wrist_Curl_Over_A_Bench": null,
+ "Palms-Down_Wrist_Curl_Over_A_Bench": {
+  "repdb": "db-reverse-wrist-curl",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra mancuernas; aquí se hace con barra, palmas hacia abajo."
+ },
  "Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench": {
   "repdb": "db-reverse-wrist-curl",
   "tipo": "exacta"
@@ -663,7 +738,8 @@
  },
  "Barbell_Walking_Lunge": {
   "repdb": "barbell-lunge",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra la zancada en su lugar; aquí avanzas caminando."
  },
  "Bodyweight_Walking_Lunge": {
   "repdb": "walking-lunge",
@@ -683,15 +759,18 @@
  },
  "Dumbbell_Step_Ups": {
   "repdb": "step-ups",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra la versión sin peso; aquí llevas una mancuerna en cada mano."
  },
  "Barbell_Step_Ups": {
   "repdb": "step-ups",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra la versión sin peso; aquí llevas la barra sobre la espalda."
  },
  "Weighted_Sissy_Squat": {
   "repdb": "sissy-squat",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra la versión sin peso."
  },
  "Kettlebell_Pistol_Squat": {
   "repdb": "kettlebell-pistol-squat",
@@ -733,12 +812,20 @@
   "repdb": "seated-leg-curl",
   "tipo": "exacta"
  },
- "Standing_Leg_Curl": null,
+ "Standing_Leg_Curl": {
+  "repdb": "banded-standing-curl",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra la versión con banda; aquí se hace en la máquina de curl femoral de pie."
+ },
  "Ball_Leg_Curl": {
   "repdb": "ball-leg-curl",
   "tipo": "exacta"
  },
- "Glute_Ham_Raise": null,
+ "Glute_Ham_Raise": {
+  "repdb": "nordic-hamstring-curl",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra el curl nórdico en la máquina; el glute ham raise es muy parecido."
+ },
  "Natural_Glute_Ham_Raise": {
   "repdb": "nordic-hamstring-curl",
   "tipo": "exacta"
@@ -751,7 +838,11 @@
   "repdb": "clean",
   "tipo": "exacta"
  },
- "Clean_Deadlift": null,
+ "Clean_Deadlift": {
+  "repdb": "deadlift",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra el peso muerto normal; aquí usas agarre de cargada."
+ },
  "Barbell_Hip_Thrust": {
   "repdb": "hip-thrust",
   "tipo": "exacta"
@@ -842,7 +933,10 @@
   "repdb": "reverse-crunches",
   "tipo": "exacta"
  },
- "Oblique_Crunches": null,
+ "Oblique_Crunches": {
+  "repdb": "cross-body-crunch",
+  "tipo": "exacta"
+ },
  "Sit-Up": {
   "repdb": "sit-ups",
   "tipo": "exacta"
@@ -853,7 +947,8 @@
  },
  "Knee_Hip_Raise_On_Parallel_Bars": {
   "repdb": "captains-chair-knee-raise",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra la silla romana (con respaldo); en paralelas el movimiento es igual."
  },
  "Flat_Bench_Lying_Leg_Raise": {
   "repdb": "lying-leg-raise",
@@ -896,8 +991,16 @@
   "repdb": "hanging-pike",
   "tipo": "exacta"
  },
- "Kettlebell_Thruster": null,
- "Clean_and_Press": null,
+ "Kettlebell_Thruster": {
+  "repdb": "thruster",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra una barra; aquí se hace con pesa rusa."
+ },
+ "Clean_and_Press": {
+  "repdb": "dumbbell-clean-and-press",
+  "tipo": "aproximada",
+  "nota": "La imagen muestra mancuernas; aquí se hace con barra."
+ },
  "Battling_Ropes": {
   "repdb": "battle-ropes",
   "tipo": "exacta"
@@ -920,7 +1023,8 @@
  },
  "Walking_Treadmill": {
   "repdb": "incline-treadmill-walk",
-  "tipo": "aproximada"
+  "tipo": "aproximada",
+  "nota": "La imagen muestra la cinta inclinada; también puedes caminar sin inclinación."
  },
  "Bicycling_Stationary": {
   "repdb": "stationary-bike",

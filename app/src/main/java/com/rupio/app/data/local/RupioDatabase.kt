@@ -71,12 +71,16 @@ object CatalogSeeder {
     /** Súbelo cuando cambie el catálogo (nombres, imágenes…): se vuelve a escribir aunque ya esté completo. */
     // v3 (v1.9): técnica en pasos (posición, movimiento y error común) y ejercicios de cardio por tiempo.
     // v4 (v1.9): imágenes de RepDB; 35 ejercicios quedan sin imagen y 9 con una sola pose.
-    private const val VERSION = 4
+    // v5 (v1.9): 7 más con imagen de RepDB (crunch oblicuo, glute ham raise…); quedan 28 sin imagen.
+    // v6 (v1.9): 15 más con imagen aproximada (otro aparato) y su nota; quedan 13 sin imagen.
+    private const val VERSION = 6
     @Serializable
     private data class Item(
         val id: String, val src: String, val name: String, val primary: String, val secondary: List<String>,
         val equipment: String, val tracking: String, val lower: Boolean, val level: String, val mechanic: String,
         val cue: String, val images: List<String>,
+        /** v1.9: qué cambia entre la imagen y el ejercicio ("La imagen muestra mancuernas; aquí se hace en polea"). */
+        val imageNote: String? = null,
     )
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -95,6 +99,21 @@ object CatalogSeeder {
             )
         })
         prefs.edit().putInt("catalog_v", VERSION).apply()
+    }
+
+    @Volatile private var notes: Map<String, String>? = null
+
+    /**
+     * v1.9: la nota de la imagen de un ejercicio del catálogo (null si la imagen es exacta, no tiene o es personalizado).
+     * Sale del mismo exercises_es.json (se lee una vez y queda en memoria): no hace falta otra columna en la base.
+     */
+    suspend fun imageNote(context: Context, exerciseId: String): String? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val map = notes ?: run {
+            val text = context.assets.open("exercises_es.json").bufferedReader().use { it.readText() }
+            json.decodeFromString<List<Item>>(text).mapNotNull { i -> i.imageNote?.takeIf { it.isNotBlank() }?.let { i.id to it } }.toMap()
+                .also { notes = it }
+        }
+        map[exerciseId]
     }
 }
 

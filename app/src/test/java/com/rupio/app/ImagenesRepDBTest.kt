@@ -59,10 +59,24 @@ class ImagenesRepDBTest {
     @Test fun catalogo_con_y_sin_imagen() = runBlocking {
         setup()
         val all = c.db.exercises().observeAll().first().associateBy { it.id }
-        assertNull(all["press_inclinado_agarre_martillo"]!!.image0)
+        assertNull(all["jm_press"]!!.image0)
+        // v5: estos 7 ya tienen imagen (revisión del 20 nov).
+        assertNotNull(all["press_inclinado_agarre_martillo"]!!.image0)
+        assertNotNull(all["crunch_oblicuo"]!!.image0)
         val banca = all["press_de_banca_con_barra"]!!
         assertEquals("file:///android_asset/ex/Barbell_Bench_Press_-_Medium_Grip__0.webp", banca.image0)
         assertNotNull(banca.image1)
-        assertTrue(all.values.count { !it.isCustom && it.image0 != null } >= 220)
+        assertTrue(all.values.count { !it.isCustom && it.image0 != null } >= 245)
+    }
+
+    /** v1.9: si la imagen muestra otro aparato, la pantalla del ejercicio lo dice debajo de la imagen. */
+    @Test fun detalle_muestra_la_nota_de_la_imagen() = runBlocking {
+        setup()
+        assertEquals("La imagen muestra una barra; aquí se hace en polea.", CatalogSeeder.imageNote(app, "encogimientos_en_polea"))
+        assertNull("imagen exacta: sin nota", CatalogSeeder.imageNote(app, "press_de_banca_con_barra"))
+        assertNull("sin imagen: sin nota", CatalogSeeder.imageNote(app, "jm_press"))
+        app { com.rupio.app.ui.exercises.ExerciseDetailScreen(rememberNavController(), "encogimientos_en_polea") }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("La imagen muestra una barra", substring = true).fetchSemanticsNodes().isNotEmpty() }
+        settle(); compose.onRoot().captureRoboImage("screenshots/118_nota_de_imagen.png")
     }
 }

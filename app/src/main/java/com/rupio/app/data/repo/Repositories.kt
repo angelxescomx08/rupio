@@ -53,6 +53,20 @@ class RoutineRepository(private val db: RupioDatabase, private val userId: () ->
 
     suspend fun delete(id: String) = db.routines().softDelete(id, System.currentTimeMillis())
 
+    /**
+     * v1.9: el orden de las rutinas (arrastrando en "Ordenar rutinas"). Ese orden decide cuál toca después
+     * ([com.rupio.app.domain.RoutineRotation]). Solo se marcan para subir las que cambiaron de lugar; si la lista ya no
+     * coincide (se borró o llegó una rutina mientras tanto) no cambia nada y devuelve false.
+     */
+    suspend fun reorder(orderedIds: List<String>): Boolean {
+        val list = routines.first()
+        val ordered = com.rupio.app.domain.ReorderOps.applyOrder(list, orderedIds, { it.id }, { null }) ?: return false
+        val t = System.currentTimeMillis()
+        val changed = ordered.mapIndexedNotNull { k, r -> if (r.position == k) null else r.copy(position = k, updatedAt = t, dirty = true) }
+        if (changed.isNotEmpty()) db.routines().upsertRoutines(changed)
+        return true
+    }
+
     suspend fun count() = db.routines().count()
 
     /** v1.9 (N7): el nombre que se propone al guardar un entreno como rutina: "Pierna casa (2)" si ya existe "Pierna casa". */

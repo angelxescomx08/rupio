@@ -123,6 +123,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.coil.compose)
+    implementation(libs.reorderable)
     implementation(libs.play.billing)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
