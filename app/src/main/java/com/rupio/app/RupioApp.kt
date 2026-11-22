@@ -95,6 +95,7 @@ class AppContainer(val app: Application) {
         com.rupio.app.data.update.AppUpdateController(
             manager = runCatching { com.google.android.play.core.appupdate.AppUpdateManagerFactory.create(app) }.getOrNull(),
             saveProgress = ::saveBeforeRestart,
+            onInstallFailed = ::clearRestartForUpdate,
         ).also { u ->
             // Al pasar a segundo plano (no al girar la pantalla): «Más tarde» vuelve a preguntarse al regresar a Rupio.
             runCatching {
@@ -116,9 +117,22 @@ class AppContainer(val app: Application) {
     /** v2.2: justo antes de que Play reinicie Rupio para instalar. Se escribe ya (commit): el proceso se cierra enseguida. */
     fun markRestartForUpdate() { updatePrefs.edit().putLong("restart_at", System.currentTimeMillis()).commit() }
 
+    /** v2.2: la instalación falló y Rupio no se reinició: ya no hay que abrir el entreno al volver. */
+    fun clearRestartForUpdate() { updatePrefs.edit().remove("restart_at").apply() }
+
     /**
-     * v2.2: ¿Rupio se acaba de reiniciar para instalar una actualización? Si sí (hace menos de 10 min), MainShell abre el
-     * entreno en curso: «al volver sigues donde ibas». Solo responde que sí una vez.
+     * v2.2: se decide UNA vez, al arrancar el proceso (que es lo que pasa cuando Play instala y vuelve a abrir Rupio).
+     * Antes se preguntaba cada vez que se dibujaba MainShell: si la instalación fallaba, girar el teléfono o cambiar el
+     * modo oscuro en los 10 min siguientes te mandaba solo al entreno.
+     */
+    private val openWorkoutAtStart = java.util.concurrent.atomic.AtomicBoolean(consumeRestartForUpdate())
+
+    /** MainShell: ¿abrir el entreno en curso porque Rupio se acaba de reiniciar para actualizarse? Solo la primera vez. */
+    fun takeOpenWorkoutAfterUpdate(): Boolean = openWorkoutAtStart.getAndSet(false)
+
+    /**
+     * v2.2: ¿Rupio se acaba de reiniciar para instalar una actualización? Si sí (hace menos de 10 min), se abre el
+     * entreno en curso: «al volver sigues donde ibas». Lee y borra la nota.
      */
     fun consumeRestartForUpdate(now: Long = System.currentTimeMillis()): Boolean {
         val at = updatePrefs.getLong("restart_at", 0)

@@ -199,7 +199,8 @@ class V22QaUiTest {
         u.accept(compose.activity.activityResultRegistry.register("play-update", ActivityResultContracts.StartIntentSenderForResult()) { })
         fake.userAcceptsUpdate(); u.onFlowResult(android.app.Activity.RESULT_OK)
         waitText("Descargando la actualización")
-        assertNull("ya se mostró", u.message.value)
+        compose.mainClock.advanceTimeBy(6_000); settle()
+        assertNull("se marca como visto al terminar de mostrarse", u.message.value)
     }
 
     @Test fun h5_con_la_pantalla_principal_va_con_los_demas_avisos() {
@@ -219,6 +220,31 @@ class V22QaUiTest {
             settle()
             assertFalse("no sale dos veces", has("Descargando la actualización"))
         } finally { shell.cancel() }
+    }
+
+    /** #10: si la descarga falla mientras usas otra app, el aviso espera a que vuelvas a Rupio. */
+    @Test fun h10_el_aviso_espera_a_que_rupio_este_en_pantalla() {
+        setUp()
+        val fake = FakeAppUpdateManager(app).apply { setUpdateAvailable(24, AppUpdateType.FLEXIBLE) }
+        val u = AppUpdateController(fake, saveProgress = { true })
+        themed { AppUpdateHost({}, u) }
+        u.check(); idle()
+        u.accept(compose.activity.activityResultRegistry.register("play-update", ActivityResultContracts.StartIntentSenderForResult()) { })
+        fake.userAcceptsUpdate(); u.onFlowResult(android.app.Activity.RESULT_OK)
+        waitText("Descargando la actualización")
+        compose.mainClock.advanceTimeBy(6_000); settle()
+        assertNull("se mostró completo", u.message.value)
+
+        // Otra app en primer plano: Rupio se detiene y la descarga falla.
+        compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+        fake.downloadStarts(); fake.downloadFails(); idle()
+        compose.mainClock.advanceTimeBy(6_000); idle()
+        assertTrue("sigue pendiente mientras no se ve Rupio", u.message.value.orEmpty().contains("No se pudo descargar"))
+
+        compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+        waitText("No se pudo descargar la actualización")
+        compose.mainClock.advanceTimeBy(6_000); settle()
+        assertNull(u.message.value)
     }
 
     /**

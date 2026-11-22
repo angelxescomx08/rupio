@@ -245,7 +245,7 @@ fun MainShell() {
     LaunchedEffect(active?.id) { if (active != null) WorkoutService.start(context) }
     // v2.2: después de «Reiniciar y actualizar» a media sesión, se abre directo el entreno (no Entrenar).
     LaunchedEffect(Unit) {
-        if (c.consumeRestartForUpdate() && c.workouts.active.first() != null) runCatching { nav.navigate(Routes.WORKOUT) { launchSingleTop = true } }
+        if (c.takeOpenWorkoutAfterUpdate() && c.workouts.active.first() != null) runCatching { nav.navigate(Routes.WORKOUT) { launchSingleTop = true } }
     }
     // Pedidos de navegación desde fuera del NavHost (p. ej. "Ver el muro" en la pantalla de gracias).
     LaunchedEffect(Unit) { c.navRequests.collect { r -> runCatching { nav.navigate(r) { launchSingleTop = true } } } }

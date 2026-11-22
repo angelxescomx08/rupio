@@ -63,6 +63,8 @@ class UnsavedWork {
 class AppUpdateController(
     private val manager: AppUpdateManager?,
     private val saveProgress: suspend () -> Boolean,
+    /** La instalación no se hizo (Play la rechazó o falló): se borra la nota de «abrir el entreno al volver». */
+    private val onInstallFailed: () -> Unit = {},
     private val now: () -> Long = System::currentTimeMillis,
 ) {
     enum class Phase { IDLE, AVAILABLE, DOWNLOADING, DOWNLOADED, INSTALLING }
@@ -89,7 +91,8 @@ class AppUpdateController(
      */
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
-    fun messageShown() { _message.value = null }
+    /** Ya se mostró [text]. Si mientras tanto llegó otro aviso, ese se queda para mostrarse después. */
+    fun messageShown(text: String? = null) { if (text == null) _message.value = null else _message.compareAndSet(text, null) }
     private fun onMessage(text: String) { _message.value = text }
 
     /** Última respuesta de Play con una versión disponible. Cada una sirve para iniciar el flujo UNA sola vez. */
@@ -182,9 +185,10 @@ class AppUpdateController(
                 _ui.update { it.copy(phase = Phase.DOWNLOADING, offer = false, progress = progressOf(bytes, total) ?: it.progress) }
             InstallStatus.DOWNLOADED -> showDownloaded()
             InstallStatus.INSTALLING -> _ui.update { it.copy(phase = Phase.INSTALLING, restart = false) }
-            InstallStatus.INSTALLED, InstallStatus.CANCELED -> { stopListening(); _ui.value = Ui() }
+            InstallStatus.INSTALLED -> { stopListening(); _ui.value = Ui() }
+            InstallStatus.CANCELED -> { stopListening(); _ui.value = Ui(); onInstallFailed() }
             InstallStatus.FAILED -> {
-                stopListening(); _ui.value = Ui()
+                stopListening(); _ui.value = Ui(); onInstallFailed()
                 onMessage(tr("No se pudo descargar la actualización. Puedes seguir usando Rupio.", "The update couldn't be downloaded. You can keep using Rupio."))
             }
         }
@@ -242,6 +246,7 @@ class AppUpdateController(
         _ui.update { it.copy(saving = false, phase = Phase.INSTALLING, restart = false) }
         val failed = { e: Exception? ->
             warn("instalar", e)
+            onInstallFailed()
             _ui.update { it.copy(phase = Phase.DOWNLOADED, restart = true, error = tr("No se pudo instalar la actualización. Inténtalo más tarde.",
                 "The update couldn't be installed. Please try again later.")) }
         }

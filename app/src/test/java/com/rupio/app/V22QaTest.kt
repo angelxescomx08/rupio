@@ -212,6 +212,43 @@ class V22QaTest {
         assertFalse("si pasaron más de 10 min no cuenta", c.consumeRestartForUpdate(now = System.currentTimeMillis() + RESTART_RESUME_MS + 1))
     }
 
+    // ------------------------------------------------------------------ #9 no saltar solo al entreno si la instalación falla
+
+    @Test fun h9_si_play_no_puede_instalar_se_borra_la_nota_de_abrir_el_entreno() = runBlocking {
+        val w = c.workouts.startEmpty()
+        val play = downloaded()
+        val refuses = object : com.google.android.play.core.appupdate.AppUpdateManager by play {
+            override fun completeUpdate(): com.google.android.gms.tasks.Task<Void> =
+                com.google.android.gms.tasks.Tasks.forException(com.google.android.play.core.install.InstallException(
+                    com.google.android.play.core.install.model.InstallErrorCode.ERROR_INSTALL_NOT_ALLOWED))
+        }
+        val u = AppUpdateController(refuses, saveProgress = { c.saveBeforeRestart() }, onInstallFailed = c::clearRestartForUpdate)
+        u.check(); idle()
+        u.restartAndInstall(); idle()
+        assertTrue("el aviso sigue para reintentar", u.ui.value.restart)
+        assertFalse("ya no queda la nota", c.consumeRestartForUpdate())
+        c.workouts.discard(w)
+    }
+
+    @Test fun h9_si_la_instalacion_falla_despues_tambien_se_borra() = runBlocking {
+        var failed = 0
+        val fake = downloaded()
+        val u = AppUpdateController(fake, saveProgress = { c.saveBeforeRestart() }, onInstallFailed = { failed++; c.clearRestartForUpdate() })
+        u.check(); idle()
+        u.restartAndInstall(); idle()
+        assertTrue(fake.isInstallSplashScreenVisible)
+        fake.installFails(); idle()
+        assertEquals(1, failed)
+        assertFalse(c.consumeRestartForUpdate())
+    }
+
+    /** La nota solo cuenta al arrancar Rupio: girar o cambiar el modo oscuro (MainShell se vuelve a dibujar) no salta al entreno. */
+    @Test fun h9_en_la_misma_sesion_la_nota_no_manda_al_entreno() {
+        c.markRestartForUpdate()             // se tocó «Reiniciar y actualizar», pero Rupio no se reinició
+        assertFalse("primer dibujo de MainShell", c.takeOpenWorkoutAfterUpdate())
+        assertFalse("después de girar", c.takeOpenWorkoutAfterUpdate())
+    }
+
     @Test fun h8_guardar_antes_de_instalar_marca_el_reinicio() = runBlocking {
         val w = c.workouts.startEmpty()
         val u = AppUpdateController(downloaded(), saveProgress = { c.saveBeforeRestart() })

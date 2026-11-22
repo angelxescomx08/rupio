@@ -29,7 +29,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.rupio.app.Notice
 import com.rupio.app.container
 import com.rupio.app.core.tr
@@ -68,11 +71,17 @@ fun AppUpdateHost(onUpdate: () -> Unit, controller: AppUpdateController = contai
 
     // Avisos cortos («Descargando la actualización…»). En las pestañas van con los demás avisos de la app (MainShell);
     // en inicio de sesión, «Confirma tu correo» o la bienvenida nadie los recibe ahí, así que se muestran aquí.
+    // Solo con Rupio en pantalla: si la descarga falla mientras usas otra app, el aviso espera a que vuelvas (antes salía
+    // en segundo plano y se iba solo a los pocos segundos). Se marca como visto al terminar de mostrarse; si sales a media
+    // vista, se vuelve a mostrar al regresar.
     val snackbar = remember { SnackbarHostState() }
-    LaunchedEffect(controller) {
-        controller.message.filterNotNull().collect { text ->
-            controller.messageShown()
-            if (c.notices.subscriptionCount.value > 0) c.notices.emit(Notice(text)) else snackbar.showSnackbar(text)
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(controller, lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            controller.message.filterNotNull().collect { text ->
+                if (c.notices.subscriptionCount.value > 0) c.notices.emit(Notice(text)) else snackbar.showSnackbar(text)
+                controller.messageShown(text)
+            }
         }
     }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) { SnackbarHost(snackbar, Modifier.padding(top = 4.dp)) }
