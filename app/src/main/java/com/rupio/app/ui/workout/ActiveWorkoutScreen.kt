@@ -314,6 +314,7 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
         nav.navigate(Routes.detail(w.id, 1 + prs)) { popUpTo(Routes.WORKOUT) { inclusive = true } }
     }
     if (finishing) FinishDialog(w.name, items, vm.unmarkedWithData(items), doneSets, volume, unit, ((now - w.startedAt) / 1000).coerceAtLeast(0), bodyKg, { finishing = false },
+        initialNotes = w.notes.orEmpty(), saveDraft = { name, notes -> c.workouts.saveFinishDraft(w.id, name, notes) },
         onDiscard = { finishing = false; discarding = true },
         onMarkAndSave = { name, notes, sets -> finishing = false; scope.launch { vm.finishMarking(w.id, name, notes, sets)?.let { done(it) } } }) { name, notes ->
         finishing = false
@@ -324,7 +325,8 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
     if (discarding && vm.hasAnyData(items)) ConfirmDialog(tr("¿Descartar entrenamiento?", "Discard workout?"), tr("Se borrará todo lo registrado en esta sesión. No se puede deshacer.", "Everything logged in this session will be erased. This can't be undone."), tr("Descartar", "Discard"), { discarding = false }, danger = true) {
         discarding = false; scope.launch { vm.discard(w.id) }
     }
-    if (renaming) RenameDialog(tr("Nombre del entrenamiento", "Workout name"), w.name, { renaming = false }) { vm.rename(w.id, it); renaming = false }
+    if (renaming) RenameDialog(tr("Nombre del entrenamiento", "Workout name"), w.name, { renaming = false },
+        saveBeforeRestart = { text -> text.trim().takeIf { it.isNotBlank() }?.let { c.workouts.renameActive(w.id, it) } }) { vm.rename(w.id, it); renaming = false }
     restFor?.let { e ->
         RestPickerDialog(tr("Descanso · ${e.name}", "Rest · ${e.name}"), e.we.restSec, { restFor = null }, { vm.setRest(e, it); restFor = null }) {
             Text(tr("Arranca solo al marcar ✓ y suena una sola vez al terminar, aunque marques y desmarques. Más de 60–90 s entre series ayuda a rendir; en ejercicios pesados 2–3 min.", "It starts on its own when you tap ✓ and plays only once at the end, even if you check and uncheck. More than 60–90 s between sets helps performance; 2–3 min on heavy lifts."),
@@ -345,6 +347,8 @@ fun ActiveWorkoutScreen(nav: NavHostController) {
     repsFor?.let { e -> RepRangeDialog(e.we.repMin, e.we.repMax, { repsFor = null }) { lo, hi -> vm.setRepRange(e, lo, hi); repsFor = null } }
     notesFor?.let { e ->
         var text by remember(e.we.id) { mutableStateOf(e.we.notes.orEmpty()) }
+        // v2.2: si Rupio se reinicia para actualizarse con este diálogo abierto, lo escrito se guarda.
+        com.rupio.app.ui.update.SaveBeforeRestart { if (text != e.we.notes.orEmpty()) c.workouts.updateNotes(e.we.id, e.we.workoutId, text) }
         AlertDialog(onDismissRequest = { notesFor = null }, title = { Text(tr("Notas · ${e.name}", "Notes · ${e.name}")) },
             text = { OutlinedTextField(text, { text = it }, placeholder = { Text(tr("Ej. asiento en 4, agarre cerrado", "E.g. seat on 4, close grip")) }, minLines = 2) },
             confirmButton = { TextButton(onClick = { vm.setNotes(e, text); notesFor = null }) { Text(tr("Guardar", "Save")) } },
@@ -832,9 +836,13 @@ private fun SetOptionsSheet(e: ExUi, s: WorkoutSetEntity, vm: ActiveWorkoutVM, o
 @Composable
 private fun FinishDialog(name: String, items: List<ExUi>, withData: List<Pair<ExUi, WorkoutSetEntity>>, doneSets: Int, volumeKg: Double, unit: WeightUnit,
                          durationSec: Long, bodyKg: Double?, onDismiss: () -> Unit, onDiscard: () -> Unit = {},
+                         initialNotes: String = "", saveDraft: (suspend (String, String) -> Unit)? = null,
                          onMarkAndSave: (String, String, List<Pair<ExUi, WorkoutSetEntity>>) -> Unit, onSave: (String, String) -> Unit) {
     var n by remember { mutableStateOf(name) }
-    var notes by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf(initialNotes) }
+    // v2.2: nombre y «¿Cómo te sentiste?» se guardan como borrador si Rupio se reinicia para actualizarse (al volver,
+    // «Terminar» los muestra otra vez).
+    if (saveDraft != null) com.rupio.app.ui.update.SaveBeforeRestart { if (n != name || notes != initialNotes) saveDraft(n, notes) }
     // v1.9 (N2): el cardio que anotaste cuenta en la duración (si es más que el reloj) y en las calorías con su MET.
     val cardio = remember(items) { items.filter { it.isCardio }.flatMap { e -> e.sets.filter { it.completed }.map { CalorieEstimate.CardioPart(Cardio.met(e.we.exerciseId), it.durationSec ?: 0) } } }
     val shownSec = maxOf(durationSec, cardio.sumOf { it.sec.toLong() })

@@ -146,9 +146,12 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
         editJobs[setId] = viewModelScope.launch { delay(350); editJobs.remove(setId); flushNow(setId) }
     }
 
+    /** Escrituras de series en curso: así se puede esperar a que terminen antes de reiniciar (ver [unsavedWork]). */
+    private val writeMutex = Mutex()
+
     private suspend fun flushNow(setId: String) {
         val f = pending.remove(setId) ?: return
-        c.workouts.editSet(setId, f)
+        writeMutex.withLock { c.workouts.editSet(setId, f) }
     }
 
     private suspend fun flushAll() {
@@ -157,6 +160,7 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
     }
 
     override fun onCleared() {
+        c.unsaved.unregister(unsavedWork)
         val left = pending.toMap(); pending.clear()
         if (left.isNotEmpty()) c.scope.launch { left.forEach { (id, f) -> c.workouts.editSet(id, f) } }
         super.onCleared()
@@ -164,6 +168,20 @@ class ActiveWorkoutVM(private val c: AppContainer) : ViewModel() {
 
     // ------------------------------------------------------------------ marcar serie + descanso
     private val toggleMutex = Mutex()
+
+    /**
+     * v2.2: antes de reiniciar para instalar una actualización se escribe lo que sigue en espera (lo último que se
+     * tecleó, que se guarda 350 ms después) y se espera a que terminen las escrituras y la ✓ en curso.
+     */
+    private val unsavedWork = object : com.rupio.app.data.update.UnsavedWork.Source {
+        override suspend fun save() {
+            flushAll()
+            toggleMutex.withLock { }
+            writeMutex.withLock { }
+        }
+        override fun hasUnsaved() = pending.isNotEmpty() || writeMutex.isLocked || toggleMutex.isLocked
+    }
+    init { c.unsaved.register(unsavedWork) }
 
     /**
      * Marca/desmarca en serie (Mutex): toques rápidos nunca se cruzan.

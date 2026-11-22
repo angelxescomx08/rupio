@@ -147,7 +147,7 @@ class V17UiTest {
     /** N6: la pantalla del código de 6 dígitos (con "Reenviar" en espera y salida si el correo estaba mal). */
     @Test fun n6_pantalla_del_codigo_del_correo() = runBlocking {
         setup()
-        app { VerifyEmailScreen("ana@ejemplo.com", newAccount = true) }
+        app { VerifyEmailScreen("ana@ejemplo.com", newAccount = true, sentAt = System.currentTimeMillis()) }
         waitText("Confirma tu correo"); waitText("ana@ejemplo.com")
         waitText("Reenviar código en")
         compose.onNode(hasText("Reenviar código en", substring = true)).assertIsNotEnabled()
@@ -156,6 +156,16 @@ class V17UiTest {
         shot("72_confirmar_correo")
         compose.onNodeWithText("¿Correo equivocado? Usar otro correo").performClick(); settle()
         waitText("todavía está vacía")
+    }
+
+    @Test fun n6_error_inicial_de_envio_muestra_reintento_inmediato() = runBlocking {
+        setup()
+        val message = "El servidor no responde (código 503). Inténtalo en unos minutos."
+        app { VerifyEmailScreen("ana@ejemplo.com", initialSendError = message) }
+
+        waitText(message)
+        compose.onNodeWithText("Reenviar código").assertIsEnabled()
+        compose.onNodeWithText("Te enviamos un código", substring = true).assertDoesNotExist()
     }
 
     /** N3: al entrar con una cuenta que ya existe desde el modo sin cuenta, se avisa que se juntan los datos. */

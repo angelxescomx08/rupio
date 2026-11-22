@@ -600,6 +600,16 @@ class WorkoutRepository(
         dao.upsertWorkout(w.copy(name = name, updatedAt = now()))
     }
 
+    /**
+     * v2.2: lo escrito en «Terminar» (nombre y «¿Cómo te sentiste?») sin guardar, antes de reiniciar Rupio para instalar
+     * una actualización. El entreno sigue en curso; al volver, «Terminar» lo muestra.
+     */
+    suspend fun saveFinishDraft(workoutId: String, name: String, notes: String) {
+        val w = dao.get(workoutId) ?: return
+        if (w.endedAt != null) return
+        dao.upsertWorkout(w.copy(name = name.trim().ifBlank { w.name }, notes = notes.ifBlank { null }, updatedAt = now()))
+    }
+
     // ------------------------------------------------------------------ historial del ejercicio
     suspend fun previousSessions(exerciseId: String, excludeWorkout: String, max: Int = 6): List<SessionData> =
         dao.previousSets(exerciseId, excludeWorkout).groupBy { it.workoutId }.values.take(max).map { rows ->

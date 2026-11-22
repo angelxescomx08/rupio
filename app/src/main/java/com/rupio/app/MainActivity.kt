@@ -75,6 +75,7 @@ import com.rupio.app.ui.learn.TutorialScreen
 import com.rupio.app.ui.routine.RoutineGuideScreen
 import com.rupio.app.ui.stats.ProgressStoryScreen
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.rupio.app.core.I18n
 import com.rupio.app.core.tr
@@ -82,6 +83,14 @@ import com.rupio.app.data.prefs.AppearancePrefs
 import com.rupio.app.ui.theme.Appearance
 
 class MainActivity : ComponentActivity() {
+    /**
+     * v2.2: respuesta del diálogo de Google Play al pedir una actualización flexible (Activity Result API). Se registra
+     * al crear la pantalla, como pide la API; si la pantalla se recrea, la respuesta llega al launcher nuevo.
+     */
+    private val updateLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { r ->
+        (application as RupioApp).container.updates.onFlowResult(r.resultCode)
+    }
+
     /**
      * v2.0: antes de Android 13 el idioma elegido en Rupio se aplica aquí a la configuración de la pantalla, para que
      * los textos propios de Android y Material (p. ej. "Cerrar" de un menú) salgan en el mismo idioma. En Android 13+
@@ -128,7 +137,9 @@ class MainActivity : ComponentActivity() {
                             val st = settings
                             if (st == null) Box(Modifier.fillMaxSize())
                             // v1.7 (N6): la cuenta recién creada no está lista hasta escribir el código del correo.
-                            else if (s.needsVerification) com.rupio.app.ui.auth.VerifyEmailScreen(s.email, s.newAccount)
+                            else if (s.needsVerification) com.rupio.app.ui.auth.VerifyEmailScreen(s.email, s.newAccount,
+                                initialSendError = s.verificationSendError ?: if (s.verificationSendFailed) com.rupio.app.ui.auth.earlierSendFailedMessage() else null,
+                                sentAt = s.verificationSentAt)
                             else if (!st.onboardingDone) OnboardingScreen(s.name) { scope.launch { container.settings.setOnboardingDone(true) } }
                             else MainShell()
                         }
@@ -137,6 +148,7 @@ class MainActivity : ComponentActivity() {
                     val signOut by container.signOut.state.collectAsStateWithLifecycle()
                     SignOutOverlay(signOut, onRetry = container.signOut::retry, onExitAnyway = container.signOut::exitWithoutUpload, onCancel = container.signOut::cancel)
                     SupportThanksHost()
+                    com.rupio.app.ui.update.AppUpdateHost(onUpdate = { container.updates.accept(updateLauncher) })
                     val deleted by container.accountDeleted.collectAsStateWithLifecycle()
                     if (deleted) com.rupio.app.ui.legal.AccountDeletedDialog { container.accountDeleted.value = false }
                   }
@@ -150,6 +162,8 @@ class MainActivity : ComponentActivity() {
         (application as RupioApp).container.refreshZone()
         // Un pago pendiente (p. ej. en OXXO) pudo completarse mientras la app no estaba a la vista.
         (application as RupioApp).container.support.refresh()
+        // v2.2: ¿hay una versión nueva en Google Play, o una descarga que ya terminó y falta instalar?
+        (application as RupioApp).container.updates.check()
     }
 }
 
@@ -229,6 +243,10 @@ fun MainShell() {
     val active by c.workouts.active.collectAsStateWithLifecycle(initialValue = null)
     val context = LocalContext.current
     LaunchedEffect(active?.id) { if (active != null) WorkoutService.start(context) }
+    // v2.2: después de «Reiniciar y actualizar» a media sesión, se abre directo el entreno (no Entrenar).
+    LaunchedEffect(Unit) {
+        if (c.consumeRestartForUpdate() && c.workouts.active.first() != null) runCatching { nav.navigate(Routes.WORKOUT) { launchSingleTop = true } }
+    }
     // Pedidos de navegación desde fuera del NavHost (p. ej. "Ver el muro" en la pantalla de gracias).
     LaunchedEffect(Unit) { c.navRequests.collect { r -> runCatching { nav.navigate(r) { launchSingleTop = true } } } }
     // El permiso de notificaciones ya NO se pide al abrir la app: se pide al empezar el primer entreno, después de

@@ -84,6 +84,49 @@ class AppContainer(val app: Application) {
     /** Pedidos de navegación desde fuera del NavHost (p. ej. "Ver el muro" en la pantalla de gracias). */
     val navRequests = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 2)
 
+    /** v2.2: lo que sigue en memoria sin escribir (p. ej. una serie a medio teclear). Se guarda antes de reiniciar. */
+    val unsaved = com.rupio.app.data.update.UnsavedWork()
+
+    /**
+     * v2.2: actualizaciones flexibles de Google Play. Se crea la primera vez que se abre la pantalla (no retrasa el
+     * arranque). Sin Google Play el manager es null y nada cambia.
+     */
+    val updates by lazy {
+        com.rupio.app.data.update.AppUpdateController(
+            manager = runCatching { com.google.android.play.core.appupdate.AppUpdateManagerFactory.create(app) }.getOrNull(),
+            saveProgress = ::saveBeforeRestart,
+        ).also { u ->
+            // Al pasar a segundo plano (no al girar la pantalla): «Más tarde» vuelve a preguntarse al regresar a Rupio.
+            runCatching {
+                androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.addObserver(object : androidx.lifecycle.DefaultLifecycleObserver {
+                    override fun onStop(owner: androidx.lifecycle.LifecycleOwner) = u.onAppBackgrounded()
+                })
+            }
+        }
+    }
+
+    /**
+     * v2.2: antes de «Reiniciar y actualizar». Escribe lo pendiente y comprueba que quedó guardado; si sí, deja dicho que
+     * al volver se abra el entreno en curso.
+     */
+    suspend fun saveBeforeRestart(): Boolean = unsaved.saveAll().also { saved -> if (saved) markRestartForUpdate() }
+
+    private val updatePrefs get() = app.getSharedPreferences("rupio_update", Context.MODE_PRIVATE)
+
+    /** v2.2: justo antes de que Play reinicie Rupio para instalar. Se escribe ya (commit): el proceso se cierra enseguida. */
+    fun markRestartForUpdate() { updatePrefs.edit().putLong("restart_at", System.currentTimeMillis()).commit() }
+
+    /**
+     * v2.2: ¿Rupio se acaba de reiniciar para instalar una actualización? Si sí (hace menos de 10 min), MainShell abre el
+     * entreno en curso: «al volver sigues donde ibas». Solo responde que sí una vez.
+     */
+    fun consumeRestartForUpdate(now: Long = System.currentTimeMillis()): Boolean {
+        val at = updatePrefs.getLong("restart_at", 0)
+        if (at == 0L) return false
+        updatePrefs.edit().remove("restart_at").apply()
+        return now - at in 0..RESTART_RESUME_MS
+    }
+
     init {
         // v2.1: los cambios se suben solos, en lote, unos minutos después (SyncEngine.soon). Durante un entreno no: cada
         // serie marcada sería una subida; el entreno se sube completo al terminarlo (SyncEngine.now). Sin cuenta, nunca.
@@ -295,6 +338,9 @@ class AppContainer(val app: Application) {
 
 /** El nombre que se pone si no escribes uno, en cada idioma. */
 internal val DEFAULT_NAMES = setOf("Atleta", "Athlete")
+
+/** v2.2: tiempo máximo entre «Reiniciar y actualizar» y la nueva apertura para volver directo al entreno. */
+internal const val RESTART_RESUME_MS = 10 * 60_000L
 
 private val OFFLINE: String get() = tr("Sin conexión. Revisa tu internet e inténtalo de nuevo.", "No connection. Check your internet and try again.")
 

@@ -41,7 +41,12 @@ sealed interface AuthState {
      * [newAccount]: la cuenta se acaba de crear en este teléfono (si el correo estaba mal, se puede descartar).
      */
     data class SignedIn(val userId: String, val email: String, val name: String, val localOnly: Boolean, val sessionExpired: Boolean = false,
-                        val needsVerification: Boolean = false, val newAccount: Boolean = false) : AuthState
+                        val needsVerification: Boolean = false, val newAccount: Boolean = false,
+                        val verificationSendError: String? = null,
+                        /** v2.2: el último envío del código falló (se guarda: sigue así al volver a abrir la app). */
+                        val verificationSendFailed: Boolean = false,
+                        /** v2.2: hora (ms) del último envío del código que sí salió; 0 = no se sabe. */
+                        val verificationSentAt: Long = 0) : AuthState
 }
 
 /** Por qué no se pudo obtener un JWT: cada causa se explica distinto al usuario (ver SyncProblem). */
@@ -124,7 +129,8 @@ class AuthRepository(
         secure.put("cred_email", null); secure.put("cred_pass", null)
         val uid = secure.get("user_id")
         val loaded = if (uid != null) AuthState.SignedIn(uid, secure.get("email") ?: "", secure.get("name") ?: "", secure.get("local_only") == "1",
-            sessionExpired = secure.get("session_expired") == "1", needsVerification = secure.get("verify_pending") == "1", newAccount = secure.get("verify_new") == "1")
+            sessionExpired = secure.get("session_expired") == "1", needsVerification = secure.get("verify_pending") == "1", newAccount = secure.get("verify_new") == "1",
+            verificationSendFailed = secure.get("verify_send_failed") == "1", verificationSentAt = secure.get("verify_sent_at")?.toLongOrNull() ?: 0)
         else AuthState.SignedOut
         // Si mientras tanto alguien ya inició sesión o entró sin cuenta, no se pisa.
         if (_state.compareAndSet(AuthState.Loading, loaded) && jwt == null) {
@@ -176,23 +182,58 @@ class AuthRepository(
         // v1.7 (N6): la cuenta no está lista hasta confirmar el correo con el código de 6 dígitos.
         val verified = (user["emailVerified"] as? kotlinx.serialization.json.JsonPrimitive)?.booleanOrNull ?: true
         val isNew = !verified && path == "/sign-up/email"
+        val verificationSendError = if (verified) null else try {
+            requestVerificationCode(email.trim())
+            null
+        } catch (e: AuthException) {
+            e.message
+        }
+        val sentAt = if (verified || verificationSendError != null) 0L else System.currentTimeMillis()
         adopt?.invoke(uid)
         saveCookies(r.cookies, merge = false)
         secure.put("user_id", uid); secure.put("email", email.trim()); secure.put("name", displayName); secure.put("local_only", "0")
         secure.put("session_expired", null)
         secure.put("verify_pending", if (verified) null else "1"); secure.put("verify_new", if (isNew) "1" else null)
+        rememberSend(failed = verificationSendError != null, sentAt = sentAt)
         jwt = null; jwtExp = 0; secure.put("jwt", null)
         r.jwt?.let { storeJwt(it) }
         lastFailure = JwtFailure.NONE
-        _state.value = AuthState.SignedIn(uid, email.trim(), displayName, localOnly = false, needsVerification = !verified, newAccount = isNew)
+        _state.value = AuthState.SignedIn(uid, email.trim(), displayName, localOnly = false,
+            needsVerification = !verified, newAccount = isNew, verificationSendError = verificationSendError,
+            verificationSendFailed = verificationSendError != null, verificationSentAt = sentAt)
         runCatching { validJwt() }
-        if (!verified) runCatching { sendVerificationCode() }
     }
 
     /** Manda (otra vez) el código de 6 dígitos al correo de la cuenta. */
     suspend fun sendVerificationCode() {
         val s = state.value as? AuthState.SignedIn ?: throw AuthException(tr("No hay una cuenta abierta.", "No account is signed in."))
-        postAuth("/email-otp/send-verification-otp", buildJsonObject { put("email", s.email); put("type", "email-verification") })
+        try {
+            requestVerificationCode(s.email)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            rememberSend(failed = true, sentAt = 0)
+            (state.value as? AuthState.SignedIn)?.let { cur -> _state.compareAndSet(cur, cur.copy(verificationSendFailed = true, verificationSentAt = 0)) }
+            throw e
+        }
+        val sentAt = System.currentTimeMillis()
+        rememberSend(failed = false, sentAt = sentAt)
+        (state.value as? AuthState.SignedIn)?.let { cur ->
+            _state.compareAndSet(cur, cur.copy(verificationSendError = null, verificationSendFailed = false, verificationSentAt = sentAt))
+        }
+    }
+
+    private suspend fun requestVerificationCode(email: String) {
+        postAuth("/email-otp/send-verification-otp", buildJsonObject { put("email", email); put("type", "email-verification") })
+    }
+
+    /**
+     * v2.2: si el último envío del código falló y cuándo salió el último bueno. Al volver a abrir la app, la pantalla del
+     * código muestra el error y calcula la espera de «Reenviar código» con esto (antes siempre empezaba en 60 s).
+     */
+    private fun rememberSend(failed: Boolean, sentAt: Long) {
+        secure.put("verify_send_failed", if (failed) "1" else null)
+        secure.put("verify_sent_at", if (sentAt > 0) sentAt.toString() else null)
     }
 
     /** Confirma el correo con el código. Desde aquí la cuenta queda lista y empieza a respaldarse. */
@@ -202,7 +243,9 @@ class AuthRepository(
         saveCookies(r.cookies, merge = true)
         r.jwt?.let { storeJwt(it) }
         secure.put("verify_pending", null); secure.put("verify_new", null)
-        _state.value = (state.value as? AuthState.SignedIn ?: s).copy(needsVerification = false, newAccount = false)
+        rememberSend(failed = false, sentAt = 0)
+        _state.value = (state.value as? AuthState.SignedIn ?: s).copy(needsVerification = false, newAccount = false, verificationSendError = null,
+            verificationSendFailed = false, verificationSentAt = 0)
     }
 
     /**

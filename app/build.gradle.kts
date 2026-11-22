@@ -36,8 +36,8 @@ android {
         minSdk = 26
         // Play exige Android 16 (API 36) para apps nuevas y actualizaciones desde el 31 ago 2026.
         targetSdk = 36
-        versionCode = 21
-        versionName = "2.1"
+        versionCode = 23
+        versionName = "2.2"
         // URLs públicas del proyecto Neon "Rupio" (no son secretos). Se pueden sobreescribir en local.properties.
         val authUrl = cfg("NEON_AUTH_URL").ifBlank { "https://ep-wild-art-bdlip6s4.neonauth.c-8.us-east-2.aws.neon.tech/neondb/auth" }
         val dataUrl = cfg("NEON_DATA_API_URL").ifBlank { "https://ep-wild-art-bdlip6s4.apirest.c-8.us-east-2.aws.neon.tech/neondb/rest/v1" }
@@ -128,6 +128,8 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.reorderable)
     implementation(libs.play.billing)
+    implementation(libs.play.app.update)
+    implementation(libs.androidx.fragment)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

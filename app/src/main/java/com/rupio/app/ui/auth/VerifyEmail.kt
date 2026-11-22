@@ -31,6 +31,7 @@ import com.rupio.app.data.auth.AuthException
 import com.rupio.app.ui.components.ConfirmDialog
 import com.rupio.app.ui.components.LoadingButton
 import com.rupio.app.ui.theme.RupioColors
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -45,21 +46,42 @@ fun cleanOtp(raw: String): String = raw.filter { it.isDigit() }.take(6)
  * Así un correo mal escrito no se queda con tus datos, y "¿Olvidaste tu contraseña?" sí te va a llegar.
  * Mientras tanto no se sube nada a la nube. tr("Usar otro correo", "Use another email") cancela la cuenta nueva (vacía) y regresa.
  */
+/** v2.2: al volver a abrir la app después de un envío fallido (el mensaje exacto no se guarda). */
+fun earlierSendFailedMessage(): String =
+    tr("No pudimos enviarte el código. Toca «Reenviar código» para intentarlo de nuevo.", "We couldn't send you the code. Tap \"Resend code\" to try again.")
+
+/**
+ * v2.2: segundos que faltan para poder tocar «Reenviar código». Se cuenta desde el último envío que sí salió
+ * ([sentAt], ms); si falló o no se sabe cuándo fue, se puede reenviar ya.
+ */
+fun resendWaitSec(sendFailed: Boolean, sentAt: Long, now: Long = System.currentTimeMillis()): Int {
+    if (sendFailed || sentAt <= 0) return 0
+    val elapsed = ((now - sentAt) / 1000).coerceAtLeast(0)
+    return (RESEND_COOLDOWN_SEC - elapsed).coerceIn(0, RESEND_COOLDOWN_SEC.toLong()).toInt()
+}
+
+/**
+ * [initialSendError]: el último envío del código falló (se muestra y se puede reenviar ya). [sentAt]: hora del último
+ * envío que sí salió (ms), para calcular la espera de «Reenviar código».
+ */
 @Composable
-fun VerifyEmailScreen(email: String, newAccount: Boolean = true) {
+fun VerifyEmailScreen(email: String, newAccount: Boolean = true, initialSendError: String? = null, sentAt: Long = 0) {
     val c = container()
     val scope = rememberCoroutineScope()
     var code by rememberSaveable { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var info by remember { mutableStateOf<String?>(null) }
-    var wait by rememberSaveable { mutableIntStateOf(RESEND_COOLDOWN_SEC) }
+    var sending by remember { mutableStateOf(false) }
+    // v2.2: los mensajes sobreviven a girar el teléfono (antes «Te enviamos un código nuevo» desaparecía).
+    var error by rememberSaveable { mutableStateOf<String?>(null) }
+    var sendError by rememberSaveable { mutableStateOf(initialSendError) }
+    var info by rememberSaveable { mutableStateOf<String?>(null) }
+    var wait by rememberSaveable { mutableIntStateOf(resendWaitSec(initialSendError != null, sentAt)) }
     var leave by remember { mutableStateOf(false) }
     var leaving by remember { mutableStateOf(false) }
     LaunchedEffect(wait > 0) { while (wait > 0) { delay(1000); wait-- } }
 
     fun confirm() {
-        if (busy) return
+        if (busy || sending || leaving) return
         if (code.length != 6) { error = tr("Escribe los 6 dígitos del código.", "Enter the 6 digits of the code."); return }
         error = null; info = null; busy = true
         scope.launch {
@@ -80,7 +102,7 @@ fun VerifyEmailScreen(email: String, newAccount: Boolean = true) {
         Spacer(Modifier.height(20.dp))
         Text(tr("Confirma tu correo", "Confirm your email"), style = MaterialTheme.typography.displaySmall)
         Spacer(Modifier.height(8.dp))
-        Text(tr("Te enviamos un código de 6 dígitos a $email. Escríbelo para terminar de crear tu cuenta.", "We sent a 6-digit code to $email. Enter it to finish creating your account."),
+        Text(tr("Escribe el código de 6 dígitos para confirmar $email.", "Enter the 6-digit code to confirm $email."),
             style = MaterialTheme.typography.bodyLarge, color = RupioColors.TextDim)
         Spacer(Modifier.height(4.dp))
         Text(tr("Si no lo ves en unos minutos, revisa la carpeta de spam o de promociones.", "If you don't see it in a few minutes, check your spam or promotions folder."), style = MaterialTheme.typography.bodyMedium, color = RupioColors.TextDim)
@@ -94,9 +116,9 @@ fun VerifyEmailScreen(email: String, newAccount: Boolean = true) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { confirm() }),
         )
-        (error ?: info)?.let {
+        (error ?: sendError ?: info)?.let {
             Spacer(Modifier.height(8.dp))
-            val isError = error != null
+            val isError = error != null || sendError != null
             Surface(color = (if (isError) RupioColors.Danger else RupioColors.Success).copy(alpha = 0.12f), shape = RoundedCornerShape(12.dp)) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(if (isError) Icons.Rounded.ErrorOutline else Icons.Rounded.CheckCircle, null, tint = if (isError) RupioColors.Danger else RupioColors.Success); Spacer(Modifier.width(8.dp))
@@ -106,12 +128,22 @@ fun VerifyEmailScreen(email: String, newAccount: Boolean = true) {
         }
         Spacer(Modifier.height(20.dp))
         LoadingButton(tr("Confirmar", "Confirm"), loading = busy, onClick = { confirm() }, modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), loadingText = tr("Confirmando…", "Confirming…"))
-        TextButton(enabled = wait == 0 && !busy, onClick = {
-            error = null; info = null
+        TextButton(enabled = wait == 0 && !busy && !sending && !leaving, onClick = {
+            error = null; sendError = null; info = null; sending = true
             scope.launch {
-                try { c.auth.sendVerificationCode(); info = tr("Te enviamos un código nuevo. El anterior ya no sirve.", "We sent you a new code. The previous one no longer works."); wait = RESEND_COOLDOWN_SEC }
-                catch (e: AuthException) { error = e.message }
-                catch (e: Exception) { error = tr("No se pudo enviar el código (código V2). Inténtalo de nuevo.", "The code couldn't be sent (code V2). Please try again.") }
+                try {
+                    c.auth.sendVerificationCode()
+                    info = tr("Te enviamos un código nuevo. El anterior ya no sirve.", "We sent you a new code. The previous one no longer works.")
+                    wait = RESEND_COOLDOWN_SEC
+                } catch (e: AuthException) {
+                    sendError = e.message
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    sendError = tr("No se pudo enviar el código (código V2). Inténtalo de nuevo.", "The code couldn't be sent (code V2). Please try again.")
+                } finally {
+                    sending = false
+                }
             }
         }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Text(if (wait > 0) tr("Reenviar código en $wait s", "Resend code in $wait s") else tr("Reenviar código", "Resend code"))
@@ -119,7 +151,7 @@ fun VerifyEmailScreen(email: String, newAccount: Boolean = true) {
         Spacer(Modifier.height(8.dp))
         HorizontalDivider(color = RupioColors.Outline)
         Spacer(Modifier.height(8.dp))
-        TextButton(enabled = !busy && !leaving, onClick = { leave = true }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+        TextButton(enabled = !busy && !sending && !leaving, onClick = { leave = true }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Text(tr("¿Correo equivocado? Usar otro correo", "Wrong email? Use another one"))
         }
         Text(tr("Mientras no confirmes tu correo, nada se sube a la nube.", "Until you confirm your email, nothing is uploaded to the cloud."), style = MaterialTheme.typography.bodySmall, color = RupioColors.TextDim,

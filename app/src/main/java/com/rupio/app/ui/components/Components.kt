@@ -420,8 +420,11 @@ const val UNDO_MS = 10_000L
  * escribes reemplaza el nombre (antes había que tocar el campo primero).
  */
 @Composable
-fun RenameDialog(title: String, initial: String, onDismiss: () -> Unit, below: (@Composable (String) -> Unit)? = null, onSave: (String) -> Unit) {
+fun RenameDialog(title: String, initial: String, onDismiss: () -> Unit, below: (@Composable (String) -> Unit)? = null,
+                 /** v2.2: guarda lo escrito si Rupio se reinicia para actualizarse con el diálogo abierto. */
+                 saveBeforeRestart: (suspend (String) -> Unit)? = null, onSave: (String) -> Unit) {
     var value by remember { mutableStateOf(androidx.compose.ui.text.input.TextFieldValue(initial, androidx.compose.ui.text.TextRange(0, initial.length))) }
+    if (saveBeforeRestart != null) com.rupio.app.ui.update.SaveBeforeRestart { if (value.text != initial) saveBeforeRestart(value.text) }
     val focus = remember { androidx.compose.ui.focus.FocusRequester() }
     val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     LaunchedEffect(Unit) { delay(150); runCatching { focus.requestFocus(); keyboard?.show() } }

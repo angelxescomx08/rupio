@@ -254,6 +254,7 @@ class V17Test {
     private class FakeAuth {
         val paths = mutableListOf<String>(); val bodies = mutableListOf<String>()
         var verified = false
+        var otpSendStatus = 200
         private fun jwt() = "h." + Base64.getUrlEncoder().withoutPadding()
             .encodeToString("""{"sub":"u-ana","exp":${System.currentTimeMillis() / 1000 + 900}}""".toByteArray()) + ".s"
         val interceptor = Interceptor { chain ->
@@ -266,7 +267,7 @@ class V17Test {
             when (path) {
                 "/sign-up/email", "/sign-in/email" -> resp(200, """{"token":"t","user":{"id":"u-ana","name":"Ana","email":"ana@ejemplo.com","emailVerified":$verified}}""", auth = true)
                 "/get-session" -> resp(200, """{"session":{"token":"t"},"user":{"id":"u-ana"}}""", auth = true)
-                "/email-otp/send-verification-otp" -> resp(200, """{"success":true}""")
+                "/email-otp/send-verification-otp" -> if (otpSendStatus == 200) resp(200, """{"success":true}""") else resp(otpSendStatus, "{}")
                 "/email-otp/verify-email" -> if (bodies.last().contains("\"otp\":\"654321\"")) { verified = true; resp(200, """{"status":true,"user":{"id":"u-ana","emailVerified":true}}""", auth = true) }
                     else resp(400, """{"code":"INVALID_OTP","message":"Invalid OTP"}""")
                 else -> resp(404, "{}")
@@ -275,6 +276,25 @@ class V17Test {
     }
 
     /** N6: la cuenta recién creada pide el código de 6 dígitos del correo y no se respalda nada hasta confirmarlo. */
+    @Test fun n6_errorAlEnviarConservaLaCuentaYPermiteReintentar() = runBlocking {
+        val fake = FakeAuth().apply { otpSendStatus = 503 }
+        val settings = SettingsStore(app, "https://auth.ejemplo/neondb/auth", "https://api.ejemplo/rest/v1")
+        val auth = AuthRepository(SecureStore(app), settings, NeonAuthClient(OkHttpClient.Builder().addInterceptor(fake.interceptor).build()))
+
+        auth.signUp("Ana", "ana@ejemplo.com", "secreta123")
+
+        val session = auth.state.value as AuthState.SignedIn
+        assertTrue(session.needsVerification)
+        assertTrue(session.newAccount)
+        assertTrue(session.verificationSendError.orEmpty().contains("503"))
+
+        fake.otpSendStatus = 200
+        auth.sendVerificationCode()
+        assertEquals(2, fake.paths.count { it == "/email-otp/send-verification-otp" })
+        auth.verifyEmail("654321")
+        assertFalse(auth.needsVerification)
+    }
+
     @Test fun n6_cuentaNuevaPideCodigoAntesDeEstarLista() = runBlocking {
         val fake = FakeAuth(); val secure = SecureStore(app)
         val settings = SettingsStore(app, "https://auth.ejemplo/neondb/auth", "https://api.ejemplo/rest/v1")
